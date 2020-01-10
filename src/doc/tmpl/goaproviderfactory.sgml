@@ -1,0 +1,79 @@
+<!-- ##### SECTION Title ##### -->
+goaproviderfactory
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### STRUCT GoaProviderFactory ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT GoaProviderFactoryClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
+@get_provider: 
+@get_providers: 
+@get_providers_finish: 
+
+<!-- ##### MACRO GOA_PROVIDER_FACTORY_EXTENSION_POINT_NAME ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### FUNCTION goa_provider_factory_get_provider ##### -->
+<para>
+
+</para>
+
+@factory: 
+@provider_name: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_provider_factory_get_providers ##### -->
+<para>
+
+</para>
+
+@factory: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION goa_provider_factory_get_providers_finish ##### -->
+<para>
+
+</para>
+
+@factory: 
+@out_providers: 
+@result: 
+@error: 
+@Returns: 
+
+

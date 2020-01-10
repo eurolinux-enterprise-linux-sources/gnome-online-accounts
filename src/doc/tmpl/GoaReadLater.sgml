@@ -1,0 +1,167 @@
+<!-- ##### SECTION Title ##### -->
+GoaReadLater
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### STRUCT GoaReadLater ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT GoaReadLaterIface ##### -->
+<para>
+
+</para>
+
+@parent_iface: 
+
+<!-- ##### FUNCTION goa_read_later_interface_info ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_read_later_override_properties ##### -->
+<para>
+
+</para>
+
+@klass: 
+@property_id_begin: 
+@Returns: 
+
+
+<!-- ##### STRUCT GoaReadLaterProxy ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT GoaReadLaterProxyClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
+
+<!-- ##### FUNCTION goa_read_later_proxy_new ##### -->
+<para>
+
+</para>
+
+@connection: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION goa_read_later_proxy_new_finish ##### -->
+<para>
+
+</para>
+
+@res: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_read_later_proxy_new_sync ##### -->
+<para>
+
+</para>
+
+@connection: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_read_later_proxy_new_for_bus ##### -->
+<para>
+
+</para>
+
+@bus_type: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION goa_read_later_proxy_new_for_bus_finish ##### -->
+<para>
+
+</para>
+
+@res: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_read_later_proxy_new_for_bus_sync ##### -->
+<para>
+
+</para>
+
+@bus_type: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@error: 
+@Returns: 
+
+
+<!-- ##### STRUCT GoaReadLaterSkeleton ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT GoaReadLaterSkeletonClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
+
+<!-- ##### FUNCTION goa_read_later_skeleton_new ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+

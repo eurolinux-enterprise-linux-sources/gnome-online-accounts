@@ -1,0 +1,224 @@
+<!-- ##### SECTION Title ##### -->
+GoaContacts
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### STRUCT GoaContacts ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### ARG GoaContacts:accept-ssl-errors ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG GoaContacts:uri ##### -->
+<para>
+
+</para>
+
+<!-- ##### STRUCT GoaContactsIface ##### -->
+<para>
+
+</para>
+
+@parent_iface: 
+@get_accept_ssl_errors: 
+@get_uri: 
+
+<!-- ##### FUNCTION goa_contacts_interface_info ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_contacts_override_properties ##### -->
+<para>
+
+</para>
+
+@klass: 
+@property_id_begin: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_contacts_get_accept_ssl_errors ##### -->
+<para>
+
+</para>
+
+@object: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_contacts_set_accept_ssl_errors ##### -->
+<para>
+
+</para>
+
+@object: 
+@value: 
+
+
+<!-- ##### FUNCTION goa_contacts_get_uri ##### -->
+<para>
+
+</para>
+
+@object: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_contacts_dup_uri ##### -->
+<para>
+
+</para>
+
+@object: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_contacts_set_uri ##### -->
+<para>
+
+</para>
+
+@object: 
+@value: 
+
+
+<!-- ##### STRUCT GoaContactsProxy ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT GoaContactsProxyClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
+
+<!-- ##### FUNCTION goa_contacts_proxy_new ##### -->
+<para>
+
+</para>
+
+@connection: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION goa_contacts_proxy_new_finish ##### -->
+<para>
+
+</para>
+
+@res: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_contacts_proxy_new_sync ##### -->
+<para>
+
+</para>
+
+@connection: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_contacts_proxy_new_for_bus ##### -->
+<para>
+
+</para>
+
+@bus_type: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION goa_contacts_proxy_new_for_bus_finish ##### -->
+<para>
+
+</para>
+
+@res: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_contacts_proxy_new_for_bus_sync ##### -->
+<para>
+
+</para>
+
+@bus_type: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@error: 
+@Returns: 
+
+
+<!-- ##### STRUCT GoaContactsSkeleton ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT GoaContactsSkeletonClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
+
+<!-- ##### FUNCTION goa_contacts_skeleton_new ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+

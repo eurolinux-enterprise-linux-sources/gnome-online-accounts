@@ -1,0 +1,224 @@
+<!-- ##### SECTION Title ##### -->
+GoaMediaServer
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### STRUCT GoaMediaServer ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### ARG GoaMediaServer:dlna-supported ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG GoaMediaServer:udn ##### -->
+<para>
+
+</para>
+
+<!-- ##### STRUCT GoaMediaServerIface ##### -->
+<para>
+
+</para>
+
+@parent_iface: 
+@get_dlna_supported: 
+@get_udn: 
+
+<!-- ##### FUNCTION goa_media_server_interface_info ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_media_server_get_dlna_supported ##### -->
+<para>
+
+</para>
+
+@object: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_media_server_set_dlna_supported ##### -->
+<para>
+
+</para>
+
+@object: 
+@value: 
+
+
+<!-- ##### FUNCTION goa_media_server_get_udn ##### -->
+<para>
+
+</para>
+
+@object: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_media_server_dup_udn ##### -->
+<para>
+
+</para>
+
+@object: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_media_server_set_udn ##### -->
+<para>
+
+</para>
+
+@object: 
+@value: 
+
+
+<!-- ##### FUNCTION goa_media_server_override_properties ##### -->
+<para>
+
+</para>
+
+@klass: 
+@property_id_begin: 
+@Returns: 
+
+
+<!-- ##### STRUCT GoaMediaServerProxy ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT GoaMediaServerProxyClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
+
+<!-- ##### FUNCTION goa_media_server_proxy_new ##### -->
+<para>
+
+</para>
+
+@connection: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION goa_media_server_proxy_new_finish ##### -->
+<para>
+
+</para>
+
+@res: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_media_server_proxy_new_sync ##### -->
+<para>
+
+</para>
+
+@connection: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_media_server_proxy_new_for_bus ##### -->
+<para>
+
+</para>
+
+@bus_type: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION goa_media_server_proxy_new_for_bus_finish ##### -->
+<para>
+
+</para>
+
+@res: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_media_server_proxy_new_for_bus_sync ##### -->
+<para>
+
+</para>
+
+@bus_type: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@error: 
+@Returns: 
+
+
+<!-- ##### STRUCT GoaMediaServerSkeleton ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT GoaMediaServerSkeletonClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
+
+<!-- ##### FUNCTION goa_media_server_skeleton_new ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+

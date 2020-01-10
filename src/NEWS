@@ -1,0 +1,873 @@
+Overview of changes in 3.14.4
+=============================
+
+* Remove Facebook chat support (745004)
+
+* Bugs fixed:
+ 744165 telepathy: "use this account for external calls" checkbox is not
+        working
+ 746540 Add some spacing between the service name and its switch
+
+* Updated translations:
+ Bosnian
+ Icelandic
+ Occitan
+
+
+Overview of changes in 3.14.3
+=============================
+
+* Bugs fixed:
+ 743044 ewsclient: httpclient: Don't crash or deadlock during clean up
+
+* Updated translations:
+ Kazakh
+ Swedish
+
+
+Overview of changes in 3.14.2
+=============================
+
+* Bugs fixed:
+ 739168 facebook: Add fallback to get presentation id
+ 739590 Memory leak fixes
+ 739593 kerberos: A pile of fixes
+
+
+Overview of changes in 3.14.1
+=============================
+
+* Bugs fixed:
+ 737549 Fix a life-cycle issue that affected gnome-initial-setup
+
+* Updated translations:
+ Bulgarian
+ Portuguese
+
+
+Overview of changes in 3.14.0
+=============================
+
+* Updated translations:
+ Bengali (India)
+ Simplified Chinese
+ Danish
+ Hindi
+ Japanese
+ Kannada
+ Nepali
+ Serbian
+ Ukrainian
+
+
+Overview of changes in 3.13.92
+==============================
+
+* Bugs fixed:
+ 736407 media-server: Use a hyphen instead of underscore in provider type
+
+* Updated translations:
+ Finnish
+ Galician
+ German
+ Hungarian
+ Italian
+ Korean
+ Latvian
+ Marathi
+ Nepali
+ Polish
+ Punjabi
+ Slovak
+ Slovenian
+ Swedish
+ Tamil
+
+
+Overview of changes in 3.13.91
+==============================
+
+* Updated translations:
+ Traditional Chinese (Hong Kong)
+ Traditional Chinese (Taiwan)
+ Czech
+ French
+ Gujarati
+ Hebrew
+ Indonesian
+ Japanese
+ Oriya
+ Persian
+ Telugu
+
+
+Overview of changes in 3.13.90
+==============================
+
+* Updated translations:
+ Assamese
+ Basque
+ Catalan
+ Catalan (Valencian)
+ Dutch
+ Friulian
+ Gaelic (Scottish)
+ Greek
+ Lithuanian
+ Norwegian bokmål
+ Portuguese (Brazilian)
+ Russian
+ Spanish
+ Thai
+ Turkish
+
+
+Overview of changes in 3.13.3
+=============================
+
+* Add a whitelist for providers (729173)
+
+* Support media servers (730890)
+
+* Bugs fixed:
+ 693689 google: Add support for tasks
+ 699553 Crash in ews_client_autodiscover_data_free()
+ 707299 alarm: Don't translate private classes
+ 729638 Adjust the UI so that we can use a header bar in the dialog
+ 730041 ewsclient: Autodiscover XML can contain multiple Protocol elements
+ 731531 daemon: Don't try to remove non-existent GSource
+ 731614 webview: Ensure that mouse and keyboard events reach the inspector
+
+* Updated translations:
+ Traditional Chinese (Taiwan)
+ German
+ Hungarian
+ Norwegian bokmål
+ Slovenian
+ Swedish
+ Turkish
+
+
+Overview of changes in 3.13.2
+=============================
+
+* Bugs fixed:
+ 728877 google: Add support for photos
+ 729389 build: Remove deprecated call to GNOME_COMMON_INIT
+ 729638 Adjust the UI so that we can use a header bar in the dialog
+ 729718 Dramatically simplify alarm logic to stop timerfd leaks
+ 729740 facebook: Add support for maps
+ 729864 goaalarm: small memory leak fix
+ 729865 identity: fix another principal leak
+ 729874 identity: don't leak default credentials cache
+ 730810 flickr: Use SSL
+
+* Updated translations:
+ Catalan (Valencian)
+ Czech
+ Indonesian
+ Lithuanian
+ Norwegian bokmål
+ Portuguese (Brazilian)
+ Spanish
+
+
+Overview of changes in 3.13.1
+=============================
+
+* Remove Twitter support (660273, 721061)
+
+* Remove Windows Live chat support (728787)
+
+* Bugs fixed:
+ 726353 kerberos: Leaking credentials, cursors, principals and GDateTime
+ 726570 build: Use Makefile.introspection
+ 726609 Popup is too small to display Facebook authorization
+ 727896 IdentityService crashes on startup if KerberosIdentityManager could
+        not be created
+ 727957 Broken check for non-empty strings
+
+* Updated translations:
+ Basque
+ Belarusian
+ Catalan
+ Simplified Chinese
+ Traditional Chinese (Taiwan)
+ Danish
+ Finnish
+ French
+ Friulian
+ German
+ Greek
+ Hungarian
+ Italian
+ Japanese
+ Khmer
+ Korean
+ Latvian
+ Norwegian bokmål
+ Polish
+ Portuguese
+ Punjabi
+ Russian
+ Serbian
+ Slovak
+ Slovenian
+
+
+Overview of changes in 3.11.90
+==============================
+
+* Pocket is enabled by default (724300)
+
+* Bugs fixed:
+ 723926 Replace GOA logging with GLib logging
+
+* Updated translations:
+ Aragonese
+ Assamese
+ Traditional Chinese (Taiwan)
+ Czech
+ Galician
+ Gaelic (Scottish)
+ Hebrew
+ Indonesian
+ Lithuanian
+ Portuguese (Brazilian)
+ Spanish
+ Ukrainian
+
+
+Overview of changes in 3.11.5
+=============================
+
+* Bugs fixed:
+ 689609 Remove unused GoaSpinnerButton widget
+ 720262 imap-smtp: Export the SASL mechanism used for SMTP
+ 723370 google: Add support for printers
+
+* Updated translations:
+ Aragonese
+ Assamese
+ Simplified Chinese
+ Czech
+ Dutch
+ Finnish
+ Gaelic (Scottish)
+ Galician
+ Hebrew
+ Kannada
+ Lithuanian
+ Norwegian bokmål
+ Portuguese (Brazilian)
+ Spanish
+ Tajik
+
+
+Overview of changes in 3.11.4
+=============================
+
+* Support Pocket (704564)
+
+* Bugs fixed:
+ 720632 Replace deprecated GtkStock
+
+* Updated translations:
+ Aragonese
+ Simplified Chinese
+ Galician
+ German
+ Greek
+ Indonesian
+ Kannada
+ Lithuanian
+ Norwegian bokmål
+ Portuguese (Brazilian)
+ Slovenian
+ Spanish
+ Tajik
+
+
+Overview of changes in 3.11.3
+=============================
+
+* Bugs fixed:
+ 701500 facebook: Add support for photos
+ 712535 telepathy: Documentation fixes
+ 712843 main: Be quieter during normal bootup
+ 720446 google: Request profile scope
+
+* Updated translations:
+ Simplified Chinese
+ Dutch
+ Norwegian bokmål
+ Tamil
+
+
+Overview of changes in 3.11.2
+=============================
+
+* Support kernel keyring based Kerberos accounts (707402, 710116)
+
+* Bugs fixed:
+ 699491 kerberos: Don't crash when an identity could not be looked up
+ 704564 webview: Add some debug code to show an inspector
+ 705395 goaidentity: Fix deadlock in goaalarm on_cancelled
+ 706614 build: use enable_telepathy variable
+ 706664 Fix and simplify the use of GtkGrid inside show_account
+ 706803 Disable GSettings in tp-aw
+ 706894 Cannot set the avatar for Telepathy accounts
+ 706987 Ignore MSN Telepathy account type
+ 707005 telepathy: The en_US spelling is "initialize", not "initialise"
+ 707006 Update to new webkitgtk-2.1.90 API
+ 707435 Miscellaneous string fixes
+ 707916 google: Add the OAuth2 scope for CardDAV
+ 708399 telepathy: Choose better icons
+ 708462 Adding Google or Facebook accounts adds a second Jabber account
+ 708832 oauth2: Propagate the error if the dialog is dismissed during refresh
+ 708975 kerberos: still consuming 100% CPU
+ 709103 identity: don't queue two temporary accounts for one identity
+ 709393 live: Add support for mail
+ 709570 oauth2: Don't parse the DOM to detect access_denied
+ 709953 goaalarm: add locks when setting up timers
+ 709955 kerberos: correctly show sign in errors when mistyping password
+ 710363 Adapt to changes in the redirect URI used by Facebook
+ 711472 live: Does not update MailEnabled
+ 711572 kerberos: don't crash if keyring credentials disappear
+ 711696 kerberos: Leaking timerfds when we fall back to polling the ccache
+
+* Updated translations:
+ Afrikaans
+ Arabic
+ Assamese
+ Basque
+ Belarusian
+ Catalan
+ Catalan (Valencian)
+ Simplified Chinese
+ Traditional Chinese (Hong Kong)
+ Traditional Chinese (Taiwan)
+ Czech
+ Danish
+ Dutch
+ English (British)
+ Esperanto
+ Estonian
+ Finnish
+ French
+ Galician
+ German
+ Greek
+ Hebrew
+ Hungarian
+ Indonesian
+ Irish
+ Italian
+ Japanese
+ Kazakh
+ Korean
+ Latvian
+ Lithuanian
+ Norwegian bokmål
+ Persian
+ Polish
+ Portuguese
+ Portuguese (Brazilian)
+ Punjabi
+ Russian
+ Serbian
+ Slovak
+ Slovenian
+ Spanish
+ Tajik
+ Turkish
+ Ukrainian
+
+
+Overview of changes in 3.9.90
+=============================
+
+* Support Telepathy accounts (696267)
+
+* Bugs fixed:
+ 705366 build: Fix build failure due to missing IT_PROG_INTLTOOL
+ 706074 owncloud: Add support for documents
+
+* Updated translations:
+ Traditional Chinese (Hong Kong)
+ Traditional Chinese (Taiwan)
+ Irish
+ Tajik
+
+
+Overview of changes in 3.9.5
+============================
+
+* Fixed license notices to be consistently LGPLv2+
+
+* Updated translations:
+ Portuguese (Brazilian)
+
+
+Overview of changes in 3.9.4
+============================
+
+* Flickr is enabled by default
+
+* Bugs fixed:
+ 678151 flickr: Add icons
+ 688364 google: Don't offer a PasswordBased interface
+ 692176 build: Fix include paths
+ 692177 build: Add missing include path
+ 701500 facebook: Add support for photos
+ 702263 smtp-auth-plain: Handle multiline SMTP greetings
+ 702514 icons: Update the Twitter logo
+
+* Updated translations:
+ Galician
+ Indonesian
+ Norwegian bokmål
+ Slovak
+ Vietnamese
+
+
+Overview of changes in 3.9.2
+============================
+
+* Updated translations:
+ Hebrew
+ Japanese
+ Norwegian bokmål
+ Slovenian
+ Tajik
+
+
+Overview of changes in 3.9.1
+============================
+
+* IMAP/SMTP is enabled by default
+
+* Bugs fixed:
+ 657761 Don't use technical jargon in user visible strings
+ 660882 Drop the notification from EnsureCredentials
+ 669040 twitter: When verifying credentials, don't fetch the last status
+ 694313 Add a way to pass custom info to the provider when creating the account
+ 695065 build: Tell git.mk to ignore generated files
+ 695074 build: Fix `make distcheck` by updating the icon cache on uninstall too
+ 695106 Do not send the credentials before notifying the user of an invalid
+        SSL certificate (CVE-2013-1799)
+ 695118 Avoid gtk_dialog_run() in goa_oauth2_provider_add_account()
+ 695355 imap-smtp: Can not do STARTTLS connections
+ 695559 Add translator comment to explain what None refers to
+ 695768 provider: Silence warnings when setting :preseed-data to NULL
+ 695802 imap-auth-login: Escape backslashes in passwords
+ 695886 Categorize providers by supported features
+ 695888 owncloud: Make sure Uri always ends in a trailing slash
+ 696085 owncloud: Can't add more than one ownCloud account
+ 698178 Use SoupProxyResolverDefault with GoaEwsClient and GoaHttpClient
+ 698203 Socket times out with gnutls3 and some TLS servers
+
+* Updated translations:
+ Aragonese
+ Assamese
+ Belarussian
+ Catalan
+ Catalan (Valencian)
+ Simplified Chinese
+ Czech
+ Danish
+ Dutch
+ English (British)
+ Esperanto
+ Estonian
+ Finnish
+ French
+ German
+ Greek
+ Gujarati
+ Hebrew
+ Hindi
+ Hungarian
+ Italian
+ Kannada
+ Korean
+ Latvian
+ Malayalam
+ Norwegian bokmål
+ Persian
+ Polish
+ Portuguese
+ Portuguese (Brazilian)
+ Russian
+ Slovak
+ Slovenian
+ Tamil
+ Ukranian
+ Vietnamese
+
+
+Overview of changes in 3.7.90
+=============================
+
+* Support IMAP/SMTP (692736)
+
+* Bugs fixed:
+ 692936 oauth2: Support getting refresh_token from uri fragment
+ 693273 identity: Fix implicit declaration of
+        goa_kerberos_identity_inquiry_new
+
+* Updated translations:
+ Catalan
+ Catalan (Valencian)
+ Galician
+ German
+ Latvian
+ Lithuanian
+ Malayalam
+ Polish
+ Punjabi
+ Serbian
+ Spanish
+ Uyghur
+
+
+Overview of changes in 3.7.5
+============================
+
+* ownCloud is enabled by default
+
+* Bugs fixed:
+ 689645 provider: Desensitize and turn off the switches if there is an error
+ 692251 identity: Define GoaKerberosIdentity only in one header
+ 692276 Don't assume that secret_password_clear_sync() returns FALSE on error
+ 692284 Add --no-color option to suppress color output
+ 692285 Use g_unix_signal_add() instead of custom implementation
+ 692286 Better debugging messages for keyring interaction
+ 692768 Support notification filtering
+ 693214 Guard against invalid SSL certificates (CVE-2013-0240)
+
+* Updated translations:
+ Assamese
+ Basque
+ Traditional Chinese (Hong Kong)
+ Traditional Chinese (Taiwan)
+ Friulian
+ German
+ Hebrew
+ Norwegian bokmål
+ Polish
+ Portuguese
+ Serbian
+ Slovak
+ Slovenian
+ Spanish
+ Uyghur
+
+
+Overview of changes in 3.7.4
+============================
+
+* Bugs fixed:
+ 689770 google: Make the configure options match OAuth 2.0 lingo
+ 691122 webview: don't set the OSD style class on the whole overlay
+ 691142 identity: Don't leak the GoaKerberosIdentity
+
+* Updated translations:
+ Arabic
+ Aragonese
+ Assamese
+ Bulgarian
+ Simplified Chinese
+ Galician
+ Hebrew
+ Hungarian
+ Kazakh
+ Lithuanian
+ Norwegian bokmål
+ Persian
+ Polish
+ Portuguese (Brazilian)
+ Russian
+ Slovak
+ Slovenian
+ Spanish
+ Uyghur
+
+
+Overview of changes in 3.7.3
+============================
+
+* Bugs fixed:
+ 689516 build: Fix passing arguments to configure from autogen.sh
+ 689609 Spinners are white and don't spin
+ 689642 Make the cancel buttons work
+
+* Updated translations:
+ Assamese
+ Belarusian
+ Esperanto
+ Estonian
+ Galician
+ Kannada
+ Malayalam
+ Norwegian bokmål
+ Slovenian
+ Spanish
+ Tamil
+
+
+Overview of changes in 3.7.2
+============================
+
+* Add provider groups
+
+* Bugs fixed:
+ 660573 icons: Shiny new ownCloud icons
+ 686519 oauth2: Don't add redirect_uri when grant_type=refresh_token
+ 687578 Allow OAuth / OAuth2 based providers to offer password based
+        authentication
+ 687632 No notifications for PasswordBased providers for invalid passwords
+ 687930 .gitignore is autogenerated, remove it from version control
+ 687962 Kerberos: forgets the account
+ 688018 Kerberos: could not ensure credentials for account <myprincipal>:
+        Timeout was reached
+
+* Updated translations:
+ Bengali (India)
+ Czech
+ Estonian
+ German
+ Greek
+ Gujarati
+ Indonesian
+ Japanese
+ Polish
+ Russian
+ Slovak
+ Slovenian
+
+
+Overview of changes in 3.7.1
+============================
+
+* Implement OAuth 2.0 for Google (661065)
+
+* Support ownCloud (660573)
+
+* Support Flickr (678151)
+
+* Bugs fixed:
+ 660932 Silently fails to renew credentials if refresh_account fails
+ 681729 Prefill the login / email field when refreshing
+ 683692 Ensure that all dialogs have consistent and meaningful strings
+ 683911 Set up mnemonic relations
+ 683968 Adapt to Windows Live UI changes
+ 685876 Kerberos: set up primary properly
+ 686410 Don't enroll the machine
+ 686415 Kerberos: use realmd directly
+ 686416 Kerberos: discover and validate realm before use
+ 686561 Add version definitions
+
+* Updated translations:
+ Arabic
+ Assamese
+ Belarusian
+ Bulgarian
+ Traditional Chinese (Hong Kong)
+ Traditional Chinese (Taiwan)
+ Catalan
+ Catalan (Valencian)
+ Czech
+ Danish
+ English (British)
+ Finnish
+ French
+ Galician
+ German
+ Greek
+ Gujarati
+ Hebrew
+ Hindi
+ Hungarian
+ Indonesian
+ Italian
+ Japanese
+ Kannada
+ Korean
+ Latvian
+ Lithuanian
+ Malayalam
+ Marathi
+ Norwegian bokmål
+ Persian
+ Polish
+ Portuguese
+ Portuguese (Brazilian)
+ Punjabi
+ Russian
+ Serbian
+ Slovak
+ Slovenian
+ Spanish
+ Telugu
+ Thai
+ Ukranian
+ Vietnamese
+
+
+Overview of changes in 3.5.90
+=============================
+
+* Support enterprise logins via Kerberos (679253)
+
+* Drop the Microsoft Exchange and Windows Live icons, and use a transparent
+  PNG as the fallback
+
+* Add a goa_client_lookup_by_id API for looking up an account using its ID
+
+Bugs fixed:
+ 681720 ewsclient: Fix breakage because of libxml2 API breakage
+
+* Updated translations:
+ Assamese
+ Galician
+ German
+ Japanese
+ Marathi
+
+
+Overview of changes in 3.5.5
+============================
+
+* Bugs fixed:
+ 680622 introspection: Add exported package information to GIR
+
+* Updated translations:
+ Arabic
+ Chinese
+ Traditional Chinese (Hong Kong)
+ Traditional Chinese (Taiwan)
+ Galician
+ Greek
+ Gujarati
+ Hebrew
+ Hindi
+ Hungarian
+ Norwegian bokmål
+ Persian
+ Russian
+ Serbian
+ Slovenian
+ Spanish
+ Telugu
+
+
+Overview of changes in 3.5.4
+============================
+
+* Ported to libsecret
+
+* Bugs fixed:
+ 670298 Don't display an error message if user denied access
+ 678907 provider: Put the providers in an order that we recommend
+
+* Updated translations:
+ Arabic
+ Belarusian
+ Traditional Chinese (Hong Kong)
+ Traditional Chinese (Taiwan)
+ Galician
+ German
+ Greek
+ Hebrew
+ Lithuanian
+ Norwegian bokmål
+ Slovenian
+ Spanish
+
+
+Overview of changes in 3.5.3
+============================
+
+* Facebook is enabled by default
+
+* Microsoft Exchange is enabled by default
+
+* The AddAccount method exposed by org.gnome.OnlineAccounts.Manager now
+  requires a new argument of type a{sv}. This is an API break, but no one
+  should be calling it apart from the backend code implementing
+  goa_provider_add_account. This was necessary to ensure that the credentials
+  are stored in the keyring within the AddAccount method to avoid a race
+  between the "account-added" signal being emitted and the credentials being
+  actually store.
+
+* Methods to directly interact with the keyring are no longer exported as
+  public API. These were only meant to be used from within the backend and the
+  daemon and were never meant to be used from applications.
+
+* Updated translations:
+ Greek
+
+
+Overview of changes in 3.5.2
+============================
+
+* Bugs fixed:
+ 659435 New Google authentication page doesn't fit
+ 671980 Restrict the spinner's size and show a heading text
+ 675930 Facebook web authentication window too small
+ 676659 Remove custom CSS styling
+
+* Updated translations:
+ Belarusian
+ Dutch
+ Galician
+ Hebrew
+ Indonesian
+ Punjabi
+ Slovenian
+ Spanish
+
+
+Overview of changes in 3.5.1
+============================
+
+* Support Microsoft Exchange using EWS
+
+* Add API to enable/disable Mail, Calendar, Contacts, Chat & Documents
+
+* Add org.gnome.OnlineAccounts.PasswordBased D-Bus interface
+
+* Request read and write access to a user's files stored in Skydrive
+
+* Improve the design of the Online Accounts panel in System Settings
+
+* Bugs fixed:
+ 654168 Remove the credentials from the keyring when an account is
+        removed
+ 669042 examples: Add some basic examples
+ 669625 Replace GtkTable with GtkGrid
+ 672510 Provide better feedback to the user during authentication
+ 672785 daemon: Proper application name for notification
+ 673959 oauthprovider: Provide better error messages for request token
+        failures
+ 674165 Handle failures to store credentials in the keyring in a
+        better way
+ 674292 goabackend: Fix build failure with LD_FLAGS="-Wl,-z,defs"
+
+* Updated translations:
+ Catalan
+ Catalan (Valencian)
+ Traditional Chinese (Hong Kong)
+ Traditional Chinese (Taiwan)
+ Galician
+ German
+ Hebrew
+ Italian
+ Japanese
+ Norwegian bokmål
+ Slovak
+ Slovenian
+ Spanish
+ Telugu
+ Vietnamese

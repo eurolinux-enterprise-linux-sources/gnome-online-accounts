@@ -1,0 +1,314 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>GNOME Online Accounts Reference Manual: GoaProviderFactory</title>
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="GNOME Online Accounts Reference Manual">
+<link rel="up" href="ch07.html" title="Core">
+<link rel="prev" href="GoaProvider.html" title="GoaProvider">
+<link rel="next" href="GoaOAuthProvider.html" title="GoaOAuthProvider">
+<meta name="generator" content="GTK-Doc V1.21 (XML mode)">
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table class="navigation" id="top" width="100%" summary="Navigation header" cellpadding="2" cellspacing="5"><tr valign="middle">
+<td width="100%" align="left" class="shortcuts">
+<a href="#" class="shortcut">Top</a><span id="nav_description">  <span class="dim">|</span> 
+                  <a href="#GoaProviderFactory.description" class="shortcut">Description</a></span><span id="nav_hierarchy">  <span class="dim">|</span> 
+                  <a href="#GoaProviderFactory.object-hierarchy" class="shortcut">Object Hierarchy</a></span>
+</td>
+<td><a accesskey="h" href="index.html"><img src="home.png" width="16" height="16" border="0" alt="Home"></a></td>
+<td><a accesskey="u" href="ch07.html"><img src="up.png" width="16" height="16" border="0" alt="Up"></a></td>
+<td><a accesskey="p" href="GoaProvider.html"><img src="left.png" width="16" height="16" border="0" alt="Prev"></a></td>
+<td><a accesskey="n" href="GoaOAuthProvider.html"><img src="right.png" width="16" height="16" border="0" alt="Next"></a></td>
+</tr></table>
+<div class="refentry">
+<a name="GoaProviderFactory"></a><div class="titlepage"></div>
+<div class="refnamediv"><table width="100%"><tr>
+<td valign="top">
+<h2><span class="refentrytitle"><a name="GoaProviderFactory.top_of_page"></a>GoaProviderFactory</span></h2>
+<p>GoaProviderFactory — Abstract base class for provider factories</p>
+</td>
+<td class="gallery_image" valign="top" align="right"></td>
+</tr></table></div>
+<div class="refsect1">
+<a name="GoaProviderFactory.functions"></a><h2>Functions</h2>
+<div class="informaltable"><table width="100%" border="0">
+<colgroup>
+<col width="150px" class="functions_return">
+<col class="functions_name">
+</colgroup>
+<tbody>
+<tr>
+<td class="function_type">
+<a class="link" href="GoaProvider.html" title="GoaProvider"><span class="returnvalue">GoaProvider</span></a> *
+</td>
+<td class="function_name">
+<a class="link" href="GoaProviderFactory.html#goa-provider-factory-get-provider" title="goa_provider_factory_get_provider ()">goa_provider_factory_get_provider</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<span class="returnvalue">void</span>
+</td>
+<td class="function_name">
+<a class="link" href="GoaProviderFactory.html#goa-provider-factory-get-providers" title="goa_provider_factory_get_providers ()">goa_provider_factory_get_providers</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+</td>
+<td class="function_name">
+<a class="link" href="GoaProviderFactory.html#goa-provider-factory-get-providers-finish" title="goa_provider_factory_get_providers_finish ()">goa_provider_factory_get_providers_finish</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="refsect1">
+<a name="GoaProviderFactory.other"></a><h2>Types and Values</h2>
+<div class="informaltable"><table width="100%" border="0">
+<colgroup>
+<col width="150px" class="name">
+<col class="description">
+</colgroup>
+<tbody>
+<tr>
+<td class="datatype_keyword">struct</td>
+<td class="function_name"><a class="link" href="GoaProviderFactory.html#GoaProviderFactory-struct" title="struct GoaProviderFactory">GoaProviderFactory</a></td>
+</tr>
+<tr>
+<td class="datatype_keyword">struct</td>
+<td class="function_name"><a class="link" href="GoaProviderFactory.html#GoaProviderFactoryClass" title="struct GoaProviderFactoryClass">GoaProviderFactoryClass</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="GoaProviderFactory.html#GOA-PROVIDER-FACTORY-EXTENSION-POINT-NAME:CAPS" title="GOA_PROVIDER_FACTORY_EXTENSION_POINT_NAME">GOA_PROVIDER_FACTORY_EXTENSION_POINT_NAME</a></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="refsect1">
+<a name="GoaProviderFactory.object-hierarchy"></a><h2>Object Hierarchy</h2>
+<pre class="screen">    <a href="https://developer.gnome.org/gobject/unstable/gobject-The-Base-Object-Type.html#GObject">GObject</a>
+    <span class="lineart">╰──</span> GoaProviderFactory
+</pre>
+</div>
+<div class="refsect1">
+<a name="GoaProviderFactory.description"></a><h2>Description</h2>
+<p><a class="link" href="GoaProviderFactory.html" title="GoaProviderFactory"><span class="type">GoaProviderFactory</span></a> implementations are used to dynamically create <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> instances.</p>
+</div>
+<div class="refsect1">
+<a name="GoaProviderFactory.functions_details"></a><h2>Functions</h2>
+<div class="refsect2">
+<a name="goa-provider-factory-get-provider"></a><h3>goa_provider_factory_get_provider ()</h3>
+<pre class="programlisting"><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="returnvalue">GoaProvider</span></a> *
+goa_provider_factory_get_provider (<em class="parameter"><code><a class="link" href="GoaProviderFactory.html" title="GoaProviderFactory"><span class="type">GoaProviderFactory</span></a> *factory</code></em>,
+                                   <em class="parameter"><code>const <a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *provider_name</code></em>);</pre>
+<p>Create a dynamic <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> for the subclass-specific <em class="parameter"><code>provider_name</code></em>
+.</p>
+<div class="refsect3">
+<a name="id-1.5.2.4.7.2.5"></a><h4>Parameters</h4>
+<div class="informaltable"><table width="100%" border="0">
+<colgroup>
+<col width="150px" class="parameters_name">
+<col class="parameters_description">
+<col width="200px" class="parameters_annotations">
+</colgroup>
+<tbody>
+<tr>
+<td class="parameter_name"><p>factory</p></td>
+<td class="parameter_description"><p>A <a class="link" href="GoaProviderFactory.html" title="GoaProviderFactory"><span class="type">GoaProviderFactory</span></a>.</p></td>
+<td class="parameter_annotations"> </td>
+</tr>
+<tr>
+<td class="parameter_name"><p>provider_name</p></td>
+<td class="parameter_description"><p>A provider type identifier (ie. IM protocol names in <a class="link" href="goa-GoaTelepathyFactory.html#GoaTelepathyFactory" title="struct GoaTelepathyFactory"><span class="type">GoaTelepathyFactory</span></a>)</p></td>
+<td class="parameter_annotations"> </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="refsect3">
+<a name="id-1.5.2.4.7.2.6"></a><h4>Returns</h4>
+<p> A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> (that must be freed
+with <a href="https://developer.gnome.org/gobject/unstable/gobject-The-Base-Object-Type.html#g-object-unref"><code class="function">g_object_unref()</code></a>) or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a> if not found. </p>
+<p><span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>]</span></p>
+</div>
+</div>
+<hr>
+<div class="refsect2">
+<a name="goa-provider-factory-get-providers"></a><h3>goa_provider_factory_get_providers ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>
+goa_provider_factory_get_providers (<em class="parameter"><code><a class="link" href="GoaProviderFactory.html" title="GoaProviderFactory"><span class="type">GoaProviderFactory</span></a> *factory</code></em>,
+                                    <em class="parameter"><code><a href="https://developer.gnome.org/gio/unstable/GAsyncResult.html#GAsyncReadyCallback"><span class="type">GAsyncReadyCallback</span></a> callback</code></em>,
+                                    <em class="parameter"><code><a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gpointer"><span class="type">gpointer</span></a> user_data</code></em>);</pre>
+<p>Get asynchronously a list of <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> instances handled by <em class="parameter"><code>factory</code></em>
+.</p>
+<p>When the result is ready, <em class="parameter"><code>callback</code></em>
+ will be called in the the <GTKDOCLINK HREF="g-main-context-push-thread-default">thread-default main
+loop</GTKDOCLINK> this function was called from. You can then call
+<a class="link" href="GoaProviderFactory.html#goa-provider-factory-get-providers-finish" title="goa_provider_factory_get_providers_finish ()"><code class="function">goa_provider_factory_get_providers_finish()</code></a> to get the result
+of the operation.</p>
+<p>This is a virtual method that must be implemented by subclasses.</p>
+<div class="refsect3">
+<a name="id-1.5.2.4.7.3.7"></a><h4>Parameters</h4>
+<div class="informaltable"><table width="100%" border="0">
+<colgroup>
+<col width="150px" class="parameters_name">
+<col class="parameters_description">
+<col width="200px" class="parameters_annotations">
+</colgroup>
+<tbody>
+<tr>
+<td class="parameter_name"><p>factory</p></td>
+<td class="parameter_description"><p>A <a class="link" href="GoaProviderFactory.html" title="GoaProviderFactory"><span class="type">GoaProviderFactory</span></a>.</p></td>
+<td class="parameter_annotations"> </td>
+</tr>
+<tr>
+<td class="parameter_name"><p>callback</p></td>
+<td class="parameter_description"><p>The function to call when the request is satisfied.</p></td>
+<td class="parameter_annotations"> </td>
+</tr>
+<tr>
+<td class="parameter_name"><p>user_data</p></td>
+<td class="parameter_description"><p>Pointer to pass to <em class="parameter"><code>callback</code></em>
+.</p></td>
+<td class="parameter_annotations"> </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<hr>
+<div class="refsect2">
+<a name="goa-provider-factory-get-providers-finish"></a><h3>goa_provider_factory_get_providers_finish ()</h3>
+<pre class="programlisting"><a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+goa_provider_factory_get_providers_finish
+                               (<em class="parameter"><code><a class="link" href="GoaProviderFactory.html" title="GoaProviderFactory"><span class="type">GoaProviderFactory</span></a> *factory</code></em>,
+                                <em class="parameter"><code><a href="https://developer.gnome.org/glib/unstable/glib-Doubly-Linked-Lists.html#GList"><span class="type">GList</span></a> **out_providers</code></em>,
+                                <em class="parameter"><code><a href="https://developer.gnome.org/gio/unstable/GAsyncResult.html"><span class="type">GAsyncResult</span></a> *result</code></em>,
+                                <em class="parameter"><code><a href="https://developer.gnome.org/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+<p>Finishes an operation started with <a class="link" href="GoaProviderFactory.html#goa-provider-factory-get-providers" title="goa_provider_factory_get_providers ()"><code class="function">goa_provider_factory_get_providers()</code></a></p>
+<p>This is a virtual method that subclasses may implement. The default implementation is suitable for
+<a href="https://developer.gnome.org/gio/unstable/GSimpleAsyncResult.html"><span class="type">GSimpleAsyncResult</span></a> an implementation of <a class="link" href="GoaProviderFactory.html#goa-provider-factory-get-providers" title="goa_provider_factory_get_providers ()"><code class="function">goa_provider_factory_get_providers()</code></a> using <a href="https://developer.gnome.org/gio/unstable/GSimpleAsyncResult.html"><span class="type">GSimpleAsyncResult</span></a>.</p>
+<div class="refsect3">
+<a name="id-1.5.2.4.7.4.6"></a><h4>Parameters</h4>
+<div class="informaltable"><table width="100%" border="0">
+<colgroup>
+<col width="150px" class="parameters_name">
+<col class="parameters_description">
+<col width="200px" class="parameters_annotations">
+</colgroup>
+<tbody>
+<tr>
+<td class="parameter_name"><p>factory</p></td>
+<td class="parameter_description"><p>A <a class="link" href="GoaProviderFactory.html" title="GoaProviderFactory"><span class="type">GoaProviderFactory</span></a>.</p></td>
+<td class="parameter_annotations"> </td>
+</tr>
+<tr>
+<td class="parameter_name"><p>out_providers</p></td>
+<td class="parameter_description"><p> Return location for a list of <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> instances handled by <em class="parameter"><code>factory</code></em>
+. </p></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter for returning results. Default is transfer full."><span class="acronym">out</span></acronym>]</span></td>
+</tr>
+<tr>
+<td class="parameter_name"><p>result</p></td>
+<td class="parameter_description"><p>A <a href="https://developer.gnome.org/gio/unstable/GAsyncResult.html"><span class="type">GAsyncResult</span></a> obtained from the <a href="https://developer.gnome.org/gio/unstable/GAsyncResult.html#GAsyncReadyCallback"><span class="type">GAsyncReadyCallback</span></a> passed to <a class="link" href="GoaProviderFactory.html#goa-provider-factory-get-providers" title="goa_provider_factory_get_providers ()"><code class="function">goa_provider_factory_get_providers()</code></a>.</p></td>
+<td class="parameter_annotations"> </td>
+</tr>
+<tr>
+<td class="parameter_name"><p>error</p></td>
+<td class="parameter_description"><p>Return location for error or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>.</p></td>
+<td class="parameter_annotations"> </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="refsect3">
+<a name="id-1.5.2.4.7.4.7"></a><h4>Returns</h4>
+<p> <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#TRUE:CAPS"><code class="literal">TRUE</code></a> if the list was successfully retrieved, <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#FALSE:CAPS"><code class="literal">FALSE</code></a> if <em class="parameter"><code>error</code></em>
+is set.</p>
+<p></p>
+</div>
+</div>
+</div>
+<div class="refsect1">
+<a name="GoaProviderFactory.other_details"></a><h2>Types and Values</h2>
+<div class="refsect2">
+<a name="GoaProviderFactory-struct"></a><h3>struct GoaProviderFactory</h3>
+<pre class="programlisting">struct GoaProviderFactory;</pre>
+<p>The <a class="link" href="GoaProviderFactory.html" title="GoaProviderFactory"><span class="type">GoaProviderFactory</span></a> structure contains only private data and should
+only be accessed using the provided API.</p>
+</div>
+<hr>
+<div class="refsect2">
+<a name="GoaProviderFactoryClass"></a><h3>struct GoaProviderFactoryClass</h3>
+<pre class="programlisting">struct GoaProviderFactoryClass {
+  GObjectClass parent_class;
+
+  /* Mandatory to implement. */
+  GoaProvider *(*get_provider)              (GoaProviderFactory    *factory,
+                                             const gchar           *provider_name);
+
+  /* The async method is mandatory to implement, but _finish has a default
+   * implementation suitable for a GSimpleAsyncResult. */
+  void         (*get_providers)             (GoaProviderFactory    *factory,
+                                             GAsyncReadyCallback    callback,
+                                             gpointer               user_data);
+  gboolean     (*get_providers_finish)      (GoaProviderFactory    *factory,
+                                             GList                **out_providers,
+                                             GAsyncResult          *result,
+                                             GError               **error);
+};
+</pre>
+<p>Class structure for <a class="link" href="GoaProviderFactory.html" title="GoaProviderFactory"><span class="type">GoaProviderFactory</span></a>.</p>
+<div class="refsect3">
+<a name="id-1.5.2.4.8.3.5"></a><h4>Members</h4>
+<div class="informaltable"><table width="100%" border="0">
+<colgroup>
+<col width="300px" class="struct_members_name">
+<col class="struct_members_description">
+<col width="200px" class="struct_members_annotations">
+</colgroup>
+<tbody>
+<tr>
+<td class="struct_member_name"><p><a href="https://developer.gnome.org/gobject/unstable/gobject-The-Base-Object-Type.html#GObjectClass"><span class="type">GObjectClass</span></a> <em class="structfield"><code><a name="GoaProviderFactoryClass.parent-class"></a>parent_class</code></em>;</p></td>
+<td class="struct_member_description"><p>The parent class.</p></td>
+<td class="struct_member_annotations"> </td>
+</tr>
+<tr>
+<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderFactoryClass.get-provider"></a>get_provider</code></em> ()</p></td>
+<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProviderFactory.html#goa-provider-factory-get-provider" title="goa_provider_factory_get_provider ()"><code class="function">goa_provider_factory_get_provider()</code></a>.</p></td>
+<td class="struct_member_annotations"> </td>
+</tr>
+<tr>
+<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderFactoryClass.get-providers"></a>get_providers</code></em> ()</p></td>
+<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProviderFactory.html#goa-provider-factory-get-providers" title="goa_provider_factory_get_providers ()"><code class="function">goa_provider_factory_get_providers()</code></a>.</p></td>
+<td class="struct_member_annotations"> </td>
+</tr>
+<tr>
+<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderFactoryClass.get-providers-finish"></a>get_providers_finish</code></em> ()</p></td>
+<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProviderFactory.html#goa-provider-factory-get-providers-finish" title="goa_provider_factory_get_providers_finish ()"><code class="function">goa_provider_factory_get_providers_finish()</code></a>.</p></td>
+<td class="struct_member_annotations"> </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<hr>
+<div class="refsect2">
+<a name="GOA-PROVIDER-FACTORY-EXTENSION-POINT-NAME:CAPS"></a><h3>GOA_PROVIDER_FACTORY_EXTENSION_POINT_NAME</h3>
+<pre class="programlisting">#define GOA_PROVIDER_FACTORY_EXTENSION_POINT_NAME "goa-backend-provider-factory"
+</pre>
+<p>Extension point for <a class="link" href="GoaProviderFactory.html" title="GoaProviderFactory"><span class="type">GoaProviderFactory</span></a> implementations.</p>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr>
+          Generated by GTK-Doc V1.21</div>
+</body>
+</html>

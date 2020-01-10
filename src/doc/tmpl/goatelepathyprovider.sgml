@@ -1,0 +1,48 @@
+<!-- ##### SECTION Title ##### -->
+goatelepathyprovider
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### STRUCT GoaTelepathyProvider ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION goa_telepathy_provider_new_from_protocol_name ##### -->
+<para>
+
+</para>
+
+@protocol_name: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_telepathy_provider_new_from_protocol ##### -->
+<para>
+
+</para>
+
+@protocol: 
+@Returns: 
+
+

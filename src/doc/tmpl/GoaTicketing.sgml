@@ -1,0 +1,219 @@
+<!-- ##### SECTION Title ##### -->
+GoaTicketing
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### SECTION Image ##### -->
+
+
+<!-- ##### STRUCT GoaTicketing ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SIGNAL GoaTicketing::handle-get-ticket ##### -->
+<para>
+
+</para>
+
+@goaticketing: the object which received the signal.
+@arg1: 
+@Returns: 
+
+<!-- ##### STRUCT GoaTicketingIface ##### -->
+<para>
+
+</para>
+
+@parent_iface: 
+@handle_get_ticket: 
+
+<!-- ##### FUNCTION goa_ticketing_interface_info ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_ticketing_override_properties ##### -->
+<para>
+
+</para>
+
+@klass: 
+@property_id_begin: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_ticketing_call_get_ticket ##### -->
+<para>
+
+</para>
+
+@proxy: 
+@cancellable: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION goa_ticketing_call_get_ticket_finish ##### -->
+<para>
+
+</para>
+
+@proxy: 
+@res: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_ticketing_call_get_ticket_sync ##### -->
+<para>
+
+</para>
+
+@proxy: 
+@cancellable: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_ticketing_complete_get_ticket ##### -->
+<para>
+
+</para>
+
+@object: 
+@invocation: 
+
+
+<!-- ##### STRUCT GoaTicketingProxy ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT GoaTicketingProxyClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
+
+<!-- ##### FUNCTION goa_ticketing_proxy_new ##### -->
+<para>
+
+</para>
+
+@connection: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION goa_ticketing_proxy_new_finish ##### -->
+<para>
+
+</para>
+
+@res: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_ticketing_proxy_new_sync ##### -->
+<para>
+
+</para>
+
+@connection: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_ticketing_proxy_new_for_bus ##### -->
+<para>
+
+</para>
+
+@bus_type: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION goa_ticketing_proxy_new_for_bus_finish ##### -->
+<para>
+
+</para>
+
+@res: 
+@error: 
+@Returns: 
+
+
+<!-- ##### FUNCTION goa_ticketing_proxy_new_for_bus_sync ##### -->
+<para>
+
+</para>
+
+@bus_type: 
+@flags: 
+@name: 
+@object_path: 
+@cancellable: 
+@error: 
+@Returns: 
+
+
+<!-- ##### STRUCT GoaTicketingSkeleton ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT GoaTicketingSkeletonClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
+
+<!-- ##### FUNCTION goa_ticketing_skeleton_new ##### -->
+<para>
+
+</para>
+
+@void: 
+@Returns: 
+
+
