@@ -93,17 +93,29 @@ noinst_PROGRAMS = list-accounts$(EXEEXT) lastfm-shout$(EXEEXT) \
 @BUILD_BACKEND_TRUE@am__append_1 = introspect-providers list-providers add-pocket
 subdir = src/examples
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_enable_debug.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_append_compile_flags.m4 \
+	$(top_srcdir)/m4/ax_append_flag.m4 \
+	$(top_srcdir)/m4/ax_append_link_flags.m4 \
+	$(top_srcdir)/m4/ax_check_compile_flag.m4 \
+	$(top_srcdir)/m4/ax_check_enable_debug.m4 \
+	$(top_srcdir)/m4/ax_check_link_flag.m4 \
+	$(top_srcdir)/m4/ax_compiler_flags.m4 \
+	$(top_srcdir)/m4/ax_compiler_flags_cflags.m4 \
+	$(top_srcdir)/m4/ax_compiler_flags_gir.m4 \
+	$(top_srcdir)/m4/ax_compiler_flags_ldflags.m4 \
 	$(top_srcdir)/m4/ax_config_dir.m4 \
-	$(top_srcdir)/m4/glib-gettext.m4 \
-	$(top_srcdir)/m4/gnome-common.m4 \
-	$(top_srcdir)/m4/gnome-compiler-flags.m4 \
-	$(top_srcdir)/m4/gsettings.m4 $(top_srcdir)/m4/gtk-doc.m4 \
-	$(top_srcdir)/m4/intltool.m4 $(top_srcdir)/m4/introspection.m4 \
+	$(top_srcdir)/m4/ax_is_release.m4 \
+	$(top_srcdir)/m4/ax_require_defined.m4 \
+	$(top_srcdir)/m4/gettext.m4 $(top_srcdir)/m4/gsettings.m4 \
+	$(top_srcdir)/m4/gtk-doc.m4 $(top_srcdir)/m4/iconv.m4 \
+	$(top_srcdir)/m4/intlmacosx.m4 \
+	$(top_srcdir)/m4/introspection.m4 $(top_srcdir)/m4/lib-ld.m4 \
+	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/nls.m4 \
-	$(top_srcdir)/m4/pkg.m4 $(top_srcdir)/m4/vapigen.m4 \
+	$(top_srcdir)/m4/pkg.m4 $(top_srcdir)/m4/po.m4 \
+	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/m4/vapigen.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -129,7 +141,7 @@ am__v_lt_0 = --silent
 am__v_lt_1 = 
 add_pocket_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(add_pocket_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+	$(CFLAGS) $(add_pocket_LDFLAGS) $(LDFLAGS) -o $@
 am__introspect_providers_SOURCES_DIST = introspect-providers.c
 @BUILD_BACKEND_TRUE@am_introspect_providers_OBJECTS = introspect_providers-introspect-providers.$(OBJEXT)
 introspect_providers_OBJECTS = $(am_introspect_providers_OBJECTS)
@@ -140,22 +152,22 @@ introspect_providers_OBJECTS = $(am_introspect_providers_OBJECTS)
 @BUILD_BACKEND_TRUE@	../goa/libgoa-1.0.la
 introspect_providers_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(introspect_providers_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
+	$(introspect_providers_CFLAGS) $(CFLAGS) \
+	$(introspect_providers_LDFLAGS) $(LDFLAGS) -o $@
 am_lastfm_shout_OBJECTS = lastfm_shout-lastfm-shout.$(OBJEXT)
 lastfm_shout_OBJECTS = $(am_lastfm_shout_OBJECTS)
 lastfm_shout_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) ../goa/libgoa-1.0.la
 lastfm_shout_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(lastfm_shout_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+	$(CFLAGS) $(lastfm_shout_LDFLAGS) $(LDFLAGS) -o $@
 am_list_accounts_OBJECTS = list_accounts-list-accounts.$(OBJEXT)
 list_accounts_OBJECTS = $(am_list_accounts_OBJECTS)
 list_accounts_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	../goa/libgoa-1.0.la
 list_accounts_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(list_accounts_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+	$(CFLAGS) $(list_accounts_LDFLAGS) $(LDFLAGS) -o $@
 am__list_providers_SOURCES_DIST = list-providers.c
 @BUILD_BACKEND_TRUE@am_list_providers_OBJECTS =  \
 @BUILD_BACKEND_TRUE@	list_providers-list-providers.$(OBJEXT)
@@ -167,8 +179,8 @@ list_providers_OBJECTS = $(am_list_providers_OBJECTS)
 @BUILD_BACKEND_TRUE@	../goa/libgoa-1.0.la
 list_providers_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(list_providers_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o \
-	$@
+	$(list_providers_CFLAGS) $(CFLAGS) $(list_providers_LDFLAGS) \
+	$(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -237,7 +249,6 @@ CTAGS = ctags
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
-ALL_LINGUAS = @ALL_LINGUAS@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AR = @AR@
@@ -245,18 +256,14 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
-CATALOGS = @CATALOGS@
-CATOBJEXT = @CATOBJEXT@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
-DATADIRNAME = @DATADIRNAME@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
-DISABLE_DEPRECATED = @DISABLE_DEPRECATED@
 DLLTOOL = @DLLTOOL@
 DSYMUTIL = @DSYMUTIL@
 DUMPBIN = @DUMPBIN@
@@ -268,12 +275,13 @@ EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GCR_CFLAGS = @GCR_CFLAGS@
 GCR_LIBS = @GCR_LIBS@
+GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GLIB_CFLAGS = @GLIB_CFLAGS@
 GLIB_COMPILE_SCHEMAS = @GLIB_COMPILE_SCHEMAS@
 GLIB_LIBS = @GLIB_LIBS@
-GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
+GMSGFMT_015 = @GMSGFMT_015@
 GOA_BACKEND_LT_VERSION = @GOA_BACKEND_LT_VERSION@
 GOA_LT_VERSION = @GOA_LT_VERSION@
 GOA_MAJOR_VERSION = @GOA_MAJOR_VERSION@
@@ -295,16 +303,7 @@ INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
-INSTOBJEXT = @INSTOBJEXT@
 INTLLIBS = @INTLLIBS@
-INTLTOOL_EXTRACT = @INTLTOOL_EXTRACT@
-INTLTOOL_MERGE = @INTLTOOL_MERGE@
-INTLTOOL_PERL = @INTLTOOL_PERL@
-INTLTOOL_UPDATE = @INTLTOOL_UPDATE@
-INTLTOOL_V_MERGE = @INTLTOOL_V_MERGE@
-INTLTOOL_V_MERGE_OPTIONS = @INTLTOOL_V_MERGE_OPTIONS@
-INTLTOOL__v_MERGE_ = @INTLTOOL__v_MERGE_@
-INTLTOOL__v_MERGE_0 = @INTLTOOL__v_MERGE_0@
 INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 INTROSPECTION_CFLAGS = @INTROSPECTION_CFLAGS@
 INTROSPECTION_COMPILER = @INTROSPECTION_COMPILER@
@@ -321,6 +320,8 @@ KRB5_CONFIG = @KRB5_CONFIG@
 KRB5_LIBS = @KRB5_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
+LIBICONV = @LIBICONV@
+LIBINTL = @LIBINTL@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LIBSOUP_CFLAGS = @LIBSOUP_CFLAGS@
@@ -330,15 +331,16 @@ LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LIPO = @LIPO@
 LN_S = @LN_S@
+LTLIBICONV = @LTLIBICONV@
+LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
 LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
-MKINSTALLDIRS = @MKINSTALLDIRS@
 MSGFMT = @MSGFMT@
-MSGFMT_OPTS = @MSGFMT_OPTS@
+MSGFMT_015 = @MSGFMT_015@
 MSGMERGE = @MSGMERGE@
 NM = @NM@
 NMEDIT = @NMEDIT@
@@ -357,10 +359,7 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
-POFILES = @POFILES@
 POSUB = @POSUB@
-PO_IN_DATADIR_FALSE = @PO_IN_DATADIR_FALSE@
-PO_IN_DATADIR_TRUE = @PO_IN_DATADIR_TRUE@
 RANLIB = @RANLIB@
 REST_CFLAGS = @REST_CFLAGS@
 REST_LIBS = @REST_LIBS@
@@ -380,9 +379,13 @@ VAPIGEN_MAKEFILE = @VAPIGEN_MAKEFILE@
 VAPIGEN_VAPIDIR = @VAPIGEN_VAPIDIR@
 VERSION = @VERSION@
 WARN_CFLAGS = @WARN_CFLAGS@
+WARN_LDFLAGS = @WARN_LDFLAGS@
+WARN_SCANNERFLAGS = @WARN_SCANNERFLAGS@
 WEBKIT_GTK_CFLAGS = @WEBKIT_GTK_CFLAGS@
 WEBKIT_GTK_LIBS = @WEBKIT_GTK_LIBS@
 XGETTEXT = @XGETTEXT@
+XGETTEXT_015 = @XGETTEXT_015@
+XGETTEXT_EXTRA_OPTIONS = @XGETTEXT_EXTRA_OPTIONS@
 XSLTPROC = @XSLTPROC@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -418,8 +421,6 @@ htmldir = @htmldir@
 includedir = @includedir@
 infodir = @infodir@
 install_sh = @install_sh@
-intltool__v_merge_options_ = @intltool__v_merge_options_@
-intltool__v_merge_options_0 = @intltool__v_merge_options_0@
 libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
@@ -457,18 +458,23 @@ AM_CPPFLAGS = \
 list_accounts_SOURCES = list-accounts.c
 list_accounts_CFLAGS = $(GLIB_CFLAGS)
 list_accounts_LDADD = $(GLIB_LIBS) ../goa/libgoa-1.0.la
+list_accounts_LDFLAGS = $(WARN_LDFLAGS)
 lastfm_shout_SOURCES = lastfm-shout.c
 lastfm_shout_CFLAGS = $(GLIB_CFLAGS) $(REST_CFLAGS)
 lastfm_shout_LDADD = $(GLIB_LIBS) $(REST_LIBS) ../goa/libgoa-1.0.la
+lastfm_shout_LDFLAGS = $(WARN_LDFLAGS)
 @BUILD_BACKEND_TRUE@introspect_providers_SOURCES = introspect-providers.c
 @BUILD_BACKEND_TRUE@introspect_providers_CFLAGS = $(GLIB_CFLAGS) $(GTK_CFLAGS)
 @BUILD_BACKEND_TRUE@introspect_providers_LDADD = $(GLIB_LIBS) $(GTK_LIBS) ../goabackend/libgoa-backend-1.0.la ../goa/libgoa-1.0.la
+@BUILD_BACKEND_TRUE@introspect_providers_LDFLAGS = $(WARN_LDFLAGS)
 @BUILD_BACKEND_TRUE@list_providers_SOURCES = list-providers.c
 @BUILD_BACKEND_TRUE@list_providers_CFLAGS = $(GLIB_CFLAGS) $(GTK_CFLAGS)
 @BUILD_BACKEND_TRUE@list_providers_LDADD = $(GLIB_LIBS) $(GTK_LIBS) ../goabackend/libgoa-backend-1.0.la ../goa/libgoa-1.0.la
+@BUILD_BACKEND_TRUE@list_providers_LDFLAGS = $(WARN_LDFLAGS)
 @BUILD_BACKEND_TRUE@add_pocket_SOURCES = add-pocket.c
 @BUILD_BACKEND_TRUE@add_pocket_CFLAGS = $(GLIB_CFLAGS) $(REST_CFLAGS)
 @BUILD_BACKEND_TRUE@add_pocket_LDADD = $(GLIB_LIBS) $(REST_LIBS) ../goa/libgoa-1.0.la
+@BUILD_BACKEND_TRUE@add_pocket_LDFLAGS = $(WARN_LDFLAGS)
 all: all-am
 
 .SUFFIXES:

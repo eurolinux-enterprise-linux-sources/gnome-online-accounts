@@ -1,50 +1,44 @@
-%global glib2_version 2.40
+%global gettext_version 0.19.8
+%global glib2_version 2.52
 %global gtk3_version 3.19.12
 %global libsoup_version 2.42
-%global webkitgtk4_version 2.7.2
+%global webkit2gtk3_version 2.12.0
 
 Name:		gnome-online-accounts
-Version:	3.26.2
+Version:	3.28.0
 Release:	1%{?dist}
 Summary:	Single sign-on framework for GNOME
 
 License:	LGPLv2+
 URL:		https://wiki.gnome.org/Projects/GnomeOnlineAccounts
-Source0:	https://download.gnome.org/sources/gnome-online-accounts/3.26/%{name}-%{version}.tar.xz
+Source0:	https://download.gnome.org/sources/gnome-online-accounts/3.28/%{name}-%{version}.tar.xz
 
-# https://bugzilla.redhat.com/show_bug.cgi?id=1503726
-Patch0:		0001-Avoid-bumping-the-GLib-version.patch
-
-# https://bugzilla.gnome.org/show_bug.cgi?id=781005
-Patch1:		gnome-online-accounts-remove-the-option-to-preseed-the-providers.patch
-
-BuildRequires:	autoconf
-BuildRequires:	automake
-BuildRequires:	libtool
 BuildRequires:	pkgconfig(gcr-3)
 BuildRequires:	pkgconfig(gio-2.0) >= %{glib2_version}
 BuildRequires:	pkgconfig(glib-2.0) >= %{glib2_version}
 BuildRequires:	pkgconfig(gobject-2.0) >= %{glib2_version}
 BuildRequires:	pkgconfig(gtk+-3.0) >= %{gtk3_version}
 BuildRequires:	pkgconfig(gobject-introspection-1.0)
+BuildRequires:	gettext >= %{gettext_version}
 BuildRequires:	gtk-doc
 BuildRequires:	intltool
 BuildRequires:	krb5-devel
-BuildRequires:	pkgconfig(webkit2gtk-4.0) >= %{webkitgtk4_version}
+BuildRequires:	pkgconfig(webkit2gtk-4.0) >= %{webkit2gtk3_version}
 BuildRequires:	pkgconfig(json-glib-1.0)
 BuildRequires:	pkgconfig(libsecret-1) >= 0.7
 BuildRequires:	pkgconfig(libsoup-2.4) >= %{libsoup_version}
 BuildRequires:	pkgconfig(rest-0.7)
-%if 0%{?rhel}
+%if ! 0%{?fedora} && 0%{?rhel} <= 7
 BuildRequires:	pkgconfig(telepathy-glib)
 %endif
 BuildRequires:	pkgconfig(libxml-2.0)
 BuildRequires:	vala
 
+Requires:	gettext-libs%{?isa} >= %{gettext_version}
 Requires:	glib2%{?_isa} >= %{glib2_version}
 Requires:	gtk3%{?_isa} >= %{gtk3_version}
 Requires:	libsoup%{?_isa} >= %{libsoup_version}
-Requires:	webkitgtk4%{?_isa} >= %{webkitgtk4_version}
+Requires:	webkitgtk4%{?_isa} >= %{webkit2gtk3_version}
 
 %description
 GNOME Online Accounts provides interfaces so that applications and libraries
@@ -62,18 +56,15 @@ developing applications that use %{name}.
 
 %prep
 %setup -q
-%patch0 -p1
-%patch1 -p1
 
 %build
-autoreconf --force --install --verbose
 %configure \
   --disable-lastfm \
   --disable-media-server \
   --disable-silent-rules \
   --disable-static \
   --disable-todoist \
-%if 0%{?rhel}
+%if ! 0%{?fedora} && 0%{?rhel} <= 7
   --disable-facebook \
   --disable-foursquare \
   --enable-telepathy \
@@ -99,7 +90,7 @@ find $RPM_BUILD_ROOT -name '*.la' -delete
 
 %find_lang %{name}
 
-%if 0%{?rhel}
+%if ! 0%{?fedora} && 0%{?rhel} <= 7
 %find_lang %{name}-tpaw
 %endif
 
@@ -119,7 +110,7 @@ fi
 /usr/bin/glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 
-%if 0%{?rhel}
+%if ! 0%{?fedora} && 0%{?rhel} <= 7
 %files -f %{name}.lang -f %{name}-tpaw.lang
 %else
 %files -f %{name}.lang
@@ -144,7 +135,7 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_datadir}/man/man8/goa-daemon.8.gz
 %{_datadir}/glib-2.0/schemas/org.gnome.online-accounts.gschema.xml
 
-%if 0%{?rhel}
+%if ! 0%{?fedora} && 0%{?rhel} <= 7
 %{_datadir}/icons/hicolor/*/apps/im-*.png
 %{_datadir}/icons/hicolor/*/apps/im-*.svg
 
@@ -165,6 +156,10 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_datadir}/vala/
 
 %changelog
+* Thu Mar 15 2018 Kalev Lember <klember@redhat.com> - 3.28.0-1
+- Update to 3.28.0
+- Resolves: #1568177
+
 * Tue Dec 19 2017 Debarshi Ray <rishi@fedoraproject.org> - 3.26.2-1
 - Update to 3.26.2
 Resolves: #1525963

@@ -403,30 +403,31 @@ static void
 diff_sorted_lists (GList *list1,
                    GList *list2,
                    GCompareFunc compare,
-                   GList **added,
-                   GList **removed,
-                   GList **unchanged)
+                   GList **out_added,
+                   GList **out_removed,
+                   GList **out_unchanged)
 {
+  GList *added = NULL;
+  GList *removed = NULL;
+  GList *unchanged = NULL;
   gint order;
-
-  *added = *removed = *unchanged = NULL;
 
   while (list1 != NULL && list2 != NULL)
     {
       order = (*compare) (list1->data, list2->data);
       if (order < 0)
         {
-          *removed = g_list_prepend (*removed, list1->data);
+          removed = g_list_prepend (removed, list1->data);
           list1 = list1->next;
         }
       else if (order > 0)
         {
-          *added = g_list_prepend (*added, list2->data);
+          added = g_list_prepend (added, list2->data);
           list2 = list2->next;
         }
       else
         { /* same item */
-          *unchanged = g_list_prepend (*unchanged, list1->data);
+          unchanged = g_list_prepend (unchanged, list1->data);
           list1 = list1->next;
           list2 = list2->next;
         }
@@ -434,14 +435,36 @@ diff_sorted_lists (GList *list1,
 
   while (list1 != NULL)
     {
-      *removed = g_list_prepend (*removed, list1->data);
+      removed = g_list_prepend (removed, list1->data);
       list1 = list1->next;
     }
   while (list2 != NULL)
     {
-      *added = g_list_prepend (*added, list2->data);
+      added = g_list_prepend (added, list2->data);
       list2 = list2->next;
     }
+
+  if (out_added != NULL)
+    {
+      *out_added = added;
+      added = NULL;
+    }
+
+  if (out_removed != NULL)
+    {
+      *out_removed = removed;
+      removed = NULL;
+    }
+
+  if (out_unchanged != NULL)
+    {
+      *out_unchanged = unchanged;
+      unchanged = NULL;
+    }
+
+  g_list_free (added);
+  g_list_free (removed);
+  g_list_free (unchanged);
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -728,7 +751,6 @@ process_config_entries (GoaDaemon  *self,
                         GHashTable *group_name_to_key_file_data)
 {
   GHashTableIter iter;
-  const gchar *group;
   KeyFileData *key_file_data;
   GList *existing_object_paths = NULL;
   GList *config_object_paths = NULL;
@@ -751,28 +773,32 @@ process_config_entries (GoaDaemon  *self,
     g_list_free_full (existing_objects, g_object_unref);
   }
 
-  g_hash_table_iter_init (&iter, group_name_to_key_file_data);
-  while (g_hash_table_iter_next (&iter, (gpointer*) &group, (gpointer*) &key_file_data))
-    {
-      const gchar *id;
-      gchar *object_path;
+  {
+    const gchar *group;
 
-      if (!g_str_has_prefix (group, "Account "))
-        continue;
+    g_hash_table_iter_init (&iter, group_name_to_key_file_data);
+    while (g_hash_table_iter_next (&iter, (gpointer*) &group, (gpointer*) &key_file_data))
+      {
+        const gchar *id;
+        gchar *object_path;
 
-      id = account_group_to_id (group);
-
-      /* create and validate object path */
-      object_path = g_strdup_printf ("/org/gnome/OnlineAccounts/Accounts/%s", id);
-      if (strstr (id, "/") != NULL || !g_variant_is_object_path (object_path))
-        {
-          g_warning ("`%s' is not a valid account identifier", group);
-          g_free (object_path);
+        if (!g_str_has_prefix (group, "Account "))
           continue;
-        }
-      /* steals object_path variable */
-      config_object_paths = g_list_prepend (config_object_paths, object_path);
-    }
+
+        id = account_group_to_id (group);
+
+        /* create and validate object path */
+        object_path = g_strdup_printf ("/org/gnome/OnlineAccounts/Accounts/%s", id);
+        if (strstr (id, "/") != NULL || !g_variant_is_object_path (object_path))
+          {
+            g_warning ("`%s' is not a valid account identifier", group);
+            g_free (object_path);
+            continue;
+          }
+        /* steals object_path variable */
+        config_object_paths = g_list_prepend (config_object_paths, object_path);
+      }
+  }
 
   existing_object_paths = g_list_sort (existing_object_paths, (GCompareFunc) g_strcmp0);
   config_object_paths = g_list_sort (config_object_paths, (GCompareFunc) g_strcmp0);
@@ -901,7 +927,6 @@ process_template_entries (GoaDaemon  *self,
   GList *config_object_groups = NULL;
   GList *config_template_groups = NULL;
   GList *added;
-  GList *removed;
   GList *unchanged;
   GList *l;
 
@@ -928,7 +953,7 @@ process_template_entries (GoaDaemon  *self,
                      config_template_groups,
                      (GCompareFunc) compare_account_and_template_groups,
                      &added,
-                     &removed,
+                     NULL,
                      &unchanged);
 
   for (l = added; l != NULL; l = l->next)
@@ -1051,7 +1076,6 @@ process_template_entries (GoaDaemon  *self,
 
   g_hash_table_unref (key_files_to_update);
   g_key_file_unref (home_conf_key_file);
-  g_list_free (removed);
   g_list_free (added);
   g_list_free (unchanged);
   g_list_free_full (config_object_groups, g_free);

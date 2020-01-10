@@ -780,8 +780,8 @@
     <keyword type="function" name="goa_provider_get_provider_features ()" link="GoaProvider.html#goa-provider-get-provider-features" since="3.10"/>
     <keyword type="function" name="goa_provider_build_object ()" link="GoaProvider.html#goa-provider-build-object"/>
     <keyword type="function" name="goa_provider_add_account ()" link="GoaProvider.html#goa-provider-add-account"/>
-    <keyword type="function" name="goa_provider_set_preseed_data ()" link="GoaProvider.html#goa-provider-set-preseed-data"/>
-    <keyword type="function" name="goa_provider_get_preseed_data ()" link="GoaProvider.html#goa-provider-get-preseed-data"/>
+    <keyword type="function" name="goa_provider_set_preseed_data ()" link="GoaProvider.html#goa-provider-set-preseed-data" deprecated="3.28: This function does nothing."/>
+    <keyword type="function" name="goa_provider_get_preseed_data ()" link="GoaProvider.html#goa-provider-get-preseed-data" deprecated="3.28: This function does nothing."/>
     <keyword type="function" name="goa_provider_refresh_account ()" link="GoaProvider.html#goa-provider-refresh-account"/>
     <keyword type="function" name="goa_provider_show_account ()" link="GoaProvider.html#goa-provider-show-account"/>
     <keyword type="function" name="goa_provider_ensure_credentials ()" link="GoaProvider.html#goa-provider-ensure-credentials"/>

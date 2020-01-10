@@ -26,7 +26,6 @@
 
 #include "goahttpclient.h"
 #include "goaprovider.h"
-#include "goaprovider-priv.h"
 #include "goaowncloudprovider.h"
 #include "goaobjectskeletonutils.h"
 #include "goautils.h"
@@ -34,13 +33,6 @@
 struct _GoaOwncloudProvider
 {
   GoaProvider parent_instance;
-};
-
-typedef struct _GoaOwncloudProviderClass GoaOwncloudProviderClass;
-
-struct _GoaOwncloudProviderClass
-{
-  GoaProviderClass parent_class;
 };
 
 G_DEFINE_TYPE_WITH_CODE (GoaOwncloudProvider, goa_owncloud_provider, GOA_TYPE_PROVIDER,
@@ -224,19 +216,19 @@ build_object (GoaProvider         *provider,
       g_signal_connect (account,
                         "notify::calendar-disabled",
                         G_CALLBACK (goa_util_account_notify_property_cb),
-                        "CalendarEnabled");
+                        (gpointer) "CalendarEnabled");
       g_signal_connect (account,
                         "notify::contacts-disabled",
                         G_CALLBACK (goa_util_account_notify_property_cb),
-                        "ContactsEnabled");
+                        (gpointer) "ContactsEnabled");
       g_signal_connect (account,
                         "notify::documents-disabled",
                         G_CALLBACK (goa_util_account_notify_property_cb),
-                        "DocumentsEnabled");
+                        (gpointer) "DocumentsEnabled");
       g_signal_connect (account,
                         "notify::files-disabled",
                         G_CALLBACK (goa_util_account_notify_property_cb),
-                        "FilesEnabled");
+                        (gpointer) "FilesEnabled");
     }
 
   ret = TRUE;
@@ -692,7 +684,10 @@ add_account (GoaProvider    *provider,
     goto out;
 
   uri_webdav = g_strconcat (uri, WEBDAV_ENDPOINT, NULL);
-  g_cancellable_reset (data.cancellable);
+
+  g_clear_object (&data.cancellable);
+  data.cancellable = g_cancellable_new ();
+
   goa_http_client_check (http_client,
                          uri_webdav,
                          username,
@@ -893,7 +888,10 @@ refresh_account (GoaProvider    *provider,
     username = gtk_entry_get_text (GTK_ENTRY (data.username));
 
   password = gtk_entry_get_text (GTK_ENTRY (data.password));
-  g_cancellable_reset (data.cancellable);
+
+  g_clear_object (&data.cancellable);
+  data.cancellable = g_cancellable_new ();
+
   goa_http_client_check (http_client,
                          uri_webdav,
                          username,

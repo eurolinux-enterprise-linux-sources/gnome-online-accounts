@@ -1,14 +1,61 @@
-Overview of changes in 3.26.2
+Overview of changes in 3.28.0
+=============================
+
+* Updated translations:
+ Traditional Chinese (Taiwan)
+ French
+ Greek
+ Italian
+ Russian
+ Swedish
+
+
+Overview of changes in 3.27.92
+==============================
+
+* Updated translations:
+ Catalan
+ Croatian
+ Czech
+ Danish
+ Dutch
+ English (British)
+ Friulian
+ Gaelic (Scottish)
+ Galician
+ German
+ Hungarian
+ Kazakh
+ Korean
+ Latvian
+ Lithuanian
+ Polish
+ Portuguese (Brazilian)
+ Romanian
+ Serbian
+ Serbian Latin
+ Slovak
+ Slovenian
+ Spanish
+ Turkish
+ Vietnamese
+
+
+Overview of changes in 3.27.3
 =============================
 
 * Bugs fixed:
+ 764157 Port to GTask from GSimpleAsyncResult
+ 781005 Cookies from previous session are not cleared from the web view
+ 787250 Migrate from Intltool to Gettext
  789187 Fedora Kerberos account can't be added
 
 * Updated translations:
- Catalan (Valencian)
  Croatian
  Czech
+ Friulian
  German
+ Hebrew
  Icelandic
  Italian
  Indonesian
@@ -18,9 +65,22 @@ Overview of changes in 3.26.2
  Polish
  Portuguese (Brazilian)
  Russian
+ Serbian
  Slovak
- Swedish
+ Slovenian
+ Spanish
  Turkish
+
+
+Overview of changes in 3.27.1
+=============================
+
+* Bugs fixed:
+ 788769 build: Make the Git submodules work with Web proxies
+
+* Updated translations:
+ Catalan (Valencian)
+ Croatian
 
 
 Overview of changes in 3.26.1

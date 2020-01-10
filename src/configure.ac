@@ -1,6 +1,6 @@
 m4_define([goa_major_version], [3])
-m4_define([goa_minor_version], [26])
-m4_define([goa_micro_version], [2])
+m4_define([goa_minor_version], [28])
+m4_define([goa_micro_version], [0])
 m4_define([goa_nano_version], [0])
 
 m4_define([goa_base_version],
@@ -12,7 +12,8 @@ m4_define([goa_version],
 AC_INIT([GNOME Online Accounts],
         [goa_version],
         [https://bugzilla.gnome.org/enter_bug.cgi?product=gnome-online-accounts],
-        [gnome-online-accounts])
+        [gnome-online-accounts],
+        [https://wiki.gnome.org/Projects/GnomeOnlineAccounts])
 
 AM_INIT_AUTOMAKE([1.9 foreign dist-xz no-dist-gzip tar-ustar])
 AC_CONFIG_MACRO_DIR([m4])
@@ -21,7 +22,10 @@ AC_CONFIG_HEADERS([config.h])
 
 AM_MAINTAINER_MODE([enable])
 
-GNOME_DEBUG_CHECK
+AX_IS_RELEASE([git-directory])
+
+AX_CHECK_ENABLE_DEBUG([yes],,, [$ax_is_release])
+AX_COMPILER_FLAGS([WARN_CFLAGS], [WARN_LDFLAGS], [$ax_is_release])
 
 AC_PROG_CC
 AC_ISC_POSIX
@@ -65,9 +69,8 @@ AC_DEFINE(GOA_MICRO_VERSION,
 # Initialization
 #
 
+AX_REQUIRE_DEFINED([GLIB_GSETTINGS])
 GLIB_GSETTINGS
-GNOME_COMPILE_WARNINGS([maximum])
-GNOME_MAINTAINER_MODE_DEFINES
 
 AC_ARG_ENABLE([documentation],
 	AS_HELP_STRING([--enable-documentation], [enable man pages and HTML]),
@@ -80,6 +83,7 @@ if test x$enable_documentation = xyes; then
    fi
 fi
 
+AX_REQUIRE_DEFINED([GTK_DOC_CHECK])
 GTK_DOC_CHECK([1.3])
 
 # Libraries
@@ -89,7 +93,9 @@ PKG_CHECK_MODULES(GLIB, [glib-2.0 gio-2.0 gio-unix-2.0 >= 2.52])
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
+AX_REQUIRE_DEFINED([GOBJECT_INTROSPECTION_CHECK])
 GOBJECT_INTROSPECTION_CHECK([0.6.2])
+
 VAPIGEN_CHECK()
 
 # Telepathy
@@ -118,7 +124,7 @@ if test "$enable_backend" != "no"; then
   AC_SUBST(GTK_CFLAGS)
   AC_SUBST(GTK_LIBS)
 
-  PKG_CHECK_MODULES(WEBKIT_GTK, [webkit2gtk-4.0 >= 2.7.2])
+  PKG_CHECK_MODULES(WEBKIT_GTK, [webkit2gtk-4.0 >= 2.12.0])
   AC_SUBST(WEBKIT_GTK_CFLAGS)
   AC_SUBST(WEBKIT_GTK_LIBS)
 
@@ -494,11 +500,15 @@ fi
 # Internationalization
 #
 
-IT_PROG_INTLTOOL([0.50.1])
 GETTEXT_PACKAGE=gnome-online-accounts
 AC_SUBST([GETTEXT_PACKAGE])
-AM_GLIB_GNU_GETTEXT
 AC_DEFINE_UNQUOTED([GETTEXT_PACKAGE],["$GETTEXT_PACKAGE"],[gettext domain])
+
+AX_REQUIRE_DEFINED([AM_GNU_GETTEXT_VERSION])
+AM_GNU_GETTEXT_VERSION([0.19.8])
+
+AX_REQUIRE_DEFINED([AM_GNU_GETTEXT])
+AM_GNU_GETTEXT([external])
 
 # goaconfig.h
 #
@@ -555,7 +565,6 @@ data/icons/32x32/Makefile
 data/icons/48x48/Makefile
 data/icons/96x96/Makefile
 data/icons/256x256/Makefile
-data/org.gnome.online-accounts.gschema.xml
 src/Makefile
 src/goa/Makefile
 src/goa/goa-1.0.pc

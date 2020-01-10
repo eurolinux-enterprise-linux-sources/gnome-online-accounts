@@ -20,6 +20,7 @@
 
 #include <string.h>
 
+#include <gio/gio.h>
 #include <glib/gi18n-lib.h>
 #include <stdlib.h>
 
@@ -50,12 +51,6 @@ struct _GoaImapAuthLogin
   gchar *username;
   gchar *password;
 };
-
-typedef struct
-{
-  GoaMailAuthClass parent_class;
-
-} GoaImapAuthLoginClass;
 
 enum
 {
