@@ -100,6 +100,50 @@ get_provider_features (GoaProvider *_provider)
 
 /* ---------------------------------------------------------------------------------------------------- */
 
+static char *
+uri_to_string_with_path (SoupURI *soup_uri, const gchar *path)
+{
+  gchar *uri_string;
+  gchar *uri_tmp;
+
+  if (soup_uri == NULL)
+    return NULL;
+
+  uri_tmp = soup_uri_to_string (soup_uri, FALSE);
+  uri_string = g_strconcat (uri_tmp, path, NULL);
+  g_free (uri_tmp);
+
+  return uri_string;
+}
+
+static char *get_webdav_uri (SoupURI *soup_uri)
+{
+  SoupURI *uri_tmp;
+  gchar *uri_webdav;
+  const gchar *scheme;
+  guint port;
+
+  if (soup_uri == NULL)
+    return NULL;
+
+  scheme = soup_uri_get_scheme (soup_uri);
+  port = soup_uri_get_port (soup_uri);
+  uri_tmp = soup_uri_copy (soup_uri);
+
+  if (g_strcmp0 (scheme, SOUP_URI_SCHEME_HTTPS) == 0)
+    soup_uri_set_scheme (uri_tmp, "davs");
+  else
+    soup_uri_set_scheme (uri_tmp, "dav");
+
+  if (!soup_uri_uses_default_port (soup_uri))
+    soup_uri_set_port (uri_tmp, port);
+
+  uri_webdav = uri_to_string_with_path (uri_tmp, WEBDAV_ENDPOINT);
+  soup_uri_free (uri_tmp);
+
+  return uri_webdav;
+}
+
 static gboolean on_handle_get_password (GoaPasswordBased      *interface,
                                         GDBusMethodInvocation *invocation,
                                         const gchar           *id,
@@ -183,17 +227,7 @@ build_object (GoaProvider         *provider,
         {
           gchar *uri_caldav;
 
-          uri_caldav = NULL;
-
-          if (uri != NULL)
-            {
-              gchar *uri_tmp;
-
-              uri_tmp = soup_uri_to_string (uri, FALSE);
-              uri_caldav = g_strconcat (uri_tmp, CALDAV_ENDPOINT, NULL);
-              g_free (uri_tmp);
-            }
-
+          uri_caldav = uri_to_string_with_path (uri, CALDAV_ENDPOINT);
           calendar = goa_calendar_skeleton_new ();
           g_object_set (G_OBJECT (calendar),
                         "accept-ssl-errors", accept_ssl_errors,
@@ -218,17 +252,7 @@ build_object (GoaProvider         *provider,
         {
           gchar *uri_carddav;
 
-          uri_carddav = NULL;
-
-          if (uri != NULL)
-            {
-              gchar *uri_tmp;
-
-              uri_tmp = soup_uri_to_string (uri, FALSE);
-              uri_carddav = g_strconcat (uri_tmp, CARDDAV_ENDPOINT, NULL);
-              g_free (uri_tmp);
-            }
-
+          uri_carddav = uri_to_string_with_path (uri, CARDDAV_ENDPOINT);
           contacts = goa_contacts_skeleton_new ();
           g_object_set (G_OBJECT (contacts),
                         "accept-ssl-errors", accept_ssl_errors,
@@ -271,24 +295,7 @@ build_object (GoaProvider         *provider,
         {
           gchar *uri_webdav;
 
-          uri_webdav = NULL;
-
-          if (uri != NULL)
-            {
-              const gchar *scheme;
-              gchar *uri_tmp;
-
-              scheme = soup_uri_get_scheme (uri);
-              if (g_strcmp0 (scheme, SOUP_URI_SCHEME_HTTPS) == 0)
-                soup_uri_set_scheme (uri, "davs");
-              else
-                soup_uri_set_scheme (uri, "dav");
-
-              uri_tmp = soup_uri_to_string (uri, FALSE);
-              uri_webdav = g_strconcat (uri_tmp, WEBDAV_ENDPOINT, NULL);
-              g_free (uri_tmp);
-            }
-
+          uri_webdav = get_webdav_uri (uri);
           files = goa_files_skeleton_new ();
           g_object_set (G_OBJECT (files),
                         "accept-ssl-errors", accept_ssl_errors,
@@ -334,6 +341,7 @@ build_object (GoaProvider         *provider,
  out:
   g_clear_object (&calendar);
   g_clear_object (&contacts);
+  g_clear_object (&documents);
   g_clear_object (&files);
   g_clear_object (&password_based);
   g_clear_pointer (&uri, (GDestroyNotify *) soup_uri_free);

@@ -18,8 +18,6 @@
 
 #include "config.h"
 
-#include <glib/gi18n-lib.h>
-
 #include <libsoup/soup.h>
 
 #include "goahttpclient.h"
@@ -168,11 +166,8 @@ http_client_check_response_cb (SoupSession *session, SoupMessage *msg, gpointer 
     goto out;
   else if (msg->status_code != SOUP_STATUS_OK)
     {
-      g_set_error (&error,
-                   GOA_ERROR,
-                   GOA_ERROR_FAILED, /* TODO: more specific */
-                   _("Code: %u — Unexpected response from server"),
-                   msg->status_code);
+      g_warning ("goa_http_client_check() failed: %u — %s", msg->status_code, msg->reason_phrase);
+      goa_utils_set_error_soup (&error, msg);
       goto out;
     }
 

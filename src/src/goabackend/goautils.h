@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2014 Red Hat, Inc.
+ * Copyright (C) 2012, 2013, 2014, 2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,6 +26,7 @@
 #include <gio/gio.h>
 #include <glib.h>
 #include <gtk/gtk.h>
+#include <libsoup/soup.h>
 #include <goabackend/goabackendtypes.h>
 
 G_BEGIN_DECLS
@@ -45,6 +46,11 @@ gboolean         goa_utils_check_duplicate (GoaClient              *client,
                                             const gchar            *provider_type,
                                             GoaPeekInterfaceFunc    func,
                                             GError                **error);
+
+gchar           *goa_utils_data_input_stream_read_line (GDataInputStream  *stream,
+                                                        gsize             *length,
+                                                        GCancellable      *cancellable,
+                                                        GError           **error);
 
 void             goa_utils_set_dialog_title (GoaProvider *provider, GtkDialog *dialog, gboolean add_account);
 
@@ -77,6 +83,8 @@ void             goa_utils_keyfile_set_boolean (GoaAccount *account, const gchar
 void             goa_utils_keyfile_set_string (GoaAccount *account, const gchar *key, const gchar *value);
 
 gboolean         goa_utils_parse_email_address (const gchar *email, gchar **out_username, gchar **out_domain);
+
+void             goa_utils_set_error_soup (GError **err, SoupMessage *msg);
 
 void             goa_utils_set_error_ssl (GError **err, GTlsCertificateFlags flags);
 

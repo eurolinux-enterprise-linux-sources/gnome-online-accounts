@@ -83,7 +83,8 @@ DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
 	$(top_srcdir)/configure $(am__configure_deps) \
 	$(srcdir)/config.h.in \
 	$(srcdir)/telepathy-account-widgets-uninstalled.pc.in COPYING \
-	compile config.guess config.sub install-sh missing ltmain.sh
+	compile config.guess config.sub depcomp install-sh missing \
+	ltmain.sh
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/as-compiler-flag.m4 \
 	$(top_srcdir)/m4/gsettings.m4 $(top_srcdir)/m4/intltool.m4 \

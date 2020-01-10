@@ -1,7 +1,7 @@
-From 3d9361b917ef923f39ba54835512171d83e457b7 Mon Sep 17 00:00:00 2001
+From 25a3cc4de532748e162ad84451407e3263f8d512 Mon Sep 17 00:00:00 2001
 From: Ray Strode <rstrode@redhat.com>
 Date: Tue, 22 Sep 2015 14:33:35 -0400
-Subject: [PATCH 1/3] identity: consider ticket start time when calculating
+Subject: [PATCH 1/2] identity: consider ticket start time when calculating
  renewal time
 
 Right now we try to renew the kerberos ticket at the midpoint between
@@ -24,37 +24,10 @@ and expiration time of the ticket.
  2 files changed, 53 insertions(+), 9 deletions(-)
 
 diff --git a/src/goaidentity/goaidentity.c b/src/goaidentity/goaidentity.c
-index 2fc491b..2904e2a 100644
+index 2fc491be2876..2904e2afe020 100644
 --- a/src/goaidentity/goaidentity.c
 +++ b/src/goaidentity/goaidentity.c
-@@ -13,60 +13,67 @@
-  * Lesser General Public License for more details.
-  *
-  * You should have received a copy of the GNU Lesser General
-  * Public License along with this library; if not, see <http://www.gnu.org/licenses/>.
-  */
- 
- #include "config.h"
- 
- #include <glib-object.h>
- #include <glib/gi18n.h>
- 
- #include "goaidentity.h"
- 
- G_DEFINE_INTERFACE (GoaIdentity, goa_identity, G_TYPE_OBJECT);
- 
- static void
- goa_identity_default_init (GoaIdentityInterface *interface)
- {
-   g_object_interface_install_property (interface,
-                                        g_param_spec_string ("identifier",
-                                                             "identifier",
-                                                             "identifier",
-                                                             NULL, G_PARAM_READABLE));
-   g_object_interface_install_property (interface,
-                                        g_param_spec_boolean ("is-signed-in",
-                                                              "Is signed in",
-                                                              "Whether or not identity is currently signed in",
+@@ -40,6 +40,13 @@ goa_identity_default_init (GoaIdentityInterface *interface)
                                                               FALSE,
                                                               G_PARAM_READABLE));
    g_object_interface_install_property (interface,
@@ -68,65 +41,11 @@ index 2fc491b..2904e2a 100644
                                         g_param_spec_int64 ("expiration-timestamp",
                                                             "Expiration Timestamp",
                                                             "A timestamp of when the identities credentials expire",
-                                                            -1,
-                                                            G_MAXINT64,
-                                                            -1, G_PARAM_READABLE));
- }
- 
- GQuark
- goa_identity_error_quark (void)
- {
-   static GQuark error_quark = 0;
- 
-   if (error_quark == 0)
-     {
-       error_quark = g_quark_from_static_string ("goa-identity-error");
-     }
- 
-   return error_quark;
- }
- 
- const char *
- goa_identity_get_identifier (GoaIdentity *self)
- {
-   return GOA_IDENTITY_GET_IFACE (self)->get_identifier (self);
- }
- 
- gboolean
- goa_identity_is_signed_in (GoaIdentity *self)
- {
 diff --git a/src/goaidentity/goakerberosidentity.c b/src/goaidentity/goakerberosidentity.c
-index 4370a09..6865535 100644
+index 1ce5079b6194..f43978d49ebf 100644
 --- a/src/goaidentity/goakerberosidentity.c
 +++ b/src/goaidentity/goakerberosidentity.c
-@@ -22,86 +22,89 @@
- #include "goakerberosidentity.h"
- #include "goakerberosidentityinquiry.h"
- #include "goaalarm.h"
- 
- #include <netinet/in.h>
- #include <arpa/nameser.h>
- #include <resolv.h>
- 
- #include <string.h>
- #include <glib/gi18n.h>
- #include <gio/gio.h>
- 
- typedef enum
- {
-   VERIFICATION_LEVEL_UNVERIFIED,
-   VERIFICATION_LEVEL_ERROR,
-   VERIFICATION_LEVEL_EXISTS,
-   VERIFICATION_LEVEL_SIGNED_IN
- } VerificationLevel;
- 
- struct _GoaKerberosIdentityPrivate
- {
-   krb5_context kerberos_context;
-   krb5_ccache  credentials_cache;
- 
-   char *identifier;
-   guint identifier_idle_id;
+@@ -49,6 +49,8 @@ struct _GoaKerberosIdentityPrivate
  
    char *preauth_identity_source;
  
@@ -135,26 +54,7 @@ index 4370a09..6865535 100644
    krb5_timestamp expiration_time;
    guint          expiration_time_idle_id;
  
-   GoaAlarm     *expiration_alarm;
-   GoaAlarm     *expiring_alarm;
-   GoaAlarm     *renewal_alarm;
- 
-   VerificationLevel cached_verification_level;
-   guint             is_signed_in_idle_id;
- };
- 
- enum
- {
-   EXPIRING,
-   EXPIRED,
-   UNEXPIRED,
-   NEEDS_RENEWAL,
-   NEEDS_REFRESH,
-   NUMBER_OF_SIGNALS,
- };
- 
- enum
- {
+@@ -75,6 +77,7 @@ enum
    PROP_0,
    PROP_IDENTIFIER,
    PROP_IS_SIGNED_IN,
@@ -162,61 +62,7 @@ index 4370a09..6865535 100644
    PROP_EXPIRATION_TIMESTAMP
  };
  
- static guint signals[NUMBER_OF_SIGNALS] = { 0 };
- 
- static void identity_interface_init (GoaIdentityInterface *interface);
- static void initable_interface_init (GInitableIface *interface);
- static void reset_alarms (GoaKerberosIdentity *self);
- static void clear_alarms (GoaKerberosIdentity *self);
- static gboolean goa_kerberos_identity_is_signed_in (GoaIdentity *identity);
- static void set_error_from_krb5_error_code (GoaKerberosIdentity  *self,
-                                             GError              **error,
-                                             gint                  code,
-                                             krb5_error_code       error_code,
-                                             const char           *format,
-                                             ...);
- 
- G_LOCK_DEFINE_STATIC (identity_lock);
- 
- G_DEFINE_TYPE_WITH_CODE (GoaKerberosIdentity,
-                          goa_kerberos_identity,
-                          G_TYPE_OBJECT,
-                          G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE,
-                                                 initable_interface_init)
-                          G_IMPLEMENT_INTERFACE (GOA_TYPE_IDENTITY,
-                                                 identity_interface_init));
- static void
- goa_kerberos_identity_dispose (GObject *object)
- {
-   GoaKerberosIdentity *self = GOA_KERBEROS_IDENTITY (object);
-@@ -121,60 +124,65 @@ goa_kerberos_identity_finalize (GObject *object)
- {
-   GoaKerberosIdentity *self = GOA_KERBEROS_IDENTITY (object);
- 
-   g_free (self->priv->identifier);
- 
-   if (self->priv->credentials_cache != NULL)
-     krb5_cc_close (self->priv->kerberos_context, self->priv->credentials_cache);
- 
-   G_OBJECT_CLASS (goa_kerberos_identity_parent_class)->finalize (object);
- }
- 
- static void
- goa_kerberos_identity_get_property (GObject    *object,
-                                     guint       property_id,
-                                     GValue     *value,
-                                     GParamSpec *param_spec)
- {
-   GoaKerberosIdentity *self = GOA_KERBEROS_IDENTITY (object);
- 
-   switch (property_id)
-     {
-     case PROP_IDENTIFIER:
-       G_LOCK (identity_lock);
-       g_value_set_string (value, self->priv->identifier);
-       G_UNLOCK (identity_lock);
-       break;
-     case PROP_IS_SIGNED_IN:
+@@ -148,6 +151,11 @@ goa_kerberos_identity_get_property (GObject    *object,
        g_value_set_boolean (value,
                             goa_kerberos_identity_is_signed_in (GOA_IDENTITY (self)));
        break;
@@ -228,61 +74,7 @@ index 4370a09..6865535 100644
      case PROP_EXPIRATION_TIMESTAMP:
        G_LOCK (identity_lock);
        g_value_set_int64 (value, (gint64) self->priv->expiration_time);
-       G_UNLOCK (identity_lock);
-       break;
-     default:
-       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, param_spec);
-       break;
-     }
- }
- 
- static void
- goa_kerberos_identity_class_init (GoaKerberosIdentityClass *klass)
- {
-   GObjectClass *object_class;
- 
-   object_class = G_OBJECT_CLASS (klass);
- 
-   object_class->dispose = goa_kerberos_identity_dispose;
-   object_class->finalize = goa_kerberos_identity_finalize;
-   object_class->get_property = goa_kerberos_identity_get_property;
- 
-   g_type_class_add_private (klass, sizeof (GoaKerberosIdentityPrivate));
- 
-   signals[EXPIRING] = g_signal_new ("expiring",
-                                     G_TYPE_FROM_CLASS (klass),
-                                     G_SIGNAL_RUN_LAST,
-                                     0,
-                                     NULL,
-                                     NULL,
-@@ -194,60 +202,63 @@ goa_kerberos_identity_class_init (GoaKerberosIdentityClass *klass)
-                                      G_TYPE_FROM_CLASS (klass),
-                                      G_SIGNAL_RUN_LAST,
-                                      0,
-                                      NULL,
-                                      NULL,
-                                      NULL,
-                                      G_TYPE_NONE,
-                                      0);
-   signals[NEEDS_RENEWAL] = g_signal_new ("needs-renewal",
-                                          G_TYPE_FROM_CLASS (klass),
-                                          G_SIGNAL_RUN_LAST,
-                                          0,
-                                          NULL,
-                                          NULL,
-                                          NULL,
-                                          G_TYPE_NONE,
-                                          0);
-   signals[NEEDS_REFRESH] = g_signal_new ("needs-refresh",
-                                          G_TYPE_FROM_CLASS (klass),
-                                          G_SIGNAL_RUN_LAST,
-                                          0,
-                                          NULL,
-                                          NULL,
-                                          NULL,
-                                          G_TYPE_NONE,
-                                          0);
- 
+@@ -221,6 +229,9 @@ goa_kerberos_identity_class_init (GoaKerberosIdentityClass *klass)
    g_object_class_override_property (object_class, PROP_IDENTIFIER, "identifier");
    g_object_class_override_property (object_class, PROP_IS_SIGNED_IN, "is-signed-in");
    g_object_class_override_property (object_class,
@@ -292,61 +84,7 @@ index 4370a09..6865535 100644
                                      PROP_EXPIRATION_TIMESTAMP,
                                      "expiration-timestamp");
  
- }
- 
- static char *
- get_identifier (GoaKerberosIdentity  *self,
-                 GError              **error)
- {
-   krb5_principal principal;
-   krb5_error_code error_code;
-   char *unparsed_name;
-   char *identifier = NULL;
- 
-   if (self->priv->credentials_cache == NULL)
-     return NULL;
- 
-   error_code = krb5_cc_get_principal (self->priv->kerberos_context,
-                                       self->priv->credentials_cache,
-                                       &principal);
- 
-   if (error_code != 0)
-     {
-       if (error_code == KRB5_CC_END)
-         {
-           set_error_from_krb5_error_code (self,
-                                           error,
-                                           GOA_IDENTITY_ERROR_CREDENTIALS_UNAVAILABLE,
-                                           error_code,
-                                           _
-@@ -546,207 +557,233 @@ on_notify_queued (NotifyRequest *request)
- 
-   return FALSE;
- }
- 
- static void
- queue_notify (GoaKerberosIdentity *self,
-               guint               *idle_id,
-               const char          *property_name)
- {
-   NotifyRequest *request;
- 
-   if (*idle_id != 0)
-     {
-       return;
-     }
- 
-   request = g_slice_new0 (NotifyRequest);
-   request->self = g_object_ref (self);
-   request->idle_id = idle_id;
-   request->property_name = property_name;
- 
-   *idle_id = g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
-                               (GSourceFunc)
-                               on_notify_queued,
-                               request,
-                               (GDestroyNotify)
-                               clear_idle_id);
+@@ -573,6 +584,23 @@ queue_notify (GoaKerberosIdentity *self,
  }
  
  static void
@@ -370,19 +108,7 @@ index 4370a09..6865535 100644
  set_expiration_time (GoaKerberosIdentity *self,
                       krb5_timestamp       expiration_time)
  {
-   G_LOCK (identity_lock);
-   if (self->priv->expiration_time != expiration_time)
-     {
-       self->priv->expiration_time = expiration_time;
-       G_UNLOCK (identity_lock);
-       queue_notify (self,
-                     &self->priv->expiration_time_idle_id,
-                     "expiration-timestamp");
-       G_LOCK (identity_lock);
-     }
-   G_UNLOCK (identity_lock);
- }
- 
+@@ -592,6 +620,7 @@ set_expiration_time (GoaKerberosIdentity *self,
  static gboolean
  credentials_are_expired (GoaKerberosIdentity *self,
                           krb5_creds          *credentials,
@@ -390,7 +116,7 @@ index 4370a09..6865535 100644
                           krb5_timestamp      *expiration_time)
  {
    krb5_timestamp current_time;
- 
+@@ -599,11 +628,17 @@ credentials_are_expired (GoaKerberosIdentity *self,
    current_time = get_current_time (self);
  
    G_LOCK (identity_lock);
@@ -409,16 +135,7 @@ index 4370a09..6865535 100644
      {
        return TRUE;
      }
- 
-   return FALSE;
- }
- 
- static VerificationLevel
- verify_identity (GoaKerberosIdentity  *self,
-                  char                **preauth_identity_source,
-                  GError              **error)
- {
-   krb5_principal principal = NULL;
+@@ -620,6 +655,7 @@ verify_identity (GoaKerberosIdentity  *self,
    krb5_cc_cursor cursor;
    krb5_creds credentials;
    krb5_error_code error_code;
@@ -426,51 +143,7 @@ index 4370a09..6865535 100644
    krb5_timestamp expiration_time = 0;
    VerificationLevel verification_level = VERIFICATION_LEVEL_UNVERIFIED;
  
-   if (self->priv->credentials_cache == NULL)
-     goto out;
- 
-   error_code = krb5_cc_get_principal (self->priv->kerberos_context,
-                                       self->priv->credentials_cache,
-                                       &principal);
- 
-   if (error_code != 0)
-     {
-       if (error_code == KRB5_CC_END || error_code == KRB5_FCC_NOFILE)
-         goto out;
- 
-       set_error_from_krb5_error_code (self,
-                                       error,
-                                       GOA_IDENTITY_ERROR_NOT_FOUND,
-                                       error_code,
-                                       _("Could not find identity in "
-                                         "credential cache: %k"));
-       verification_level = VERIFICATION_LEVEL_ERROR;
-       goto out;
-     }
- 
-   error_code = krb5_cc_start_seq_get (self->priv->kerberos_context,
-                                       self->priv->credentials_cache, &cursor);
-   if (error_code != 0)
-     {
-       set_error_from_krb5_error_code (self,
-                                       error,
-                                       GOA_IDENTITY_ERROR_CREDENTIALS_UNAVAILABLE,
-                                       error_code,
-                                       _("Could not find identity "
-                                         "credentials in cache: %k"));
- 
-       verification_level = VERIFICATION_LEVEL_ERROR;
-       goto out;
-     }
- 
-   verification_level = VERIFICATION_LEVEL_UNVERIFIED;
- 
-   error_code = krb5_cc_next_cred (self->priv->kerberos_context,
-                                   self->priv->credentials_cache,
-                                   &cursor,
-                                   &credentials);
- 
-   while (error_code == 0)
+@@ -671,7 +707,7 @@ verify_identity (GoaKerberosIdentity  *self,
      {
        if (credentials_validate_existence (self, principal, &credentials))
          {
@@ -479,48 +152,7 @@ index 4370a09..6865535 100644
              verification_level = VERIFICATION_LEVEL_SIGNED_IN;
            else
              verification_level = VERIFICATION_LEVEL_EXISTS;
-         }
-       else
-         {
-           snoop_preauth_identity_from_credentials (self, &credentials, preauth_identity_source);
-         }
- 
-       krb5_free_cred_contents (self->priv->kerberos_context, &credentials);
- 
-       error_code = krb5_cc_next_cred (self->priv->kerberos_context,
-                                       self->priv->credentials_cache,
-                                       &cursor,
-                                       &credentials);
-     }
- 
-   if (error_code != KRB5_CC_END)
-     {
-       verification_level = VERIFICATION_LEVEL_ERROR;
- 
-       set_error_from_krb5_error_code (self,
-                                       error,
-                                       GOA_IDENTITY_ERROR_ENUMERATING_CREDENTIALS,
-                                       error_code,
-                                       _("Could not sift through identity "
-                                         "credentials in cache: %k"));
-       goto end_sequence;
-     }
- 
-  end_sequence:
-   error_code = krb5_cc_end_seq_get (self->priv->kerberos_context,
-                                     self->priv->credentials_cache,
-                                     &cursor);
- 
-   if (error_code != 0)
-     {
-       verification_level = VERIFICATION_LEVEL_ERROR;
- 
-       set_error_from_krb5_error_code (self,
-                                       error,
-                                       GOA_IDENTITY_ERROR_ENUMERATING_CREDENTIALS,
-                                       error_code,
-                                       _("Could not finish up sifting through "
-                                         "identity credentials in cache: %k"));
+@@ -720,6 +756,7 @@ verify_identity (GoaKerberosIdentity  *self,
        goto out;
      }
  out:
@@ -528,61 +160,7 @@ index 4370a09..6865535 100644
    set_expiration_time (self, expiration_time);
  
    if (principal != NULL)
-     krb5_free_principal (self->priv->kerberos_context, principal);
-   return verification_level;
- }
- 
- static gboolean
- goa_kerberos_identity_is_signed_in (GoaIdentity *identity)
- {
-   GoaKerberosIdentity *self = GOA_KERBEROS_IDENTITY (identity);
-   gboolean is_signed_in = FALSE;
- 
-   G_LOCK (identity_lock);
-   if (self->priv->cached_verification_level == VERIFICATION_LEVEL_SIGNED_IN)
-     is_signed_in = TRUE;
-   G_UNLOCK (identity_lock);
- 
-   return is_signed_in;
- }
- 
- static void
- identity_interface_init (GoaIdentityInterface *interface)
- {
-   interface->get_identifier = goa_kerberos_identity_get_identifier;
-   interface->is_signed_in = goa_kerberos_identity_is_signed_in;
- }
- 
- static void
- on_expiration_alarm_fired (GoaAlarm            *alarm,
-@@ -895,90 +932,90 @@ connect_alarm_signals (GoaKerberosIdentity *self)
- {
-   g_signal_connect (G_OBJECT (self->priv->renewal_alarm),
-                     "fired",
-                     G_CALLBACK (on_renewal_alarm_fired),
-                     self);
-   g_signal_connect (G_OBJECT (self->priv->renewal_alarm),
-                     "rearmed",
-                     G_CALLBACK (on_renewal_alarm_rearmed),
-                     self);
-   g_signal_connect (G_OBJECT (self->priv->expiring_alarm),
-                     "fired",
-                     G_CALLBACK (on_expiring_alarm_fired),
-                     self);
-   g_signal_connect (G_OBJECT (self->priv->expiring_alarm),
-                     "rearmed",
-                     G_CALLBACK (on_expiring_alarm_rearmed),
-                     self);
-   g_signal_connect (G_OBJECT (self->priv->expiration_alarm),
-                     "fired",
-                     G_CALLBACK (on_expiration_alarm_fired),
-                     self);
-   g_signal_connect (G_OBJECT (self->priv->expiration_alarm),
-                     "rearmed",
-                     G_CALLBACK (on_expiration_alarm_rearmed),
-                     self);
- }
- 
+@@ -922,18 +959,18 @@ connect_alarm_signals (GoaKerberosIdentity *self)
  static void
  reset_alarms (GoaKerberosIdentity *self)
  {
@@ -606,7 +184,7 @@ index 4370a09..6865535 100644
  
    /* Let the user reauthenticate 10 min before expiration */
    expiring_time = g_date_time_add_minutes (expiration_time, -10);
- 
+@@ -941,8 +978,7 @@ reset_alarms (GoaKerberosIdentity *self)
    /* Try to quietly auto-renew halfway through so in ideal configurations
     * the ticket is never more than halfway to expired
     */
@@ -616,9 +194,7 @@ index 4370a09..6865535 100644
  
    disconnect_alarm_signals (self);
  
-   reset_alarm (self, &self->priv->renewal_alarm, renewal_time);
-   reset_alarm (self, &self->priv->expiring_alarm, expiring_time);
-   reset_alarm (self, &self->priv->expiration_alarm, expiration_time);
+@@ -952,6 +988,7 @@ reset_alarms (GoaKerberosIdentity *self)
  
    g_date_time_unref (renewal_time);
    g_date_time_unref (expiring_time);
@@ -626,132 +202,14 @@ index 4370a09..6865535 100644
    g_date_time_unref (expiration_time);
    connect_alarm_signals (self);
  }
- 
- static void
- clear_alarms (GoaKerberosIdentity *self)
- {
-   disconnect_alarm_signals (self);
-   clear_alarm_and_unref_on_idle (self, &self->priv->renewal_alarm);
-   clear_alarm_and_unref_on_idle (self, &self->priv->expiring_alarm);
-   clear_alarm_and_unref_on_idle (self, &self->priv->expiration_alarm);
- }
- 
- static gboolean
- goa_kerberos_identity_initable_init (GInitable     *initable,
-                                      GCancellable  *cancellable,
-                                      GError       **error)
- {
-   GoaKerberosIdentity *self = GOA_KERBEROS_IDENTITY (initable);
-   GError *verification_error;
- 
-   if (g_cancellable_set_error_if_cancelled (cancellable, error))
-     return FALSE;
- 
-   if (self->priv->identifier == NULL)
-     {
-       self->priv->identifier = get_identifier (self, error);
- 
-       if (self->priv->identifier != NULL)
-         queue_notify (self, &self->priv->identifier_idle_id, "identifier");
 -- 
 2.5.0
 
 
-From 57757628e01dcd1d6ce9855bdad70d5f69757157 Mon Sep 17 00:00:00 2001
-From: Ray Strode <rstrode@redhat.com>
-Date: Tue, 22 Sep 2015 14:41:05 -0400
-Subject: [PATCH 2/3] identity: don't ever nullify identifier
-
-credentials stored in the kernel keyring disappear after they expire.
-This is is different from other credential caches, which hang around
-but maintain an expired timestamp until kdestroy. Because the credentials
-vanish, trying to read the principal from an previously existing credential
-cache, will yield NULL.
-
-This can lead to a crash in goa which never expects the identifier of an
-identity object to be NULL.
-
-This commit makes sure we retain the old identifier in the event the
-credential cache gets wiped.
----
- src/goaidentity/goakerberosidentity.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/src/goaidentity/goakerberosidentity.c b/src/goaidentity/goakerberosidentity.c
-index 6865535..f43978d 100644
---- a/src/goaidentity/goakerberosidentity.c
-+++ b/src/goaidentity/goakerberosidentity.c
-@@ -1355,61 +1355,61 @@ goa_kerberos_identity_sign_in (GoaKerberosIdentity     *self,
-       goto done;
-     }
- 
-   if (destroy_notify)
-     destroy_notify (inquiry_data);
-   sign_in_operation_free (operation);
- 
-   if (!goa_kerberos_identity_update_credentials (self,
-                                                  principal,
-                                                  &new_credentials,
-                                                  error))
-     {
-       krb5_free_principal (self->priv->kerberos_context, principal);
-       goto done;
-     }
-   krb5_free_principal (self->priv->kerberos_context, principal);
- 
-   g_debug ("GoaKerberosIdentity: identity signed in");
-   signed_in = TRUE;
- done:
- 
-   return signed_in;
- }
- 
- static void
- update_identifier (GoaKerberosIdentity *self, GoaKerberosIdentity *new_identity)
- {
-   char *new_identifier;
- 
-   new_identifier = get_identifier (self, NULL);
--  if (g_strcmp0 (self->priv->identifier, new_identifier) != 0)
-+  if (g_strcmp0 (self->priv->identifier, new_identifier) != 0 && new_identifier != NULL)
-     {
-       g_free (self->priv->identifier);
-       self->priv->identifier = new_identifier;
-       queue_notify (self, &self->priv->identifier_idle_id, "identifier");
-     }
-   else
-     {
-       g_free (new_identifier);
-     }
- }
- 
- void
- goa_kerberos_identity_update (GoaKerberosIdentity *self,
-                               GoaKerberosIdentity *new_identity)
- {
-   VerificationLevel verification_level;
-   char *preauth_identity_source = NULL;
- 
-   if (self->priv->credentials_cache != NULL)
-     krb5_cc_close (self->priv->kerberos_context, self->priv->credentials_cache);
- 
-   krb5_cc_dup (new_identity->priv->kerberos_context,
-                new_identity->priv->credentials_cache,
-                &self->priv->credentials_cache);
- 
-   G_LOCK (identity_lock);
-   update_identifier (self, new_identity);
-   G_UNLOCK (identity_lock);
- 
-   verification_level = verify_identity (self, &preauth_identity_source, NULL);
--- 
-2.5.0
-
-
-From 8d8a923530402fef8dd04b5b4efd349c45118e13 Mon Sep 17 00:00:00 2001
+From d3f7bcc56592a3113c1cde55bf67c44514acc7f9 Mon Sep 17 00:00:00 2001
 From: Ray Strode <rstrode@redhat.com>
 Date: Tue, 22 Sep 2015 14:38:29 -0400
-Subject: [PATCH 3/3] identity: don't ignore almost all renewal requests
+Subject: [PATCH 2/2] identity: don't ignore almost all renewal requests
 
 There's a bug in the code where we ignore all renewal requests for
 objects we already know about.
@@ -767,37 +225,10 @@ This was clearly the original intention of the buggy code.
  1 file changed, 5 insertions(+), 4 deletions(-)
 
 diff --git a/src/goaidentity/goaidentityservice.c b/src/goaidentity/goaidentityservice.c
-index 6b6225a..bb5d3a7 100644
+index 6b6225adbc61..bb5d3a7dbe25 100644
 --- a/src/goaidentity/goaidentityservice.c
 +++ b/src/goaidentity/goaidentityservice.c
-@@ -714,70 +714,71 @@ static void
- on_identity_renewed (GoaIdentityManager *manager,
-                      GAsyncResult       *result,
-                      GoaIdentityService *self)
- {
-   GError *error;
- 
-   error = NULL;
-   goa_identity_manager_renew_identity_finish (manager, result, &error);
- 
-   if (error != NULL)
-     {
-       g_debug ("GoaIdentityService: could not renew identity: %s",
-                error->message);
-       g_error_free (error);
-       return;
-     }
- 
-   g_debug ("GoaIdentityService: identity renewed");
- }
- 
- static void
- on_identity_needs_renewal (GoaIdentityManager *identity_manager,
-                            GoaIdentity        *identity,
-                            GoaIdentityService *self)
- {
-   const char *principal;
-   GoaObject  *object;
+@@ -741,16 +741,17 @@ on_identity_needs_renewal (GoaIdentityManager *identity_manager,
  
    principal = goa_identity_get_identifier (identity);
  
@@ -819,33 +250,6 @@ index 6b6225a..bb5d3a7 100644
    goa_identity_manager_renew_identity (GOA_IDENTITY_MANAGER
                                         (self->priv->identity_manager),
                                         identity,
-                                        NULL,
-                                        (GAsyncReadyCallback)
-                                        on_identity_renewed,
-                                        self);
- }
- 
- static void
- on_identity_signed_in (GoaIdentityManager *manager,
-                        GAsyncResult       *result,
-                        GSimpleAsyncResult *operation_result)
- {
-   GError *error;
-   GoaIdentity *identity;
- 
-   error = NULL;
-   identity = goa_identity_manager_sign_identity_in_finish (manager, result, &error);
- 
-   if (error != NULL)
-     {
-       g_debug ("GoaIdentityService: could not sign in identity: %s",
-                error->message);
-       g_simple_async_result_take_error (operation_result, error);
-     }
-   else
-     {
-       g_simple_async_result_set_op_res_gpointer (operation_result,
-                                                  g_object_ref (identity),
 -- 
 2.5.0
 

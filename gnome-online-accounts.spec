@@ -1,6 +1,6 @@
 Name:		gnome-online-accounts
-Version:	3.14.4
-Release:	3%{?dist}
+Version:	3.14.5
+Release:	5%{?dist}
 Summary:	Single sign-on framework for GNOME
 
 Group:		System Environment/Libraries
@@ -9,17 +9,26 @@ URL:		https://live.gnome.org/GnomeOnlineAccounts
 Source0:	http://download.gnome.org/sources/gnome-online-accounts/3.14/%{name}-%{version}.tar.xz
 
 Patch0:		translations.patch
-Patch1:		0001-daemon-Don-t-leak-the-GoaProvider.patch
-Patch2:		kerberos-smartcard.patch
-Patch3:		kerberos-separate-process.patch
-Patch4:		ensure-credentials-startup-and-network-change.patch
-Patch5:		kerberos-fix-renewal.patch
+Patch1:		kerberos-smartcard.patch
+Patch2:		kerberos-separate-process.patch
+Patch3:		ensure-credentials-startup-and-network-change.patch
+Patch4:		kerberos-fix-renewal.patch
+
+# https://bugzilla.redhat.com/show_bug.cgi?id=1261940
+Patch5:		temporary-accounts-clean-up.patch
+
+# https://bugzilla.redhat.com/show_bug.cgi?id=1267534
+Patch6:		telepathy-account-widgets-update-submodule.patch
+Patch7:		kerberos-telepathy-stopping-goa-daemon-removes-account.patch
+
+# https://bugzilla.redhat.com/show_bug.cgi?id=1364705
+Patch8:		kerberos-fail-early-on-ticket-request-when-ticketing.patch
 
 BuildRequires:	autoconf
 BuildRequires:	automake
 BuildRequires:	gcr-devel
-BuildRequires:	glib2-devel >= 2.35
-BuildRequires:	gtk3-devel >= 3.5.1
+BuildRequires:	glib2-devel >= 2.40
+BuildRequires:	gtk3-devel >= 3.11.1
 BuildRequires:	gnome-common
 BuildRequires:	gobject-introspection-devel
 BuildRequires:	gtk-doc
@@ -56,11 +65,14 @@ developing applications that use %{name}.
 %prep
 %setup -q
 %patch0 -p1 -b .translations
-%patch1 -p1 -b .provider-leak
-%patch2 -p1 -b .kerberos-smartcard
-%patch3 -p1 -b .kerberos-separate-process
-%patch4 -p1 -b .ensure-credentials
-%patch5 -p1 -b .kerberos-fix-renewal
+%patch1 -p1 -b .kerberos-smartcard
+%patch2 -p1 -b .kerberos-separate-process
+%patch3 -p1 -b .ensure-credentials
+%patch4 -p1 -b .kerberos-fix-renewal
+%patch5 -p1 -b .temporary-accounts-clean-up
+%patch6 -p1 -b .tpaw-update
+%patch7 -p1 -b .stopping-goa-daemon-removes
+%patch8 -p1 -b .fail-early-on-ticket-request
 
 %build
 autoreconf --force --install
@@ -136,6 +148,29 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_libdir}/goa-1.0/include
 
 %changelog
+* Tue Aug 23 2016 Debarshi Ray <rishi@fedoraproject.org> - 3.14.5-5
+- Ensure that temporary accounts are really removed from the keyring and
+  avoid a WARNING
+Resolves: #1261940
+
+* Wed Aug 10 2016 Debarshi Ray <rishi@fedoraproject.org> - 3.14.5-4
+- Fail early on Kerberos ticket request when ticketing is disabled
+Resolves: #1364705
+
+* Mon Jun 13 2016 Debarshi Ray <rishi@fedoraproject.org> - 3.14.5-3
+- Don't remove Telepathy accounts or expire Kerberos credentials when stopping
+  goa-daemon
+Resolves: #1267534
+
+* Wed May 18 2016 Debarshi Ray <rishi@fedoraproject.org> - 3.14.5-2
+- Don't let temporary accounts accumulate in accounts.conf and the keyring
+Resolves: #1261940
+
+* Mon Mar 14 2016 Debarshi Ray <rishi@fedoraproject.org> - 3.14.5-1
+- Update to 3.14.5
+- Rebase downstream patches
+Resolves: #1310832
+
 * Tue Sep 22 2015 Ray Strode <rstrode@redhat.com> 3.14.4-3
 - Fix kerberos renewal for KDCs that support it
 Resolves: #1189888

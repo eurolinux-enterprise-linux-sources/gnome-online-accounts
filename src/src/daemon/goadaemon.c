@@ -585,6 +585,7 @@ process_config_entries (GoaDaemon  *daemon,
       g_signal_handlers_disconnect_by_func (goa_object_peek_account (object),
                                             G_CALLBACK (on_account_handle_remove),
                                             daemon);
+      g_object_unref (object);
       g_debug ("removing %s", object_path);
       g_warn_if_fail (g_dbus_object_manager_server_unexport (daemon->object_manager, object_path));
     }
@@ -1158,7 +1159,7 @@ on_account_handle_ensure_credentials (GoaAccount            *account,
                                       gpointer               user_data)
 {
   GoaDaemon *daemon = GOA_DAEMON (user_data);
-  GoaProvider *provider;
+  GoaProvider *provider = NULL;
   GoaObject *object;
 
   object = GOA_OBJECT (g_dbus_interface_get_object (G_DBUS_INTERFACE (account)));
@@ -1181,5 +1182,6 @@ on_account_handle_ensure_credentials (GoaAccount            *account,
                                    ensure_data_new (daemon, object, invocation));
 
  out:
+  g_clear_object (&provider);
   return TRUE; /* invocation was handled */
 }

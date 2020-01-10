@@ -41,7 +41,7 @@
 <tbody>
 <tr>
 <td class="function_type">
-<a href="http://developer.gnome.org/gtk2/GtkWidget.html"><span class="returnvalue">GtkWidget</span></a> *
+<span class="returnvalue">GtkWidget</span> *
 </td>
 <td class="function_name">
 <a class="link" href="goa-Utilities.html#goa-util-add-row-widget" title="goa_util_add_row_widget ()">goa_util_add_row_widget</a> <span class="c_punctuation">()</span>
@@ -49,7 +49,7 @@
 </tr>
 <tr>
 <td class="function_type">
-<a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+<span class="returnvalue">gboolean</span>
 </td>
 <td class="function_name">
 <a class="link" href="goa-Utilities.html#goa-util-lookup-keyfile-boolean" title="goa_util_lookup_keyfile_boolean ()">goa_util_lookup_keyfile_boolean</a> <span class="c_punctuation">()</span>
@@ -57,7 +57,7 @@
 </tr>
 <tr>
 <td class="function_type">
-<a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gchar"><span class="returnvalue">gchar</span></a> *
+<span class="returnvalue">gchar</span> *
 </td>
 <td class="function_name">
 <a class="link" href="goa-Utilities.html#goa-util-lookup-keyfile-string" title="goa_util_lookup_keyfile_string ()">goa_util_lookup_keyfile_string</a> <span class="c_punctuation">()</span>
@@ -74,11 +74,11 @@
 <a name="goa-Utilities.functions_details"></a><h2>Functions</h2>
 <div class="refsect2">
 <a name="goa-util-add-row-widget"></a><h3>goa_util_add_row_widget ()</h3>
-<pre class="programlisting"><a href="http://developer.gnome.org/gtk2/GtkWidget.html"><span class="returnvalue">GtkWidget</span></a> *
-goa_util_add_row_widget (<em class="parameter"><code><a href="http://developer.gnome.org/gtk2/GtkGrid.html"><span class="type">GtkGrid</span></a> *grid</code></em>,
-                         <em class="parameter"><code><a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gint"><span class="type">gint</span></a> row</code></em>,
-                         <em class="parameter"><code>const <a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *label_text</code></em>,
-                         <em class="parameter"><code><a href="http://developer.gnome.org/gtk2/GtkWidget.html"><span class="type">GtkWidget</span></a> *widget</code></em>);</pre>
+<pre class="programlisting"><span class="returnvalue">GtkWidget</span> *
+goa_util_add_row_widget (<em class="parameter"><code><span class="type">GtkGrid</span> *grid</code></em>,
+                         <em class="parameter"><code><span class="type">gint</span> row</code></em>,
+                         <em class="parameter"><code>const <span class="type">gchar</span> *label_text</code></em>,
+                         <em class="parameter"><code><span class="type">GtkWidget</span> *widget</code></em>);</pre>
 <p>Utility function to add <em class="parameter"><code>label_text</code></em>
  and <em class="parameter"><code>widget</code></em>
  to <em class="parameter"><code>table</code></em>
@@ -94,7 +94,7 @@ goa_util_add_row_widget (<em class="parameter"><code><a href="http://developer.g
 <tbody>
 <tr>
 <td class="parameter_name"><p>label_text</p></td>
-<td class="parameter_description"><p> The text to insert on the left side or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a> for no label. </p></td>
+<td class="parameter_description"><p> The text to insert on the left side or <code class="literal">NULL</code> for no label. </p></td>
 <td class="parameter_annotations"><span class="annotation">[<acronym title="NULL is OK, both for passing and for returning."><span class="acronym">allow-none</span></acronym>]</span></td>
 </tr>
 <tr>
@@ -107,7 +107,7 @@ goa_util_add_row_widget (<em class="parameter"><code><a href="http://developer.g
 </div>
 <div class="refsect3">
 <a name="id-1.5.2.2.5.2.6"></a><h4>Returns</h4>
-<p> The <a href="http://developer.gnome.org/gtk2/GtkWidget.html"><span class="type">GtkWidget</span></a> that was inserted (e.g. <em class="parameter"><code>widget</code></em>
+<p> The <span class="type">GtkWidget</span> that was inserted (e.g. <em class="parameter"><code>widget</code></em>
 itself). </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
@@ -115,9 +115,9 @@ itself). </p>
 <hr>
 <div class="refsect2">
 <a name="goa-util-lookup-keyfile-boolean"></a><h3>goa_util_lookup_keyfile_boolean ()</h3>
-<pre class="programlisting"><a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+<pre class="programlisting"><span class="returnvalue">gboolean</span>
 goa_util_lookup_keyfile_boolean (<em class="parameter"><code><a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> *object</code></em>,
-                                 <em class="parameter"><code>const <a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *key</code></em>);</pre>
+                                 <em class="parameter"><code>const <span class="type">gchar</span> *key</code></em>);</pre>
 <p>
 </p>
 <div class="refsect3">
@@ -128,9 +128,9 @@ goa_util_lookup_keyfile_boolean (<em class="parameter"><code><a class="link" hre
 <hr>
 <div class="refsect2">
 <a name="goa-util-lookup-keyfile-string"></a><h3>goa_util_lookup_keyfile_string ()</h3>
-<pre class="programlisting"><a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gchar"><span class="returnvalue">gchar</span></a> *
+<pre class="programlisting"><span class="returnvalue">gchar</span> *
 goa_util_lookup_keyfile_string (<em class="parameter"><code><a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> *object</code></em>,
-                                <em class="parameter"><code>const <a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *key</code></em>);</pre>
+                                <em class="parameter"><code>const <span class="type">gchar</span> *key</code></em>);</pre>
 <p>
 </p>
 <div class="refsect3">

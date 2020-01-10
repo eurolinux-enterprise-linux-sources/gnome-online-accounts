@@ -1,6 +1,6 @@
 m4_define([goa_major_version], [3])
 m4_define([goa_minor_version], [14])
-m4_define([goa_micro_version], [4])
+m4_define([goa_micro_version], [5])
 m4_define([goa_nano_version], [0])
 
 m4_define([goa_base_version],
@@ -494,6 +494,7 @@ data/icons/22x22/Makefile
 data/icons/24x24/Makefile
 data/icons/32x32/Makefile
 data/icons/48x48/Makefile
+data/icons/96x96/Makefile
 data/icons/256x256/Makefile
 data/org.gnome.online-accounts.gschema.xml
 src/Makefile

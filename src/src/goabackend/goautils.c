@@ -126,6 +126,34 @@ goa_utils_check_duplicate (GoaClient              *client,
   return ret;
 }
 
+gchar *
+goa_utils_data_input_stream_read_line (GDataInputStream  *stream,
+                                       gsize             *length,
+                                       GCancellable      *cancellable,
+                                       GError           **error)
+{
+  GError *local_error = NULL;
+  gchar *ret = NULL;
+
+  ret = g_data_input_stream_read_line (stream, length, cancellable, &local_error);
+
+  /* Handle g_data_input_stream_read_line returning NULL without
+   * setting an error when there was no content to read.
+   */
+  if (ret == NULL && local_error == NULL)
+    {
+      g_set_error (&local_error,
+                   GOA_ERROR,
+                   GOA_ERROR_FAILED, /* TODO: more specific */
+                   _("Could not parse response"));
+    }
+
+  if (local_error != NULL)
+    g_propagate_error (error, local_error);
+
+  return ret;
+}
+
 void
 goa_utils_set_dialog_title (GoaProvider *provider, GtkDialog *dialog, gboolean add_account)
 {
@@ -524,6 +552,28 @@ goa_utils_parse_email_address (const gchar *email, gchar **out_username, gchar *
     *out_domain = g_strdup (at + 1);
 
   return TRUE;
+}
+
+void
+goa_utils_set_error_soup (GError **err, SoupMessage *msg)
+{
+  gchar *error_msg = NULL;
+  gint error_code = GOA_ERROR_FAILED; /* TODO: more specific */
+
+  switch (msg->status_code)
+    {
+    case SOUP_STATUS_UNAUTHORIZED:
+      error_msg = g_strdup (_("Authentication failed"));
+      error_code = GOA_ERROR_NOT_AUTHORIZED;
+      break;
+
+    default:
+      error_msg = g_strdup_printf (_("Code: %u — Unexpected response from server"), msg->status_code);
+      break;
+    }
+
+  g_set_error_literal (err, GOA_ERROR, error_code, error_msg);
+  g_free (error_msg);
 }
 
 void
