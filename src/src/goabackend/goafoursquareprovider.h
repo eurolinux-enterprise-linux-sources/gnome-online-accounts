@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2014 Damián Nohales
+ * Copyright © 2014 Damián Nohales
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,15 +25,12 @@
 
 #include <glib-object.h>
 
+#include "goaoauth2provider-priv.h"
+
 G_BEGIN_DECLS
 
 #define GOA_TYPE_FOURSQUARE_PROVIDER   (goa_foursquare_provider_get_type ())
-#define GOA_FOURSQUARE_PROVIDER(o)     (G_TYPE_CHECK_INSTANCE_CAST ((o), GOA_TYPE_FOURSQUARE_PROVIDER, GoaFoursquareProvider))
-#define GOA_IS_FOURSQUARE_PROVIDER(o)  (G_TYPE_CHECK_INSTANCE_TYPE ((o), GOA_TYPE_FOURSQUARE_PROVIDER))
-
-typedef struct _GoaFoursquareProvider GoaFoursquareProvider;
-
-GType goa_foursquare_provider_get_type (void) G_GNUC_CONST;
+G_DECLARE_FINAL_TYPE (GoaFoursquareProvider, goa_foursquare_provider, GOA, FOURSQUARE_PROVIDER, GoaOAuth2Provider);
 
 G_END_DECLS
 

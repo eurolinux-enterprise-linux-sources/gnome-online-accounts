@@ -1,6 +1,6 @@
 m4_define([goa_major_version], [3])
-m4_define([goa_minor_version], [22])
-m4_define([goa_micro_version], [5])
+m4_define([goa_minor_version], [26])
+m4_define([goa_micro_version], [2])
 m4_define([goa_nano_version], [0])
 
 m4_define([goa_base_version],
@@ -85,7 +85,7 @@ GTK_DOC_CHECK([1.3])
 # Libraries
 #
 
-PKG_CHECK_MODULES(GLIB, [glib-2.0 gio-2.0 gio-unix-2.0 >= 2.40])
+PKG_CHECK_MODULES(GLIB, [glib-2.0 gio-2.0 gio-unix-2.0 >= 2.52])
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
@@ -98,7 +98,7 @@ AC_ARG_ENABLE([telepathy],
               [AS_HELP_STRING([--enable-telepathy],
               [Enable Telepathy IM provider])],
               [],
-              [enable_telepathy=yes])
+              [enable_telepathy=no])
 if test "$enable_telepathy" != "no"; then
   AC_DEFINE(GOA_TELEPATHY_ENABLED, 1, [Enable Telepathy data provider])
 fi
@@ -150,7 +150,7 @@ if test "$enable_backend" != "no"; then
     # telepathy-account-widgets
     prev_top_build_prefix=$ac_top_build_prefix
     prev_ac_configure_args=$ac_configure_args
-    ac_configure_args="$ac_configure_args --with-cheese=no --disable-gudev"
+    ac_configure_args="$ac_configure_args --with-cheese=no --disable-gudev --enable-ubuntu-online-accounts=no"
     # install the data together with the rest of GOA's data
     ac_configure_args="$ac_configure_args --with-pkgdatadir=${datadir}/gnome-online-accounts"
     # GOA ships its icons directly in ${datadir}/icons (usually /usr/share/icons/) and not
@@ -171,8 +171,7 @@ if test "$enable_backend" != "no"; then
 fi
 
 AC_ARG_ENABLE([inspector],
-              [AS_HELP_STRING([--enable-inspector],
-              [Enable a WebKitWebInspector for the embedded web view])],
+              [AS_HELP_STRING([--enable-inspector], [Enable a WebKitWebInspector for the embedded web view])],
               [],
               [enable_inspector=no])
 if test "$enable_inspector" != "no"; then
@@ -180,10 +179,9 @@ if test "$enable_inspector" != "no"; then
 fi
 
 AC_ARG_WITH(template-file,
-            [AS_HELP_STRING([--with-template-file],
-                            [Path to the template file])],
-                            [],
-                            [])
+            [AS_HELP_STRING([--with-template-file], [Path to the template file])],
+            [],
+            [])
 AC_DEFINE_UNQUOTED(GOA_TEMPLATE_FILE, ["$with_template_file"], [Path to the template file])
 
 # service providers
@@ -192,8 +190,7 @@ AC_DEFINE_UNQUOTED(GOA_TEMPLATE_FILE, ["$with_template_file"], [Path to the temp
 # Microsoft Exchange
 AC_DEFINE(GOA_EXCHANGE_NAME, ["exchange"], [ProviderType and extension point name])
 AC_ARG_ENABLE([exchange],
-              [AS_HELP_STRING([--enable-exchange],
-              [Enable Microsoft Exchange provider])],
+              [AS_HELP_STRING([--enable-exchange], [Enable Microsoft Exchange provider])],
               [],
               [enable_exchange=yes])
 if test "$enable_exchange" != "no"; then
@@ -202,17 +199,18 @@ fi
 
 # Flickr
 AC_DEFINE(GOA_FLICKR_NAME, ["flickr"], [ProviderType and extension point name])
-AC_ARG_ENABLE([flickr], [AS_HELP_STRING([--enable-flickr], [Enable Flickr provider])], [], [enable_flickr=yes])
+AC_ARG_ENABLE([flickr],
+              [AS_HELP_STRING([--enable-flickr], [Enable Flickr provider])],
+              [],
+              [enable_flickr=yes])
 AC_ARG_WITH(flickr-consumer-key,
-            [AS_HELP_STRING([--with-flickr-consumer-key],
-                            [Flickr OAuth 1.0 consumer key])],
-                            [],
-                            [])
+            [AS_HELP_STRING([--with-flickr-consumer-key], [Flickr OAuth 1.0 consumer key])],
+            [],
+            [])
 AC_ARG_WITH(flickr-consumer-secret,
-            [AS_HELP_STRING([--with-flickr-consumer-secret],
-                            [Flickr OAuth 1.0 consumer secret])],
-                            [],
-                            [])
+            [AS_HELP_STRING([--with-flickr-consumer-secret], [Flickr OAuth 1.0 consumer secret])],
+            [],
+            [])
 if test "$with_flickr_consumer_key" = ""; then
   with_flickr_consumer_key=ed00ad7e0869897506e23c0d18e34d01
 fi
@@ -228,50 +226,43 @@ fi
 # Foursquare
 AC_DEFINE(GOA_FOURSQUARE_NAME, ["foursquare"], [ProviderType and extension point name])
 AC_ARG_ENABLE([foursquare],
-              [AS_HELP_STRING([--enable-foursquare],
-                              [Enable Foursquare provider])],
-                              [],
-                              [enable_foursquare=yes])
+              [AS_HELP_STRING([--enable-foursquare], [Enable Foursquare provider])],
+              [],
+              [enable_foursquare=yes])
 AC_ARG_WITH(foursquare-client-id,
-            [AS_HELP_STRING([--with-foursquare-client-id],
-                            [Foursquare OAuth 2.0 client id])],
-                            [],
-                            [])
+            [AS_HELP_STRING([--with-foursquare-client-id], [Foursquare OAuth 2.0 client id])],
+            [],
+            [])
 if test "$with_foursquare_client_id" = ""; then
   with_foursquare_client_id="MBNU2NES5HASNDQJ25YPFGG2UGRZHPI3IYTNJGE0KIWT2HCF"
 fi
-AC_DEFINE_UNQUOTED(GOA_FOURSQUARE_CLIENT_ID,
-                   ["$with_foursquare_client_id"],
-                   [Foursquare OAuth 2.0 client id])
+AC_DEFINE_UNQUOTED(GOA_FOURSQUARE_CLIENT_ID, ["$with_foursquare_client_id"], [Foursquare OAuth 2.0 client id])
 if test "$enable_foursquare" != "no"; then
   AC_DEFINE(GOA_FOURSQUARE_ENABLED, 1, [Enable Foursquare data provider])
 fi
 
 # Google
 AC_DEFINE(GOA_GOOGLE_NAME, ["google"], [ProviderType and extension point name])
-AC_ARG_ENABLE([google], [AS_HELP_STRING([--enable-google], [Enable Google provider])], [], [enable_google=yes])
+AC_ARG_ENABLE([google],
+              [AS_HELP_STRING([--enable-google], [Enable Google provider])],
+              [],
+              [enable_google=yes])
 AC_ARG_WITH(google-client-id,
-            [AS_HELP_STRING([--with-google-client-id],
-                            [Google OAuth 2.0 client id])],
-                            [],
-                            [])
+            [AS_HELP_STRING([--with-google-client-id], [Google OAuth 2.0 client id])],
+            [],
+            [])
 AC_ARG_WITH(google-client-secret,
-            [AS_HELP_STRING([--with-google-client-secret],
-                            [Google OAuth 2.0 client secret])],
-                            [],
-                            [])
+            [AS_HELP_STRING([--with-google-client-secret], [Google OAuth 2.0 client secret])],
+            [],
+            [])
 if test "$with_google_client_id" = ""; then
   with_google_client_id=44438659992-7kgjeitenc16ssihbtdjbgguch7ju55s.apps.googleusercontent.com
 fi
 if test "$with_google_client_secret" = ""; then
   with_google_client_secret=-gMLuQyDiI0XrQS_vx_mhuYF
 fi
-AC_DEFINE_UNQUOTED(GOA_GOOGLE_CLIENT_ID,
-                   ["$with_google_client_id"],
-                   [Google OAuth 2.0 client id])
-AC_DEFINE_UNQUOTED(GOA_GOOGLE_CLIENT_SECRET,
-                   ["$with_google_client_secret"],
-                   [Google OAuth 2.0 client secret])
+AC_DEFINE_UNQUOTED(GOA_GOOGLE_CLIENT_ID, ["$with_google_client_id"], [Google OAuth 2.0 client id])
+AC_DEFINE_UNQUOTED(GOA_GOOGLE_CLIENT_SECRET, ["$with_google_client_secret"], [Google OAuth 2.0 client secret])
 if test "$enable_google" != "no"; then
   AC_DEFINE(GOA_GOOGLE_ENABLED, 1, [Enable Google data provider])
 fi
@@ -279,8 +270,7 @@ fi
 # IMAP/SMTP
 AC_DEFINE(GOA_IMAP_SMTP_NAME, ["imap_smtp"], [ProviderType and extension point name])
 AC_ARG_ENABLE([imap-smtp],
-              [AS_HELP_STRING([--enable-imap-smtp],
-              [Enable IMAP/SMTP provider])],
+              [AS_HELP_STRING([--enable-imap-smtp], [Enable IMAP/SMTP provider])],
               [],
               [enable_imap_smtp=yes])
 if test "$enable_imap_smtp" != "no"; then
@@ -290,8 +280,7 @@ fi
 # Media Server
 AC_DEFINE(GOA_MEDIA_SERVER_NAME, ["media-server"], [ProviderType and extension point name])
 AC_ARG_ENABLE([media-server],
-              [AS_HELP_STRING([--enable-media-server],
-              [Enable Media Server provider])],
+              [AS_HELP_STRING([--enable-media-server], [Enable Media Server provider])],
               [],
               [enable_media_server=no])
 if test "$enable_media_server" != "no"; then
@@ -301,8 +290,7 @@ fi
 # ownCloud
 AC_DEFINE(GOA_OWNCLOUD_NAME, ["owncloud"], [ProviderType and extension point name])
 AC_ARG_ENABLE([owncloud],
-              [AS_HELP_STRING([--enable-owncloud],
-              [Enable ownCloud provider])],
+              [AS_HELP_STRING([--enable-owncloud], [Enable ownCloud provider])],
               [],
               [enable_owncloud=yes])
 if test "$enable_owncloud" != "no"; then
@@ -311,64 +299,80 @@ fi
 
 # Facebook
 AC_DEFINE(GOA_FACEBOOK_NAME, ["facebook"], [ProviderType and extension point name])
-AC_ARG_ENABLE([facebook], [AS_HELP_STRING([--enable-facebook],
-                                          [Enable Facebook provider])],
-                                          [],
-                                          [enable_facebook=yes])
+AC_ARG_ENABLE([facebook],
+              [AS_HELP_STRING([--enable-facebook], [Enable Facebook provider])],
+              [],
+              [enable_facebook=yes])
 AC_ARG_WITH(facebook-client-id,
-            [AS_HELP_STRING([--with-facebook-client-id],
-                            [Facebook OAuth 2.0 client id])],
-                            [],
-                            [])
-
+            [AS_HELP_STRING([--with-facebook-client-id], [Facebook OAuth 2.0 client id])],
+            [],
+            [])
 if test "$with_facebook_client_id" = ""; then
   with_facebook_client_id=297654143624603
 fi
-AC_DEFINE_UNQUOTED(GOA_FACEBOOK_CLIENT_ID,
-                   ["$with_facebook_client_id"],
-                   [Facebook OAuth 2.0 client id])
+AC_DEFINE_UNQUOTED(GOA_FACEBOOK_CLIENT_ID, ["$with_facebook_client_id"], [Facebook OAuth 2.0 client id])
 if test "$enable_facebook" != "no"; then
   AC_DEFINE(GOA_FACEBOOK_ENABLED, 1, [Enable Facebook data provider])
 fi
 
+# Todoist
+AC_DEFINE(GOA_TODOIST_NAME, ["todoist"], [ProviderType and extension point name])
+AC_ARG_ENABLE([todoist],
+              [AS_HELP_STRING([--enable-todoist], [Enable Todoist provider])],
+              [],
+              [enable_todoist=no])
+AC_ARG_WITH(todoist-client-id,
+            [AS_HELP_STRING([--with-todoist-client-id], [Todoist OAuth 2.0 client id])],
+            [],
+            [])
+AC_ARG_WITH(todoist-client-secret,
+            [AS_HELP_STRING([--with-todoist-client-secret], [Todoist client secret])],
+            [],
+            [])
+if test "$with_todoist_client_id" = ""; then
+  with_todoist_client_id="2e41575c1dd74f98ad7cfb178e1ba3dd"
+fi
+if test "$with_todoist_client_secret" = ""; then
+  with_todoist_client_secret="3e59831ffdd64633918d19aa0a1efd2b"
+fi
+AC_DEFINE_UNQUOTED(GOA_TODOIST_CLIENT_ID, ["$with_todoist_client_id"], [Todoist OAuth 2.0 client id])
+AC_DEFINE_UNQUOTED(GOA_TODOIST_CLIENT_SECRET, ["$with_todoist_client_secret"], [Todoist client secret])
+if test "$enable_todoist" != "no"; then
+  AC_DEFINE(GOA_TODOIST_ENABLED, 1, [Enable Todoist data provider])
+fi
+
 # Windows Live
 AC_DEFINE(GOA_WINDOWS_LIVE_NAME, ["windows_live"], [ProviderType and extension point name])
-AC_ARG_ENABLE([windows-live], [AS_HELP_STRING([--enable-windows-live],
-                                              [Enable Windows Live provider])],
-                                              [],
-                                              [enable_windows_live=yes])
+AC_ARG_ENABLE([windows-live],
+              [AS_HELP_STRING([--enable-windows-live], [Enable Windows Live provider])],
+              [],
+              [enable_windows_live=yes])
 AC_ARG_WITH(windows-live-client-id,
-            [AS_HELP_STRING([--with-windows-live-client-id],
-                            [Windows Live OAuth 2.0 client id])],
-                            [],
-                            [])
+            [AS_HELP_STRING([--with-windows-live-client-id], [Windows Live OAuth 2.0 client id])],
+            [],
+            [])
 if test "$with_windows_live_client_id" = ""; then
   with_windows_live_client_id=0000000044067703
 fi
-AC_DEFINE_UNQUOTED(GOA_WINDOWS_LIVE_CLIENT_ID,
-                   ["$with_windows_live_client_id"],
-                   [Windows Live OAuth 2.0 client id])
+AC_DEFINE_UNQUOTED(GOA_WINDOWS_LIVE_CLIENT_ID, ["$with_windows_live_client_id"], [Windows Live OAuth 2.0 client id])
 if test "$enable_windows_live" != "no"; then
   AC_DEFINE(GOA_WINDOWS_LIVE_ENABLED, 1, [Enable Windows Live data provider])
 fi
 
 # Pocket
 AC_DEFINE(GOA_POCKET_NAME, ["pocket"], [ProviderType and extension point name])
-AC_ARG_ENABLE([pocket], [AS_HELP_STRING([--enable-pocket],
-                                              [Enable Pocket provider])],
-                                              [],
-                                              [enable_pocket=yes])
+AC_ARG_ENABLE([pocket],
+              [AS_HELP_STRING([--enable-pocket], [Enable Pocket provider])],
+              [],
+              [enable_pocket=yes])
 AC_ARG_WITH(pocket-client-id,
-            [AS_HELP_STRING([--with-pocket-client-id],
-                            [Pocket OAuth 2.0 client id])],
-                            [],
-                            [])
+            [AS_HELP_STRING([--with-pocket-client-id], [Pocket OAuth 2.0 client id])],
+            [],
+            [])
 if test "$with_pocket_client_id" = ""; then
   with_pocket_client_id="16630-40b25246b56e8ad5310b2883"
 fi
-AC_DEFINE_UNQUOTED(GOA_POCKET_CLIENT_ID,
-                   ["$with_pocket_client_id"],
-                   [Pocket OAuth 2.0 client id])
+AC_DEFINE_UNQUOTED(GOA_POCKET_CLIENT_ID, ["$with_pocket_client_id"], [Pocket OAuth 2.0 client id])
 if test "$enable_pocket" != "no"; then
   AC_DEFINE(GOA_POCKET_ENABLED, 1, [Enable Pocket data provider])
 fi
@@ -376,16 +380,15 @@ fi
 # Kerberos
 AC_DEFINE(GOA_KERBEROS_NAME, ["kerberos"], [ProviderType and extension point name])
 AC_ARG_ENABLE([kerberos],
-              [AS_HELP_STRING([--enable-kerberos],
-              [Enable kerberos support])],
-              [with_kerberos=$enableval],
-              [enable_kerberos=no])
+              [AS_HELP_STRING([--enable-kerberos], [Enable kerberos support])],
+              [enable_kerberos=$enableval],
+              [enable_kerberos=auto])
 AC_PATH_PROG([KRB5_CONFIG], krb5-config, none, $PATH:/usr/kerberos/bin)
 
 if test "x$KRB5_CONFIG" != "xnone"; then
     KRB5_LIBS="`${KRB5_CONFIG} --libs krb5`"
     KRB5_CFLAGS="`${KRB5_CONFIG} --cflags krb5`"
-    have_kerberos=yes
+    PKG_CHECK_MODULES(GCR, gcr-3, [have_kerberos=yes], [have_kerberos=no])
 else
     KRB5_LIBS=""
     KRB5_CFLAGS=""
@@ -395,44 +398,44 @@ AC_SUBST(KRB5_CFLAGS)
 AC_SUBST(KRB5_LIBS)
 
 if test "$enable_kerberos" != "no"; then
-  if test "$have_kerberos" = "no" ; then
+  if test "$enable_kerberos" == "yes" &&
+     test "$have_kerberos" == "no" ; then
       AC_MSG_ERROR([kerberos support requested, but not available])
   fi
 
-  PKG_CHECK_MODULES(GCR, gcr-3)
-  AC_DEFINE(GCR_API_SUBJECT_TO_CHANGE, 1, [Define to use the GCR API])
-  AC_DEFINE(GOA_KERBEROS_ENABLED, 1, [Enable Enterprise Identity data provider])
+  enable_kerberos=$have_kerberos
+
+  if test "$enable_kerberos" == "yes"; then
+    AC_DEFINE(GCR_API_SUBJECT_TO_CHANGE, 1, [Define to use the GCR API])
+    AC_DEFINE(GOA_KERBEROS_ENABLED, 1, [Enable Enterprise Identity data provider])
+  fi
+else
+  enable_kerberos=no
 fi
 AM_CONDITIONAL(BUILD_KERBEROS, [test x$enable_kerberos != xno])
 
 # Last.fm
 AC_DEFINE(GOA_LASTFM_NAME, ["lastfm"], [ProviderType and extension point name])
-AC_ARG_ENABLE([lastfm], [AS_HELP_STRING([--enable-lastfm],
-                                        [Enable Last.fm provider])],
-                                        [],
-                                        [enable_lastfm=no])
+AC_ARG_ENABLE([lastfm],
+              [AS_HELP_STRING([--enable-lastfm], [Enable Last.fm provider])],
+              [],
+              [enable_lastfm=no])
 AC_ARG_WITH(lastfm-client-id,
-            [AS_HELP_STRING([--with-lastfm-client-id],
-                            [Last.fm client id])],
-                            [],
-                            [])
+            [AS_HELP_STRING([--with-lastfm-client-id], [Last.fm client id])],
+            [],
+            [])
 AC_ARG_WITH(lastfm-client-secret,
-            [AS_HELP_STRING([--with-lastfm-client-secret],
-                            [Last.fm client secret])],
-                            [],
-                            [])
+            [AS_HELP_STRING([--with-lastfm-client-secret], [Last.fm client secret])],
+            [],
+            [])
 if test "$with_lastfm_client_id" = ""; then
   with_lastfm_client_id="7a2461fe34c9c8124fb28ac750ba12fa"
 fi
 if test "$with_lastfm_client_secret" = ""; then
   with_lastfm_client_secret="49ec391644459c417f3afe57ca246c5a"
 fi
-AC_DEFINE_UNQUOTED(GOA_LASTFM_CLIENT_ID,
-                   ["$with_lastfm_client_id"],
-                   [LastFM client id])
-AC_DEFINE_UNQUOTED(GOA_LASTFM_CLIENT_SECRET,
-                   ["$with_lastfm_client_secret"],
-                   [LastFM client secret])
+AC_DEFINE_UNQUOTED(GOA_LASTFM_CLIENT_ID, ["$with_lastfm_client_id"], [LastFM client id])
+AC_DEFINE_UNQUOTED(GOA_LASTFM_CLIENT_SECRET, ["$with_lastfm_client_secret"], [LastFM client secret])
 if test "$enable_lastfm" != "no"; then
   AC_DEFINE(GOA_LASTFM_ENABLED, 1, [Enable LastFM data provider])
 fi
@@ -598,6 +601,7 @@ echo "
 	ownCloud provider:              ${enable_owncloud}
 	Kerberos provider:              ${enable_kerberos}
 	Facebook provider:              ${enable_facebook} (OAuth 2.0, id:${with_facebook_client_id})
+	Todoist provider:               ${enable_todoist} (OAuth 2.0, id:${with_todoist_client_id} secret:${with_todoist_client_secret})
 	Windows Live provider:          ${enable_windows_live} (OAuth 2.0, id:${with_windows_live_client_id})
         Telepathy provider:             ${enable_telepathy}
         Pocket provider:                ${enable_pocket} (id:${with_pocket_client_id})

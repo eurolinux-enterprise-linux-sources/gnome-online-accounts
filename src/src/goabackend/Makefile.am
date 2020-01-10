@@ -50,7 +50,6 @@ libgoa_backend_1_0_ladir = $(includedir)/goa-1.0/goabackend
 
 libgoa_backend_1_0_la_HEADERS =						\
 	goabackend.h							\
-	goabackendtypes.h						\
 	goabackendenums.h						\
 	goabackendenumtypes.h						\
 	goaprovider.h							\
@@ -67,9 +66,9 @@ nodist_libgoa_backend_1_0_la_SOURCES =					\
 
 libgoa_backend_1_0_la_SOURCES =						\
 	goabackend.h							\
-	goabackendtypes.h						\
 	goabackendenums-priv.h						\
 	goabackendenumtypes.h		goabackendenumtypes.c		\
+	gconstructor.h			goabackendinit.c		\
 	goadlnaservermanager.h		goadlnaservermanager.c		\
 	goaewsclient.h			goaewsclient.c			\
 	goahttpclient.h			goahttpclient.c			\
@@ -77,7 +76,9 @@ libgoa_backend_1_0_la_SOURCES =						\
 	goaproviderfactory.h		goaproviderfactory.c		\
 	goamailauth.h			goamailauth.c			\
 	goaimapauthlogin.h		goaimapauthlogin.c		\
+	goarestproxy.h			goarestproxy.c			\
 	goasmtpauth.h			goasmtpauth.c			\
+	goasouplogger.h			goasouplogger.c			\
 	goamailclient.h			goamailclient.c			\
 	goaexchangeprovider.h		goaexchangeprovider.c		\
 	goaoauthprovider.h		goaoauthprovider.c		\
@@ -95,12 +96,13 @@ libgoa_backend_1_0_la_SOURCES =						\
 	goawindowsliveprovider.h	goawindowsliveprovider.c	\
 	goapocketprovider.h		goapocketprovider.c		\
 	goalastfmprovider.h		goalastfmprovider.c		\
+	goatodoistprovider.h		goatodoistprovider.c		\
 	goaobjectskeletonutils.h	goaobjectskeletonutils.c	\
 	goautils.h			goautils.c			\
 	goawebview.h			goawebview.c			\
 	nautilus-floating-bar.h		nautilus-floating-bar.c		\
 	$(top_builddir)/src/goaidentity/org.gnome.Identity.c		\
-	$(top_builddir)/src/goaidentity/org.freedesktop.realmd.c	\
+	$(top_srcdir)/src/goaidentity/goaidentitymanagererror.c		\
 	$(NULL)
 
 if BUILD_KERBEROS

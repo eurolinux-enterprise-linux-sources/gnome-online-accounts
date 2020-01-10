@@ -31,10 +31,12 @@
         <sub name="org.gnome.OnlineAccounts.Maps" link="gdbus-org.gnome.OnlineAccounts.Maps.html"/>
         <sub name="org.gnome.OnlineAccounts.Music" link="gdbus-org.gnome.OnlineAccounts.Music.html"/>
         <sub name="org.gnome.OnlineAccounts.Photos" link="gdbus-org.gnome.OnlineAccounts.Photos.html"/>
+        <sub name="org.gnome.OnlineAccounts.Printers" link="gdbus-org.gnome.OnlineAccounts.Printers.html"/>
         <sub name="org.gnome.OnlineAccounts.Files" link="gdbus-org.gnome.OnlineAccounts.Files.html"/>
         <sub name="org.gnome.OnlineAccounts.Exchange" link="gdbus-org.gnome.OnlineAccounts.Exchange.html"/>
         <sub name="org.gnome.OnlineAccounts.MediaServer" link="gdbus-org.gnome.OnlineAccounts.MediaServer.html"/>
         <sub name="org.gnome.OnlineAccounts.Ticketing" link="gdbus-org.gnome.OnlineAccounts.Ticketing.html"/>
+        <sub name="org.gnome.OnlineAccounts.Todo" link="gdbus-org.gnome.OnlineAccounts.Todo.html"/>
       </sub>
     </sub>
     <sub name="Client Library API Reference" link="ref-library.html">
@@ -61,6 +63,7 @@
         <sub name="GoaExchange" link="GoaExchange.html"/>
         <sub name="GoaMediaServer" link="GoaMediaServer.html"/>
         <sub name="GoaTicketing" link="GoaTicketing.html"/>
+        <sub name="GoaTodo" link="GoaTodo.html"/>
         <sub name="GoaReadLater" link="GoaReadLater.html"/>
         <sub name="GoaPrinters" link="GoaPrinters.html"/>
       </sub>
@@ -71,17 +74,6 @@
         <sub name="GoaProvider" link="GoaProvider.html"/>
         <sub name="GoaOAuthProvider" link="GoaOAuthProvider.html"/>
         <sub name="GoaOAuth2Provider" link="GoaOAuth2Provider.html"/>
-      </sub>
-      <sub name="Providers" link="ch08.html">
-        <sub name="GoaExchangeProvider" link="goa-GoaExchangeProvider.html"/>
-        <sub name="GoaGoogleProvider" link="GoaGoogleProvider.html"/>
-        <sub name="GoaMediaServerProvider" link="GoaMediaServerProvider.html"/>
-        <sub name="GoaWindowsLiveProvider" link="GoaWindowsLiveProvider.html"/>
-        <sub name="GoaFacebookProvider" link="GoaFacebookProvider.html"/>
-        <sub name="GoaFlickrProvider" link="GoaFlickrProvider.html"/>
-        <sub name="GoaFoursquareProvider" link="GoaFoursquareProvider.html"/>
-        <sub name="GoaTelepathyProvider" link="goa-GoaTelepathyProvider.html"/>
-        <sub name="goalastfmprovider" link="goa-goalastfmprovider.html"/>
       </sub>
     </sub>
     <sub name="Tools, File Formats and Manual Pages" link="tools-fileformats.html">
@@ -114,6 +106,7 @@
     <keyword type="property" name="The &quot;PhotosDisabled&quot; property" link="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.PhotosDisabled"/>
     <keyword type="property" name="The &quot;FilesDisabled&quot; property" link="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.FilesDisabled"/>
     <keyword type="property" name="The &quot;TicketingDisabled&quot; property" link="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.TicketingDisabled"/>
+    <keyword type="property" name="The &quot;TodoDisabled&quot; property" link="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.TodoDisabled"/>
     <keyword type="property" name="The &quot;ReadLaterDisabled&quot; property" link="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.ReadLaterDisabled"/>
     <keyword type="method" name="The AddAccount() method" link="gdbus-org.gnome.OnlineAccounts.Manager.html#gdbus-method-org-gnome-OnlineAccounts-Manager.AddAccount"/>
     <keyword type="method" name="The GetAccessToken() method" link="gdbus-org.gnome.OnlineAccounts.OAuthBased.html#gdbus-method-org-gnome-OnlineAccounts-OAuthBased.GetAccessToken"/>
@@ -185,10 +178,13 @@
     <keyword type="function" name="goa_object_get_chat ()" link="GoaObject.html#goa-object-get-chat"/>
     <keyword type="function" name="goa_object_get_documents ()" link="GoaObject.html#goa-object-get-documents"/>
     <keyword type="function" name="goa_object_get_maps ()" link="GoaObject.html#goa-object-get-maps" since="3.14.0"/>
+    <keyword type="function" name="goa_object_get_media_server ()" link="GoaObject.html#goa-object-get-media-server" since="3.14"/>
     <keyword type="function" name="goa_object_get_music ()" link="GoaObject.html#goa-object-get-music" since="3.18.0"/>
     <keyword type="function" name="goa_object_get_photos ()" link="GoaObject.html#goa-object-get-photos" since="3.8.0"/>
+    <keyword type="function" name="goa_object_get_printers ()" link="GoaObject.html#goa-object-get-printers" since="3.12.0"/>
     <keyword type="function" name="goa_object_get_files ()" link="GoaObject.html#goa-object-get-files" since="3.8.0"/>
     <keyword type="function" name="goa_object_get_exchange ()" link="GoaObject.html#goa-object-get-exchange" since="3.6.0"/>
+    <keyword type="function" name="goa_object_get_todo ()" link="GoaObject.html#goa-object-get-todo" since="3.26.0"/>
     <keyword type="function" name="goa_object_peek_manager ()" link="GoaObject.html#goa-object-peek-manager"/>
     <keyword type="function" name="goa_object_peek_account ()" link="GoaObject.html#goa-object-peek-account"/>
     <keyword type="function" name="goa_object_peek_oauth_based ()" link="GoaObject.html#goa-object-peek-oauth-based"/>
@@ -199,10 +195,13 @@
     <keyword type="function" name="goa_object_peek_chat ()" link="GoaObject.html#goa-object-peek-chat"/>
     <keyword type="function" name="goa_object_peek_documents ()" link="GoaObject.html#goa-object-peek-documents"/>
     <keyword type="function" name="goa_object_peek_maps ()" link="GoaObject.html#goa-object-peek-maps" since="3.14.0"/>
+    <keyword type="function" name="goa_object_peek_media_server ()" link="GoaObject.html#goa-object-peek-media-server" since="3.14"/>
     <keyword type="function" name="goa_object_peek_music ()" link="GoaObject.html#goa-object-peek-music" since="3.18.0"/>
     <keyword type="function" name="goa_object_peek_photos ()" link="GoaObject.html#goa-object-peek-photos" since="3.8.0"/>
+    <keyword type="function" name="goa_object_peek_printers ()" link="GoaObject.html#goa-object-peek-printers" since="3.12.0"/>
     <keyword type="function" name="goa_object_peek_files ()" link="GoaObject.html#goa-object-peek-files" since="3.8.0"/>
     <keyword type="function" name="goa_object_peek_exchange ()" link="GoaObject.html#goa-object-peek-exchange" since="3.6.0"/>
+    <keyword type="function" name="goa_object_peek_todo ()" link="GoaObject.html#goa-object-peek-todo" since="3.26.0"/>
     <keyword type="function" name="goa_object_proxy_new ()" link="GoaObject.html#goa-object-proxy-new"/>
     <keyword type="function" name="goa_object_skeleton_new ()" link="GoaObject.html#goa-object-skeleton-new"/>
     <keyword type="function" name="goa_object_skeleton_set_manager ()" link="GoaObject.html#goa-object-skeleton-set-manager"/>
@@ -244,6 +243,7 @@
     <keyword type="property" name="The “printers” property" link="GoaObject.html#GoaObject--printers"/>
     <keyword type="property" name="The “read-later” property" link="GoaObject.html#GoaObject--read-later"/>
     <keyword type="property" name="The “ticketing” property" link="GoaObject.html#GoaObject--ticketing"/>
+    <keyword type="property" name="The “todo” property" link="GoaObject.html#GoaObject--todo"/>
     <keyword type="function" name="goa_object_manager_client_get_proxy_type ()" link="GoaObjectManagerClient.html#goa-object-manager-client-get-proxy-type"/>
     <keyword type="function" name="goa_object_manager_client_new ()" link="GoaObjectManagerClient.html#goa-object-manager-client-new"/>
     <keyword type="function" name="goa_object_manager_client_new_finish ()" link="GoaObjectManagerClient.html#goa-object-manager-client-new-finish"/>
@@ -315,10 +315,14 @@
     <keyword type="function" name="goa_account_set_music_disabled ()" link="GoaAccount.html#goa-account-set-music-disabled" since="3.18.0"/>
     <keyword type="function" name="goa_account_get_photos_disabled ()" link="GoaAccount.html#goa-account-get-photos-disabled" since="3.8.0"/>
     <keyword type="function" name="goa_account_set_photos_disabled ()" link="GoaAccount.html#goa-account-set-photos-disabled" since="3.8.0"/>
+    <keyword type="function" name="goa_account_get_printers_disabled ()" link="GoaAccount.html#goa-account-get-printers-disabled" since="3.12.0"/>
+    <keyword type="function" name="goa_account_set_printers_disabled ()" link="GoaAccount.html#goa-account-set-printers-disabled" since="3.12.0"/>
     <keyword type="function" name="goa_account_get_files_disabled ()" link="GoaAccount.html#goa-account-get-files-disabled" since="3.8.0"/>
     <keyword type="function" name="goa_account_set_files_disabled ()" link="GoaAccount.html#goa-account-set-files-disabled" since="3.8.0"/>
     <keyword type="function" name="goa_account_get_ticketing_disabled ()" link="GoaAccount.html#goa-account-get-ticketing-disabled" since="3.6.0"/>
     <keyword type="function" name="goa_account_set_ticketing_disabled ()" link="GoaAccount.html#goa-account-set-ticketing-disabled" since="3.6.0"/>
+    <keyword type="function" name="goa_account_get_todo_disabled ()" link="GoaAccount.html#goa-account-get-todo-disabled" since="3.26.0"/>
+    <keyword type="function" name="goa_account_set_todo_disabled ()" link="GoaAccount.html#goa-account-set-todo-disabled" since="3.26.0"/>
     <keyword type="function" name="goa_account_call_ensure_credentials ()" link="GoaAccount.html#goa-account-call-ensure-credentials"/>
     <keyword type="function" name="goa_account_call_ensure_credentials_finish ()" link="GoaAccount.html#goa-account-call-ensure-credentials-finish"/>
     <keyword type="function" name="goa_account_call_ensure_credentials_sync ()" link="GoaAccount.html#goa-account-call-ensure-credentials-sync"/>
@@ -361,6 +365,7 @@
     <keyword type="property" name="The “provider-type” property" link="GoaAccount.html#GoaAccount--provider-type"/>
     <keyword type="property" name="The “read-later-disabled” property" link="GoaAccount.html#GoaAccount--read-later-disabled"/>
     <keyword type="property" name="The “ticketing-disabled” property" link="GoaAccount.html#GoaAccount--ticketing-disabled"/>
+    <keyword type="property" name="The “todo-disabled” property" link="GoaAccount.html#GoaAccount--todo-disabled"/>
     <keyword type="signal" name="The “handle-ensure-credentials” signal" link="GoaAccount.html#GoaAccount-handle-ensure-credentials"/>
     <keyword type="signal" name="The “handle-remove” signal" link="GoaAccount.html#GoaAccount-handle-remove"/>
     <keyword type="function" name="goa_oauth_based_interface_info ()" link="GoaOAuthBased.html#goa-oauth-based-interface-info"/>
@@ -720,6 +725,21 @@
     <keyword type="struct" name="struct GoaTicketingSkeletonClass" link="GoaTicketing.html#GoaTicketingSkeletonClass" since="3.6.0"/>
     <keyword type="property" name="The “details” property" link="GoaTicketing.html#GoaTicketing--details"/>
     <keyword type="signal" name="The “handle-get-ticket” signal" link="GoaTicketing.html#GoaTicketing-handle-get-ticket"/>
+    <keyword type="function" name="goa_todo_interface_info ()" link="GoaTodo.html#goa-todo-interface-info" since="3.26.0"/>
+    <keyword type="function" name="goa_todo_override_properties ()" link="GoaTodo.html#goa-todo-override-properties" since="3.26.0"/>
+    <keyword type="function" name="goa_todo_proxy_new ()" link="GoaTodo.html#goa-todo-proxy-new" since="3.26.0"/>
+    <keyword type="function" name="goa_todo_proxy_new_finish ()" link="GoaTodo.html#goa-todo-proxy-new-finish" since="3.26.0"/>
+    <keyword type="function" name="goa_todo_proxy_new_sync ()" link="GoaTodo.html#goa-todo-proxy-new-sync" since="3.26.0"/>
+    <keyword type="function" name="goa_todo_proxy_new_for_bus ()" link="GoaTodo.html#goa-todo-proxy-new-for-bus" since="3.26.0"/>
+    <keyword type="function" name="goa_todo_proxy_new_for_bus_finish ()" link="GoaTodo.html#goa-todo-proxy-new-for-bus-finish" since="3.26.0"/>
+    <keyword type="function" name="goa_todo_proxy_new_for_bus_sync ()" link="GoaTodo.html#goa-todo-proxy-new-for-bus-sync" since="3.26.0"/>
+    <keyword type="function" name="goa_todo_skeleton_new ()" link="GoaTodo.html#goa-todo-skeleton-new" since="3.26.0"/>
+    <keyword type="struct" name="GoaTodo" link="GoaTodo.html#GoaTodo-struct"/>
+    <keyword type="struct" name="struct GoaTodoIface" link="GoaTodo.html#GoaTodoIface" since="3.26.0"/>
+    <keyword type="struct" name="struct GoaTodoProxy" link="GoaTodo.html#GoaTodoProxy" since="3.26.0"/>
+    <keyword type="struct" name="struct GoaTodoProxyClass" link="GoaTodo.html#GoaTodoProxyClass" since="3.26.0"/>
+    <keyword type="struct" name="struct GoaTodoSkeleton" link="GoaTodo.html#GoaTodoSkeleton" since="3.26.0"/>
+    <keyword type="struct" name="struct GoaTodoSkeletonClass" link="GoaTodo.html#GoaTodoSkeletonClass" since="3.26.0"/>
     <keyword type="function" name="goa_read_later_interface_info ()" link="GoaReadLater.html#goa-read-later-interface-info" since="3.12.0"/>
     <keyword type="function" name="goa_read_later_override_properties ()" link="GoaReadLater.html#goa-read-later-override-properties" since="3.12.0"/>
     <keyword type="function" name="goa_read_later_proxy_new ()" link="GoaReadLater.html#goa-read-later-proxy-new" since="3.12.0"/>
@@ -776,7 +796,6 @@
     <keyword type="enum" name="enum GoaProviderFeatures" link="GoaProvider.html#GoaProviderFeatures" since="3.10"/>
     <keyword type="macro" name="GOA_PROVIDER_EXTENSION_POINT_NAME" link="GoaProvider.html#GOA-PROVIDER-EXTENSION-POINT-NAME:CAPS"/>
     <keyword type="property" name="The “preseed-data” property" link="GoaProvider.html#GoaProvider--preseed-data"/>
-    <keyword type="function" name="goa_oauth_provider_get_authentication_cookie ()" link="GoaOAuthProvider.html#goa-oauth-provider-get-authentication-cookie"/>
     <keyword type="function" name="goa_oauth_provider_get_request_uri ()" link="GoaOAuthProvider.html#goa-oauth-provider-get-request-uri"/>
     <keyword type="function" name="goa_oauth_provider_get_request_uri_params ()" link="GoaOAuthProvider.html#goa-oauth-provider-get-request-uri-params"/>
     <keyword type="function" name="goa_oauth_provider_get_authorization_uri ()" link="GoaOAuthProvider.html#goa-oauth-provider-get-authorization-uri"/>
@@ -793,9 +812,8 @@
     <keyword type="function" name="goa_oauth_provider_get_identity_sync ()" link="GoaOAuthProvider.html#goa-oauth-provider-get-identity-sync"/>
     <keyword type="function" name="goa_oauth_provider_get_access_token_sync ()" link="GoaOAuthProvider.html#goa-oauth-provider-get-access-token-sync"/>
     <keyword type="function" name="goa_oauth_provider_parse_request_token_error ()" link="GoaOAuthProvider.html#goa-oauth-provider-parse-request-token-error"/>
-    <keyword type="struct" name="struct GoaOAuthProvider" link="GoaOAuthProvider.html#GoaOAuthProvider-struct"/>
+    <keyword type="struct" name="GoaOAuthProvider" link="GoaOAuthProvider.html#GoaOAuthProvider-struct"/>
     <keyword type="struct" name="struct GoaOAuthProviderClass" link="GoaOAuthProvider.html#GoaOAuthProviderClass"/>
-    <keyword type="function" name="goa_oauth2_provider_get_authentication_cookie ()" link="GoaOAuth2Provider.html#goa-oauth2-provider-get-authentication-cookie"/>
     <keyword type="function" name="goa_oauth2_provider_get_authorization_uri ()" link="GoaOAuth2Provider.html#goa-oauth2-provider-get-authorization-uri"/>
     <keyword type="function" name="goa_oauth2_provider_get_token_uri ()" link="GoaOAuth2Provider.html#goa-oauth2-provider-get-token-uri"/>
     <keyword type="function" name="goa_oauth2_provider_get_redirect_uri ()" link="GoaOAuth2Provider.html#goa-oauth2-provider-get-redirect-uri"/>
@@ -813,17 +831,6 @@
     <keyword type="function" name="goa_oauth2_provider_process_redirect_url ()" link="GoaOAuth2Provider.html#goa-oauth2-provider-process-redirect-url"/>
     <keyword type="struct" name="GoaOAuth2Provider" link="GoaOAuth2Provider.html#GoaOAuth2Provider-struct"/>
     <keyword type="struct" name="GoaOAuth2ProviderClass" link="GoaOAuth2Provider.html#GoaOAuth2ProviderClass"/>
-    <keyword type="struct" name="GoaExchangeProvider" link="goa-GoaExchangeProvider.html#GoaExchangeProvider"/>
-    <keyword type="struct" name="GoaGoogleProvider" link="GoaGoogleProvider.html#GoaGoogleProvider-struct"/>
-    <keyword type="struct" name="GoaMediaServerProvider" link="GoaMediaServerProvider.html#GoaMediaServerProvider-struct"/>
-    <keyword type="struct" name="GoaWindowsLiveProvider" link="GoaWindowsLiveProvider.html#GoaWindowsLiveProvider-struct"/>
-    <keyword type="struct" name="GoaFacebookProvider" link="GoaFacebookProvider.html#GoaFacebookProvider-struct"/>
-    <keyword type="struct" name="GoaFlickrProvider" link="GoaFlickrProvider.html#GoaFlickrProvider-struct"/>
-    <keyword type="struct" name="GoaFoursquareProvider" link="GoaFoursquareProvider.html#GoaFoursquareProvider-struct"/>
-    <keyword type="function" name="goa_telepathy_provider_new_from_protocol_name ()" link="goa-GoaTelepathyProvider.html#goa-telepathy-provider-new-from-protocol-name"/>
-    <keyword type="function" name="goa_telepathy_provider_new_from_protocol ()" link="goa-GoaTelepathyProvider.html#goa-telepathy-provider-new-from-protocol"/>
-    <keyword type="struct" name="GoaTelepathyProvider" link="goa-GoaTelepathyProvider.html#GoaTelepathyProvider"/>
-    <keyword type="struct" name="GoaLastfmProvider" link="goa-goalastfmprovider.html#GoaLastfmProvider-struct"/>
     <keyword type="constant" name="GOA_ERROR_FAILED" link="goa-GoaError.html#GOA-ERROR-FAILED:CAPS"/>
     <keyword type="constant" name="GOA_ERROR_NOT_SUPPORTED" link="goa-GoaError.html#GOA-ERROR-NOT-SUPPORTED:CAPS"/>
     <keyword type="constant" name="GOA_ERROR_DIALOG_DISMISSED" link="goa-GoaError.html#GOA-ERROR-DIALOG-DISMISSED:CAPS"/>
@@ -849,6 +856,7 @@
     <keyword type="constant" name="GOA_PROVIDER_FEATURE_PRINTERS" link="GoaProvider.html#GOA-PROVIDER-FEATURE-PRINTERS:CAPS"/>
     <keyword type="constant" name="GOA_PROVIDER_FEATURE_MAPS" link="GoaProvider.html#GOA-PROVIDER-FEATURE-MAPS:CAPS"/>
     <keyword type="constant" name="GOA_PROVIDER_FEATURE_MUSIC" link="GoaProvider.html#GOA-PROVIDER-FEATURE-MUSIC:CAPS"/>
+    <keyword type="constant" name="GOA_PROVIDER_FEATURE_TODO" link="GoaProvider.html#GOA-PROVIDER-FEATURE-TODO:CAPS"/>
     <keyword type="constant" name="GOA_PROVIDER_FEATURE_INVALID" link="GoaProvider.html#GOA-PROVIDER-FEATURE-INVALID:CAPS"/>
     <keyword type="member" name="GoaObjectIface.parent-iface" link="GoaObject.html#GoaObjectIface.parent-iface"/>
     <keyword type="member" name="GoaManagerIface.parent-iface" link="GoaManager.html#GoaManagerIface.parent-iface"/>
@@ -877,6 +885,7 @@
     <keyword type="member" name="GoaAccountIface.get-maps-disabled" link="GoaAccount.html#GoaAccountIface.get-maps-disabled"/>
     <keyword type="member" name="GoaAccountIface.get-is-locked" link="GoaAccount.html#GoaAccountIface.get-is-locked"/>
     <keyword type="member" name="GoaAccountIface.get-music-disabled" link="GoaAccount.html#GoaAccountIface.get-music-disabled"/>
+    <keyword type="member" name="GoaAccountIface.get-todo-disabled" link="GoaAccount.html#GoaAccountIface.get-todo-disabled"/>
     <keyword type="member" name="GoaOAuthBasedIface.parent-iface" link="GoaOAuthBased.html#GoaOAuthBasedIface.parent-iface"/>
     <keyword type="member" name="GoaOAuthBasedIface.handle-get-access-token" link="GoaOAuthBased.html#GoaOAuthBasedIface.handle-get-access-token"/>
     <keyword type="member" name="GoaOAuthBasedIface.get-consumer-key" link="GoaOAuthBased.html#GoaOAuthBasedIface.get-consumer-key"/>
@@ -929,6 +938,7 @@
     <keyword type="member" name="GoaTicketingIface.parent-iface" link="GoaTicketing.html#GoaTicketingIface.parent-iface"/>
     <keyword type="member" name="GoaTicketingIface.handle-get-ticket" link="GoaTicketing.html#GoaTicketingIface.handle-get-ticket"/>
     <keyword type="member" name="GoaTicketingIface.get-details" link="GoaTicketing.html#GoaTicketingIface.get-details"/>
+    <keyword type="member" name="GoaTodoIface.parent-iface" link="GoaTodo.html#GoaTodoIface.parent-iface"/>
     <keyword type="member" name="GoaReadLaterIface.parent-iface" link="GoaReadLater.html#GoaReadLaterIface.parent-iface"/>
     <keyword type="member" name="GoaPrintersIface.parent-iface" link="GoaPrinters.html#GoaPrintersIface.parent-iface"/>
     <keyword type="member" name="GoaProviderClass.add-account" link="GoaProvider.html#GoaProviderClass.add-account"/>
@@ -951,7 +961,6 @@
     <keyword type="member" name="GoaOAuthProviderClass.get-authorization-uri" link="GoaOAuthProvider.html#GoaOAuthProviderClass.get-authorization-uri"/>
     <keyword type="member" name="GoaOAuthProviderClass.get-token-uri" link="GoaOAuthProvider.html#GoaOAuthProviderClass.get-token-uri"/>
     <keyword type="member" name="GoaOAuthProviderClass.get-callback-uri" link="GoaOAuthProvider.html#GoaOAuthProviderClass.get-callback-uri"/>
-    <keyword type="member" name="GoaOAuthProviderClass.get-authentication-cookie" link="GoaOAuthProvider.html#GoaOAuthProviderClass.get-authentication-cookie"/>
     <keyword type="member" name="GoaOAuthProviderClass.get-identity-sync" link="GoaOAuthProvider.html#GoaOAuthProviderClass.get-identity-sync"/>
     <keyword type="member" name="GoaOAuthProviderClass.parse-request-token-error" link="GoaOAuthProvider.html#GoaOAuthProviderClass.parse-request-token-error"/>
     <keyword type="member" name="GoaOAuthProviderClass.build-authorization-uri" link="GoaOAuthProvider.html#GoaOAuthProviderClass.build-authorization-uri"/>
@@ -965,7 +974,6 @@
     <keyword type="member" name="GoaOAuth2ProviderClass.get-redirect-uri" link="GoaOAuth2Provider.html#GoaOAuth2ProviderClass.get-redirect-uri"/>
     <keyword type="member" name="GoaOAuth2ProviderClass.get-client-id" link="GoaOAuth2Provider.html#GoaOAuth2ProviderClass.get-client-id"/>
     <keyword type="member" name="GoaOAuth2ProviderClass.get-client-secret" link="GoaOAuth2Provider.html#GoaOAuth2ProviderClass.get-client-secret"/>
-    <keyword type="member" name="GoaOAuth2ProviderClass.get-authentication-cookie" link="GoaOAuth2Provider.html#GoaOAuth2ProviderClass.get-authentication-cookie"/>
     <keyword type="member" name="GoaOAuth2ProviderClass.get-identity-sync" link="GoaOAuth2Provider.html#GoaOAuth2ProviderClass.get-identity-sync"/>
     <keyword type="member" name="GoaOAuth2ProviderClass.build-authorization-uri" link="GoaOAuth2Provider.html#GoaOAuth2ProviderClass.build-authorization-uri"/>
     <keyword type="member" name="GoaOAuth2ProviderClass.get-token-uri" link="GoaOAuth2Provider.html#GoaOAuth2ProviderClass.get-token-uri"/>

@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011 Red Hat, Inc.
- * Copyright (C) 2011 Collabora Ltd.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
+ * Copyright © 2011 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,15 +26,17 @@
 
 #include <glib-object.h>
 
+#include "goaoauth2provider.h"
+#include "goaoauth2provider-priv.h"
+
 G_BEGIN_DECLS
 
 #define GOA_TYPE_WINDOWS_LIVE_PROVIDER   (goa_windows_live_provider_get_type ())
-#define GOA_WINDOWS_LIVE_PROVIDER(o)     (G_TYPE_CHECK_INSTANCE_CAST ((o), GOA_TYPE_WINDOWS_LIVE_PROVIDER, GoaWindowsLiveProvider))
-#define GOA_IS_WINDOWS_LIVE_PROVIDER(o)  (G_TYPE_CHECK_INSTANCE_TYPE ((o), GOA_TYPE_WINDOWS_LIVE_PROVIDER))
-
-typedef struct _GoaWindowsLiveProvider GoaWindowsLiveProvider;
-
-GType goa_windows_live_provider_get_type (void) G_GNUC_CONST;
+G_DECLARE_FINAL_TYPE (GoaWindowsLiveProvider,
+                      goa_windows_live_provider,
+                      GOA,
+                      WINDOWS_LIVE_PROVIDER,
+                      GoaOAuth2Provider);
 
 G_END_DECLS
 

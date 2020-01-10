@@ -18,7 +18,7 @@ GType goa_identity_sign_in_flags_get_type (void) G_GNUC_CONST;
 GType goa_identity_query_mode_get_type (void) G_GNUC_CONST;
 #define GOA_TYPE_IDENTITY_QUERY_MODE (goa_identity_query_mode_get_type ())
 
-/* enumerations from "goaidentitymanager.h" */
+/* enumerations from "goaidentitymanagererror.h" */
 GType goa_identity_manager_error_get_type (void) G_GNUC_CONST;
 #define GOA_TYPE_IDENTITY_MANAGER_ERROR (goa_identity_manager_error_get_type ())
 

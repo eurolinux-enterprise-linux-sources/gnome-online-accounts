@@ -1,59 +1,269 @@
-Overview of changes in 3.22.5
+Overview of changes in 3.26.2
 =============================
 
 * Bugs fixed:
- 779548: Don't leak the name_owner and result in
-         dbus_proxy_reload_properties_sync
+ 789187 Fedora Kerberos account can't be added
 
 * Updated translations:
+ Catalan (Valencian)
+ Croatian
+ Czech
+ German
  Icelandic
-
-
-Overview of changes in 3.22.4
-=============================
-
-* Bugs fixed:
- 765121 Memory leak in goa-daemon
- 776871 Broken error handling in on_got_identity_for_sign_out
- 776897 The invocation is leaked when handling ExchangeSecretKeys and SignOut
-
-
-Overview of changes in 3.22.3
-=============================
-
-* New API key for Google
-
-* Updated translations:
- Dutch
- English (British)
- Friulian
- Polish
-
-
-Overview of changes in 3.22.2
-=============================
-
-* Updated translations:
- Simplified Chinese
+ Italian
+ Indonesian
+ Lithuanian
+ Nepali
  Norwegian bokmål
+ Polish
+ Portuguese (Brazilian)
+ Russian
+ Slovak
+ Swedish
+ Turkish
 
 
-Overview of changes in 3.22.1
+Overview of changes in 3.26.1
+=============================
+
+* Updated translations:
+ Bulgarian
+ Persian
+ Russian
+
+
+Overview of changes in 3.26.0
 =============================
 
 * Updated translations:
  Basque
- Traditional Chinese (Taiwan)
- Croatian
+ Danish
+ Greek
  Italian
+ Swedish
+ Vietnamese
 
 
-Overview of changes in 3.22.0
+Overview of changes in 3.25.92
+==============================
+
+* Updated translations:
+ Belarusian
+ Traditional Chinese (Taiwan)
+ Danish
+ Dutch
+ Finnish
+ Friulian
+ French
+ German
+ Korean
+ Latvian
+ Polish
+ Portuguese (Brazilian)
+ Serbian
+
+
+Overview of changes in 3.25.90
+==============================
+
+* Bugs fixed:
+ 758716 Accept-Language header not being set since the WebKit2 port
+ 785649 build: Fix build when no Kerberos libraries are available
+ 785726 facebook: Make it work with Graph API > 2.3
+ 786007 flickr: Doesn't show the permissions page after logging in
+
+* Updated translations:
+ Croatian
+ Czech
+ Galician
+ German
+ Kazakh
+ Malayalam
+ Nepali
+ Slovenian
+ Spanish
+ Turkish
+
+
+Overview of changes in 3.25.4
+=============================
+
+* Bugs fixed:
+ 784512 pocket: CRITICALs from ensure_credentials_sync
+ 784513 build: Fix Kerberos never being automatically enabled
+ 784944 Clean up public headers and remove unused code paths
+
+* Updated translations:
+ Belarusian
+ Catalan
+ Friulian
+ Hungarian
+ Indonesian
+ Lithuanian
+ Slovak
+ Spanish
+
+
+Overview of changes in 3.25.3
+=============================
+
+* Support Todoist (780138)
+
+* Telepathy is disabled by default
+
+* Bugs fixed:
+ 686131 kerberos: Prevent cryptic error string from leaking into the UI
+ 760440 backend: Use constructor to setup gettext
+ 770542 build: Fix running autogen.sh outside $srcdir
+ 772305 Advertise non-STARTTLS support for GMail
+ 779368 provider: Use an info bar for accounts needing attention
+
+* Updated translations:
+ Belarusian
+ Croatian
+ Esperanto
+ Friulian
+ German
+ Greek
+ Hebrew
+ Indonesian
+ Kazakh
+ Norwegian bokmål
+ Serbian
+ Slovenian
+ Spanish
+ Turkish
+ Vietnamese
+
+
+Overview of changes in 3.24.0
 =============================
 
 * Updated translations:
+ Czech
+ Danish
+ Finnish
+ French
+ Friulian
+ Galician
+ German
+ Hungarian
+ Indonesian
+ Italian
+ Kazakh
+ Korean
+ Latvian
+ Lithuanian
+ Polish
+ Portuguese (Brazilian)
+ Russian
+ Slovak
+ Swedish
+ Turkish
+ Ukrainian
+
+
+Overview of changes in 3.23.92
+==============================
+
+* Bugs fixed:
+ 778416 live: Re-title it as "Microsoft"
+ 778417 Capitalize "Account" in the dialog's title
+ 779548 Don't leak the name_owner and result in
+        dbus_proxy_reload_properties_sync
+
+* Updated translations:
+ Croatian
+ Danish
+ Icelandic
+ Italian
+ Kazakh
+ Korean
+ Lithuanian
+
+
+Overview of changes in 3.23.91
+==============================
+
+* Bugs fixed:
+ 778353 Disconnect all signal handlers from the GtkDialog once add_account is
+        done
+ 778779 Improve the spacing between UI elements
+
+* Updated translations:
+ Basque
+ Traditional Chinese (Taiwan)
+ Finnish
+ French
+ Galician
+ Hungarian
+ Portuguese (Brazilian)
+ Serbian
+ Swedish
+ Ukrainian
+
+
+Overview of changes in 3.23.90
+==============================
+
+* Bugs fixed:
+ 772205 Use double quotes instead of single quotes in translatable strings
+
+* Updated translations:
+ Belarusian
+ Catalan
+ Czech
+ Danish
+ Friulian
+ German
+ Indonesian
+ Kazakh
+ Norwegian bokmål
+ Polish
+ Russian
+ Slovak
+ Spanish
+
+
+Overview of changes in 3.23.4
+=============================
+
+* Bugs fixed:
+ 764157 Port to GTask from GSimpleAsyncResult
+ 765121 Memory leak in goa-daemon
+ 768515 Add support for Nextcloud
+ 776871 Broken error handling in on_got_identity_for_sign_out
+ 776897 The invocation is leaked when handling ExchangeSecretKeys and SignOut
+ 776906 Miscellaneous fixes and improvements to add_temporary_account
+
+* Updated translations:
+ Czech
+ Hungarian
+ Kazakh
+ Norwegian bokmål
+ Spanish
+
+
+Overview of changes in 3.23.3
+=============================
+
+* New API key for Google
+
+* Bugs fixed:
+ 738315 IRC: network selection appears broken
+ 769267 kerberos: Specify an icon
+ 774176 Don't depend needlessly on X11
+ 774205 oauth, oauth2: Remove borders from widgets
+
+* Updated translations:
+ Basque
+ Simplified Chinese
+ Traditional Chinese (Taiwan)
+ Croatian
  Dutch
  English (British)
+ Italian
+ Norwegian bokmål
  Ukrainian
 
 

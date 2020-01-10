@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012 Red Hat, Inc.
+ * Copyright © 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,17 +20,31 @@
 #error "Only <goabackend/goabackend.h> can be included directly."
 #endif
 
-#ifndef __GOA_BACKEND_TYPES_H__
-#define __GOA_BACKEND_TYPES_H__
+#ifndef __GOA_REST_PROXY_H__
+#define __GOA_REST_PROXY_H__
 
-#include <goa/goa.h>
-#include <goabackend/goabackendenums.h>
+#include <rest/rest-proxy.h>
 
 G_BEGIN_DECLS
 
-struct _GoaProvider;
-typedef struct _GoaProvider GoaProvider;
+#define GOA_TYPE_REST_PROXY (goa_rest_proxy_get_type ())
+
+#define GOA_REST_PROXY(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
+   GOA_TYPE_REST_PROXY, GoaRestProxy))
+
+#define GOA_IS_REST_PROXY(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE ((obj), \
+   GOA_TYPE_REST_PROXY))
+
+typedef struct _GoaRestProxy      GoaRestProxy;
+typedef struct _GoaRestProxyClass GoaRestProxyClass;
+
+GType          goa_rest_proxy_get_type           (void) G_GNUC_CONST;
+
+RestProxy     *goa_rest_proxy_new                (const gchar  *url_format,
+                                                  gboolean      binding_required);
 
 G_END_DECLS
 
-#endif /* __GOA_BACKEND_TYPES_H__ */
+#endif /* __GOA_REST_PROXY_H__ */

@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2013, 2014, 2015, 2016 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -343,7 +343,7 @@ ensure_credentials_sync (GoaProvider         *provider,
   imap_username = goa_util_lookup_keyfile_string (object, "ImapUserName");
   imap_tls_type = get_tls_type_from_object (object, "ImapUseSsl", "ImapUseTls");
 
-  imap_auth = goa_imap_auth_login_new (NULL, NULL, imap_username, imap_password);
+  imap_auth = goa_imap_auth_login_new (imap_username, imap_password);
   if (!goa_mail_client_check_sync (mail_client,
                                    imap_server,
                                    imap_tls_type,
@@ -361,7 +361,7 @@ ensure_credentials_sync (GoaProvider         *provider,
                            * username (eg., rishi), and the (%s, %d)
                            * is the error domain and code.
                            */
-                          _("Invalid %s with username ‘%s’ (%s, %d): "),
+                          _("Invalid %s with username “%s” (%s, %d): "),
                           "imap-password",
                           imap_username,
                           g_quark_to_string ((*error)->domain),
@@ -394,7 +394,7 @@ ensure_credentials_sync (GoaProvider         *provider,
 
   email_address = goa_util_lookup_keyfile_string (object, "EmailAddress");
   goa_utils_parse_email_address (email_address, NULL, &domain);
-  smtp_auth = goa_smtp_auth_new (NULL, NULL, domain, smtp_username, smtp_password);
+  smtp_auth = goa_smtp_auth_new (domain, smtp_username, smtp_password);
   if (!goa_mail_client_check_sync (mail_client,
                                    smtp_server,
                                    smtp_tls_type,
@@ -412,7 +412,7 @@ ensure_credentials_sync (GoaProvider         *provider,
                            * username (eg., rishi), and the (%s, %d)
                            * is the error domain and code.
                            */
-                          _("Invalid %s with username ‘%s’ (%s, %d): "),
+                          _("Invalid %s with username “%s” (%s, %d): "),
                           "smtp-password",
                           smtp_username,
                           g_quark_to_string ((*error)->domain),
@@ -963,7 +963,7 @@ add_account (GoaProvider    *provider,
   imap_username = gtk_entry_get_text (GTK_ENTRY (data.imap_username));
 
   g_cancellable_reset (data.cancellable);
-  imap_auth = goa_imap_auth_login_new (NULL, NULL, imap_username, imap_password);
+  imap_auth = goa_imap_auth_login_new (imap_username, imap_password);
   goa_mail_client_check (mail_client,
                          imap_server,
                          imap_tls_type,
@@ -1056,7 +1056,7 @@ add_account (GoaProvider    *provider,
 
   g_cancellable_reset (data.cancellable);
   goa_utils_parse_email_address (email_address, NULL, &domain);
-  smtp_auth = goa_smtp_auth_new (NULL, NULL, domain, smtp_username, smtp_password);
+  smtp_auth = goa_smtp_auth_new (domain, smtp_username, smtp_password);
   goa_mail_client_check (mail_client,
                          smtp_server,
                          smtp_tls_type,
@@ -1178,6 +1178,8 @@ add_account (GoaProvider    *provider,
     g_propagate_error (error, data.error);
   else
     g_assert (ret != NULL);
+
+  g_signal_handlers_disconnect_by_func (dialog, dialog_response_cb, &data);
 
   g_free (domain);
   g_free (data.account_object_path);
@@ -1316,7 +1318,7 @@ refresh_account (GoaProvider    *provider,
 
   imap_password = gtk_entry_get_text (GTK_ENTRY (data.imap_password));
   g_cancellable_reset (data.cancellable);
-  imap_auth = goa_imap_auth_login_new (NULL, NULL, imap_username, imap_password);
+  imap_auth = goa_imap_auth_login_new (imap_username, imap_password);
   goa_mail_client_check (mail_client,
                          imap_server,
                          imap_tls_type,
@@ -1393,7 +1395,7 @@ refresh_account (GoaProvider    *provider,
   smtp_password = gtk_entry_get_text (GTK_ENTRY (data.smtp_password));
   g_cancellable_reset (data.cancellable);
   goa_utils_parse_email_address (email_address, NULL, &domain);
-  smtp_auth = goa_smtp_auth_new (NULL, NULL, domain, smtp_username, smtp_password);
+  smtp_auth = goa_smtp_auth_new (domain, smtp_username, smtp_password);
   goa_mail_client_check (mail_client,
                          smtp_server,
                          smtp_tls_type,
@@ -1519,12 +1521,17 @@ show_account (GoaProvider         *provider,
 
   row = 0;
 
+  goa_utils_account_add_attention_needed (client, object, provider, vbox);
+
   grid = gtk_grid_new ();
   gtk_widget_set_halign (grid, GTK_ALIGN_CENTER);
   gtk_widget_set_hexpand (grid, TRUE);
+  gtk_widget_set_margin_end (grid, 72);
+  gtk_widget_set_margin_start (grid, 72);
+  gtk_widget_set_margin_top (grid, 24);
   gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
   gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
-  gtk_box_pack_start (vbox, grid, FALSE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (vbox), grid);
 
   goa_utils_account_add_header (object, GTK_GRID (grid), row++);
 
@@ -1567,8 +1574,6 @@ show_account (GoaProvider         *provider,
       show_label (GTK_WIDGET (grid), row++, _("SMTP"), value_str);
   g_free (value_str_1);
   g_free (value_str);
-
-  goa_utils_account_add_attention_needed (client, object, provider, vbox);
 }
 
 /* ---------------------------------------------------------------------------------------------------- */

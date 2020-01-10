@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2013 Intel Corporation
+ * Copyright © 2013 Intel Corporation
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -113,6 +113,8 @@ goa_provider_factory_get_providers_finish (GoaProviderFactory  *factory,
   GoaProviderFactoryClass *klass;
 
   g_return_val_if_fail (GOA_IS_PROVIDER_FACTORY (factory), FALSE);
+  g_return_val_if_fail (G_IS_ASYNC_RESULT (result), FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
   klass = GOA_PROVIDER_FACTORY_GET_CLASS (factory);
   return klass->get_providers_finish (factory, out_providers, result, error);
@@ -129,8 +131,6 @@ get_providers_finish_default (GoaProviderFactory  *factory,
   gboolean had_error;
 
   g_return_val_if_fail (g_task_is_valid (result, factory), FALSE);
-  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
-
   task = G_TASK (result);
 
   /* Workaround for bgo#764163 */

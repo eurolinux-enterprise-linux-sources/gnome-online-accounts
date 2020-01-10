@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2014 Damián Nohales
- * Copyright (C) 2015 Red Hat, Inc.
+ * Copyright © 2014 Damián Nohales
+ * Copyright © 2015 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,36 +26,14 @@
 #include "goaprovider.h"
 #include "goaprovider-priv.h"
 #include "goaoauth2provider.h"
-#include "goaoauth2provider-priv.h"
 #include "goafoursquareprovider.h"
 #include "goaobjectskeletonutils.h"
+#include "goarestproxy.h"
 
-/**
- * GoaFoursquareProvider:
- *
- * The #GoaFoursquareProvider structure contains only private data and should
- * only be accessed using the provided API.
- */
 struct _GoaFoursquareProvider
 {
-  /*< private >*/
   GoaOAuth2Provider parent_instance;
 };
-
-typedef struct _GoaFoursquareProviderClass GoaFoursquareProviderClass;
-
-struct _GoaFoursquareProviderClass
-{
-  GoaOAuth2ProviderClass parent_class;
-};
-
-/**
- * SECTION:goafoursquareprovider
- * @title: GoaFoursquareProvider
- * @short_description: A provider for Foursquare
- *
- * #GoaFoursquareProvider is used for handling Foursquare accounts.
- */
 
 G_DEFINE_TYPE_WITH_CODE (GoaFoursquareProvider, goa_foursquare_provider, GOA_TYPE_OAUTH2_PROVIDER,
                          goa_provider_ensure_extension_points_registered ();
@@ -138,12 +116,6 @@ get_client_secret (GoaOAuth2Provider *oauth2_provider)
   return NULL;
 }
 
-static const gchar *
-get_authentication_cookie (GoaOAuth2Provider *oauth2_provider)
-{
-  return "bbhive";
-}
-
 /* ---------------------------------------------------------------------------------------------------- */
 
 static gchar *
@@ -153,27 +125,18 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
                    GCancellable       *cancellable,
                    GError            **error)
 {
-  GError *identity_error;
-  RestProxy *proxy;
-  RestProxyCall *call;
-  JsonParser *parser;
+  GError *identity_error = NULL;
+  RestProxy *proxy = NULL;
+  RestProxyCall *call = NULL;
+  JsonParser *parser = NULL;
   JsonObject *json_object;
-  gchar *ret;
-  gchar *id;
-  gchar *presentation_identity;
-
-  ret = NULL;
-
-  identity_error = NULL;
-  proxy = NULL;
-  call = NULL;
-  parser = NULL;
-  id = NULL;
-  presentation_identity = NULL;
+  gchar *ret = NULL;
+  gchar *id = NULL;
+  gchar *presentation_identity = NULL;
 
   /* TODO: cancellable */
 
-  proxy = rest_proxy_new ("https://api.foursquare.com/v2/users/self", FALSE);
+  proxy = goa_rest_proxy_new ("https://api.foursquare.com/v2/users/self", FALSE);
   call = rest_proxy_new_call (proxy);
   rest_proxy_call_set_method (call, "GET");
   rest_proxy_call_add_param (call, "oauth_token", access_token);
@@ -212,10 +175,20 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
     }
 
   json_object = json_node_get_object (json_parser_get_root (parser));
-  json_object = json_object_get_object_member (json_object, "response");
-  if (json_object == NULL)
+  if (!json_object_has_member (json_object, "response"))
     {
-      g_warning ("Did not find response object in JSON data");
+      g_warning ("Did not find response in JSON data");
+      g_set_error (error,
+                   GOA_ERROR,
+                   GOA_ERROR_FAILED,
+                   _("Could not parse response"));
+      goto out;
+    }
+
+  json_object = json_object_get_object_member (json_object, "response");
+  if (!json_object_has_member (json_object, "user"))
+    {
+      g_warning ("Did not find response.user in JSON data");
       g_set_error (error,
                    GOA_ERROR,
                    GOA_ERROR_FAILED,
@@ -224,9 +197,18 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
     }
 
   json_object = json_object_get_object_member (json_object, "user");
-  if (json_object == NULL)
+  if (!json_object_has_member (json_object, "id"))
     {
-      g_warning ("Did not find user object in JSON data");
+      g_warning ("Did not find response.user.id in JSON data");
+      g_set_error (error,
+                   GOA_ERROR,
+                   GOA_ERROR_FAILED,
+                   _("Could not parse response"));
+      goto out;
+    }
+  if (!json_object_has_member (json_object, "contact"))
+    {
+      g_warning ("Did not find response.user.contact in JSON data");
       g_set_error (error,
                    GOA_ERROR,
                    GOA_ERROR_FAILED,
@@ -235,20 +217,11 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
     }
 
   id = g_strdup (json_object_get_string_member (json_object, "id"));
-  if (id == NULL)
-    {
-      g_warning ("Did not find id in JSON data");
-      g_set_error (error,
-                   GOA_ERROR,
-                   GOA_ERROR_FAILED,
-                   _("Could not parse response"));
-      goto out;
-    }
 
   json_object = json_object_get_object_member (json_object, "contact");
-  if (json_object == NULL)
+  if (!json_object_has_member (json_object, "email"))
     {
-      g_warning ("Did not find contact object in JSON data");
+      g_warning ("Did not find response.user.contact.email in JSON data");
       g_set_error (error,
                    GOA_ERROR,
                    GOA_ERROR_FAILED,
@@ -257,15 +230,6 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
     }
 
   presentation_identity = g_strdup (json_object_get_string_member (json_object, "email"));
-  if (presentation_identity == NULL)
-    {
-      g_warning ("Did not find email in JSON data");
-      g_set_error (error,
-                   GOA_ERROR,
-                   GOA_ERROR_FAILED,
-                   _("Could not parse response"));
-      goto out;
-    }
 
   ret = id;
   id = NULL;
@@ -290,14 +254,9 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
 static gboolean
 is_identity_node (GoaOAuth2Provider *oauth2_provider, WebKitDOMHTMLInputElement *element)
 {
-  gboolean ret;
-  gchar *element_type;
-  gchar *name;
-
-  element_type = NULL;
-  name = NULL;
-
-  ret = FALSE;
+  gboolean ret = FALSE;
+  gchar *element_type = NULL;
+  gchar *name = NULL;
 
   g_object_get (element, "type", &element_type, NULL);
   if (g_strcmp0 (element_type, "email") != 0)
@@ -406,7 +365,6 @@ goa_foursquare_provider_class_init (GoaFoursquareProviderClass *klass)
   oauth2_class->get_client_id            = get_client_id;
   oauth2_class->get_client_secret        = get_client_secret;
   oauth2_class->get_use_mobile_browser   = get_use_mobile_browser;
-  oauth2_class->get_authentication_cookie = get_authentication_cookie;
   oauth2_class->get_identity_sync        = get_identity_sync;
   oauth2_class->is_identity_node         = is_identity_node;
   oauth2_class->add_account_key_values   = add_account_key_values;

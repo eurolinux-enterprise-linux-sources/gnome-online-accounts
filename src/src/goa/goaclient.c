@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2015 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,7 +21,6 @@
 
 #include "goaclient.h"
 #include "goaerror.h"
-#include "goa-generated.h"
 
 G_LOCK_DEFINE_STATIC (init_lock);
 
@@ -49,15 +48,6 @@ struct _GoaClient
 
   GDBusObjectManager *object_manager;
 };
-
-typedef struct
-{
-  GObjectClass parent_class;
-
-  void (*account_added) (GoaClient *self, GDBusObject *object);
-  void (*account_removed) (GoaClient *self, GDBusObject *object);
-  void (*account_changed) (GoaClient *self, GDBusObject *object);
-} GoaClientClass;
 
 enum
 {
@@ -192,7 +182,7 @@ goa_client_class_init (GoaClientClass *klass)
     g_signal_new ("account-added",
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
-                  G_STRUCT_OFFSET (GoaClientClass, account_added),
+                  0,
                   NULL,
                   NULL,
                   g_cclosure_marshal_VOID__OBJECT,
@@ -211,7 +201,7 @@ goa_client_class_init (GoaClientClass *klass)
     g_signal_new ("account-removed",
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
-                  G_STRUCT_OFFSET (GoaClientClass, account_removed),
+                  0,
                   NULL,
                   NULL,
                   g_cclosure_marshal_VOID__OBJECT,
@@ -230,7 +220,7 @@ goa_client_class_init (GoaClientClass *klass)
     g_signal_new ("account-changed",
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
-                  G_STRUCT_OFFSET (GoaClientClass, account_changed),
+                  0,
                   NULL,
                   NULL,
                   g_cclosure_marshal_VOID__OBJECT,
@@ -322,9 +312,7 @@ initable_init (GInitable     *initable,
                GError       **error)
 {
   GoaClient *self = GOA_CLIENT (initable);
-  gboolean ret;
-
-  ret = FALSE;
+  gboolean ret = FALSE;
 
   /* This method needs to be idempotent to work with the singleton
    * pattern. See the docs for g_initable_init(). We implement this by
@@ -424,9 +412,8 @@ GoaManager *
 goa_client_get_manager (GoaClient *self)
 {
   GDBusObject *object;
-  GoaManager *manager;
+  GoaManager *manager = NULL;
 
-  manager = NULL;
   object = g_dbus_object_manager_get_object (self->object_manager, "/org/gnome/OnlineAccounts/Manager");
   if (object == NULL)
     goto out;
@@ -455,13 +442,12 @@ goa_client_get_manager (GoaClient *self)
 GList *
 goa_client_get_accounts (GoaClient *self)
 {
-  GList *ret;
+  GList *ret = NULL;
   GList *objects;
   GList *l;
 
   g_return_val_if_fail (GOA_IS_CLIENT (self), NULL);
 
-  ret = NULL;
   objects = g_dbus_object_manager_get_objects (self->object_manager);
   for (l = objects; l != NULL; l = l->next)
     {
@@ -496,9 +482,7 @@ goa_client_lookup_by_id (GoaClient           *self,
 {
   GList *accounts;
   GList *l;
-  GoaObject *ret;
-
-  ret = NULL;
+  GoaObject *ret = NULL;
 
   accounts = goa_client_get_accounts (self);
   for (l = accounts; l != NULL; l = g_list_next (l))

@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2015 Red Hat, Inc.
+ * Copyright © 2012 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,12 +30,8 @@
 G_BEGIN_DECLS
 
 #define GOA_TYPE_EWS_CLIENT         (goa_ews_client_get_type ())
-#define GOA_EWS_CLIENT(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), GOA_TYPE_EWS_CLIENT, GoaEwsClient))
-#define GOA_IS_EWS_CLIENT(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), GOA_TYPE_EWS_CLIENT))
+G_DECLARE_FINAL_TYPE (GoaEwsClient, goa_ews_client, GOA, EWS_CLIENT, GObject);
 
-typedef struct _GoaEwsClient GoaEwsClient;
-
-GType           goa_ews_client_get_type            (void) G_GNUC_CONST;
 GoaEwsClient   *goa_ews_client_new                 (void);
 void            goa_ews_client_autodiscover        (GoaEwsClient        *self,
                                                     const gchar         *email,

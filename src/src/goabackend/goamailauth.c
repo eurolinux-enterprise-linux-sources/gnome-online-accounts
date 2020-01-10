@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2013, 2015 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -222,6 +222,7 @@ goa_mail_auth_run_finish (GoaMailAuth         *self,
 {
   GTask *task;
 
+  g_return_val_if_fail (GOA_IS_MAIL_AUTH (self), FALSE);
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
   g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
@@ -272,6 +273,7 @@ goa_mail_auth_starttls_finish (GoaMailAuth         *self,
 {
   GTask *task;
 
+  g_return_val_if_fail (GOA_IS_MAIL_AUTH (self), FALSE);
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
   g_return_val_if_fail (g_task_is_valid (res, self), FALSE);

@@ -3,7 +3,6 @@
 
 #include "goabackendenums.h"
 #include "goabackendenumtypes.h"
-
 /* enumerations from "goabackendenums.h" */
 GType
 goa_provider_group_get_type (void)
@@ -28,7 +27,6 @@ goa_provider_group_get_type (void)
 
   return g_define_type_id__volatile;
 }
-
 GType
 goa_provider_features_get_type (void)
 {
@@ -50,6 +48,7 @@ goa_provider_features_get_type (void)
         { GOA_PROVIDER_FEATURE_PRINTERS, "GOA_PROVIDER_FEATURE_PRINTERS", "printers" },
         { GOA_PROVIDER_FEATURE_MAPS, "GOA_PROVIDER_FEATURE_MAPS", "maps" },
         { GOA_PROVIDER_FEATURE_MUSIC, "GOA_PROVIDER_FEATURE_MUSIC", "music" },
+        { GOA_PROVIDER_FEATURE_TODO, "GOA_PROVIDER_FEATURE_TODO", "todo" },
         { GOA_PROVIDER_FEATURE_INVALID, "GOA_PROVIDER_FEATURE_INVALID", "invalid" },
         { 0, NULL, NULL }
       };
@@ -60,7 +59,6 @@ goa_provider_features_get_type (void)
 
   return g_define_type_id__volatile;
 }
-
 
 /* Generated data ends here */
 

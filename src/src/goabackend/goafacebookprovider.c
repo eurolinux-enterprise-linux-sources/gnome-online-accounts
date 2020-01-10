@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,36 +25,14 @@
 #include "goaprovider.h"
 #include "goaprovider-priv.h"
 #include "goaoauth2provider.h"
-#include "goaoauth2provider-priv.h"
 #include "goafacebookprovider.h"
 #include "goaobjectskeletonutils.h"
+#include "goarestproxy.h"
 
-/**
- * GoaFacebookProvider:
- *
- * The #GoaFacebookProvider structure contains only private data and should
- * only be accessed using the provided API.
- */
 struct _GoaFacebookProvider
 {
-  /*< private >*/
   GoaOAuth2Provider parent_instance;
 };
-
-typedef struct _GoaFacebookProviderClass GoaFacebookProviderClass;
-
-struct _GoaFacebookProviderClass
-{
-  GoaOAuth2ProviderClass parent_class;
-};
-
-/**
- * SECTION:goafacebookprovider
- * @title: GoaFacebookProvider
- * @short_description: A provider for Facebook
- *
- * #GoaFacebookProvider is used for handling Facebook accounts.
- */
 
 G_DEFINE_TYPE_WITH_CODE (GoaFacebookProvider, goa_facebook_provider, GOA_TYPE_OAUTH2_PROVIDER,
                          goa_provider_ensure_extension_points_registered ();
@@ -162,12 +140,6 @@ get_client_secret (GoaOAuth2Provider *oauth2_provider)
   return NULL;
 }
 
-static const gchar *
-get_authentication_cookie (GoaOAuth2Provider *oauth2_provider)
-{
-  return "c_user";
-}
-
 /* ---------------------------------------------------------------------------------------------------- */
 
 static gchar *
@@ -188,10 +160,13 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
 
   /* TODO: cancellable */
 
-  proxy = rest_proxy_new ("https://graph.facebook.com/me", FALSE);
+  proxy = goa_rest_proxy_new ("https://graph.facebook.com/me", FALSE);
   call = rest_proxy_new_call (proxy);
   rest_proxy_call_set_method (call, "GET");
-  rest_proxy_call_add_param (call, "access_token", access_token);
+  rest_proxy_call_add_params (call,
+                              "access_token", access_token,
+                              "fields", "id,email",
+                              NULL);
 
   if (!rest_proxy_call_sync (call, error))
     goto out;
@@ -229,8 +204,7 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
     }
 
   json_object = json_node_get_object (json_parser_get_root (parser));
-  id = g_strdup (json_object_get_string_member (json_object, "id"));
-  if (id == NULL)
+  if (!json_object_has_member (json_object, "id"))
     {
       g_warning ("Did not find id in JSON data");
       g_set_error (error,
@@ -239,20 +213,15 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
                    _("Could not parse response"));
       goto out;
     }
-  presentation_identity = g_strdup (json_object_get_string_member (json_object, "email"));
-  if (presentation_identity == NULL)
+  if (!json_object_has_member (json_object, "email"))
     {
-      presentation_identity = g_strdup (json_object_get_string_member (json_object, "username"));
-      if (presentation_identity == NULL)
-        {
-          g_warning ("Did not find email or username in JSON data");
-          g_set_error (error,
-                       GOA_ERROR,
-                       GOA_ERROR_FAILED,
-                       _("Could not parse response"));
-          goto out;
-        }
+      g_warning ("Did not find email in JSON data");
+      g_set_error (error, GOA_ERROR, GOA_ERROR_FAILED, _("Could not parse response"));
+      goto out;
     }
+
+  id = g_strdup (json_object_get_string_member (json_object, "id"));
+  presentation_identity = g_strdup (json_object_get_string_member (json_object, "email"));
 
   ret = id;
   id = NULL;
@@ -397,7 +366,6 @@ goa_facebook_provider_class_init (GoaFacebookProviderClass *klass)
   oauth2_class->get_scope                = get_scope;
   oauth2_class->get_client_id            = get_client_id;
   oauth2_class->get_client_secret        = get_client_secret;
-  oauth2_class->get_authentication_cookie = get_authentication_cookie;
   oauth2_class->get_identity_sync        = get_identity_sync;
   oauth2_class->is_identity_node         = is_identity_node;
   oauth2_class->add_account_key_values   = add_account_key_values;

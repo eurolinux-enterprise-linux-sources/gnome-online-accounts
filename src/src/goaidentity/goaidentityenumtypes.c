@@ -3,7 +3,6 @@
 
 
 #include <glib-object.h>
-
 #include "goaidentity.h"
 /* enumerations from "goaidentity.h" */
 GType goa_identity_error_get_type (void) G_GNUC_CONST;
@@ -33,7 +32,6 @@ goa_identity_error_get_type (void)
 
     return etype;
 }
-
 GType goa_identity_sign_in_flags_get_type (void) G_GNUC_CONST;
 
 GType
@@ -55,7 +53,6 @@ goa_identity_sign_in_flags_get_type (void)
 
     return etype;
 }
-
 #include "goaidentityinquiry.h"
 /* enumerations from "goaidentityinquiry.h" */
 GType goa_identity_query_mode_get_type (void) G_GNUC_CONST;
@@ -77,9 +74,8 @@ goa_identity_query_mode_get_type (void)
 
     return etype;
 }
-
-#include "goaidentitymanager.h"
-/* enumerations from "goaidentitymanager.h" */
+#include "goaidentitymanagererror.h"
+/* enumerations from "goaidentitymanagererror.h" */
 GType goa_identity_manager_error_get_type (void) G_GNUC_CONST;
 
 GType
@@ -102,7 +98,6 @@ goa_identity_manager_error_get_type (void)
 
     return etype;
 }
-
 #include "goakerberosidentity.h"
 /* enumerations from "goakerberosidentity.h" */
 GType struct_struct_get_type (void) G_GNUC_CONST;
@@ -125,7 +120,6 @@ struct_struct_get_type (void)
 
     return etype;
 }
-
 #include "goakerberosidentityinquiry.h"
 /* enumerations from "goakerberosidentityinquiry.h" */
 GType goa_kerberos_identity_query_mode_get_type (void) G_GNUC_CONST;
@@ -147,7 +141,6 @@ goa_kerberos_identity_query_mode_get_type (void)
 
     return etype;
 }
-
  /**/
 
 /* Generated data ends here */

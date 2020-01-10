@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2015, 2016 Red Hat, Inc.
+ * Copyright © 2012 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,7 +25,6 @@
 #include <telepathy-glib/telepathy-glib.h>
 #endif
 
-#include "goaprovider.h"
 #include "goautils.h"
 
 static const SecretSchema secret_password_schema =
@@ -67,13 +66,17 @@ attention_needed_data_free (AttentionNeededData *data)
 }
 
 static void
-goa_utils_account_add_attention_needed_button_clicked (GtkButton *button, gpointer user_data)
+goa_utils_account_add_attention_needed_info_bar_response (GtkInfoBar *info_bar,
+                                                          gint        response_id,
+                                                          gpointer    user_data)
 {
   AttentionNeededData *data = (AttentionNeededData *) user_data;
   GtkWidget *parent;
   GError *error;
 
-  parent = gtk_widget_get_toplevel (GTK_WIDGET (button));
+  g_return_if_fail (response_id == GTK_RESPONSE_OK);
+
+  parent = gtk_widget_get_toplevel (GTK_WIDGET (info_bar));
   if (!gtk_widget_is_toplevel (parent))
     {
       g_warning ("Unable to find a toplevel GtkWindow");
@@ -108,23 +111,21 @@ goa_utils_account_add_attention_needed (GoaClient *client, GoaObject *object, Go
   AttentionNeededData *data;
   GoaAccount *account;
   GtkWidget *button;
-  GtkWidget *grid;
-  GtkWidget *image;
+  GtkWidget *content_area;
+  GtkWidget *info_bar;
   GtkWidget *label;
   GtkWidget *labels_grid;
+  gchar *markup = NULL;
 
   account = goa_object_peek_account (object);
   if (!goa_account_get_attention_needed (account))
-    return;
+    goto out;
 
-  grid = gtk_grid_new ();
-  gtk_orientable_set_orientation (GTK_ORIENTABLE (grid), GTK_ORIENTATION_HORIZONTAL);
-  gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
-  gtk_box_pack_end (vbox, grid, FALSE, TRUE, 0);
+  info_bar = gtk_info_bar_new ();
+  gtk_container_add (GTK_CONTAINER (vbox), info_bar);
 
-  image = gtk_image_new_from_icon_name ("dialog-warning", GTK_ICON_SIZE_SMALL_TOOLBAR);
-  gtk_widget_set_valign (image, GTK_ALIGN_CENTER);
-  gtk_container_add (GTK_CONTAINER (grid), image);
+  content_area = gtk_info_bar_get_content_area (GTK_INFO_BAR (info_bar));
+  gtk_widget_set_margin_start (content_area, 6);
 
   labels_grid = gtk_grid_new ();
   gtk_widget_set_halign (labels_grid, GTK_ALIGN_FILL);
@@ -132,28 +133,31 @@ goa_utils_account_add_attention_needed (GoaClient *client, GoaObject *object, Go
   gtk_widget_set_valign (labels_grid, GTK_ALIGN_CENTER);
   gtk_orientable_set_orientation (GTK_ORIENTABLE (labels_grid), GTK_ORIENTATION_VERTICAL);
   gtk_grid_set_column_spacing (GTK_GRID (labels_grid), 0);
-  gtk_container_add (GTK_CONTAINER (grid), labels_grid);
+  gtk_container_add (GTK_CONTAINER (content_area), labels_grid);
 
-  label = gtk_label_new (_("Credentials have expired."));
+  label = gtk_label_new ("");
   gtk_widget_set_halign (label, GTK_ALIGN_START);
+  markup = g_strdup_printf ("<b>%s</b>", _("Credentials have expired"));
+  gtk_label_set_markup (GTK_LABEL (label), markup);
   gtk_container_add (GTK_CONTAINER (labels_grid), label);
 
   label = gtk_label_new (_("Sign in to enable this account."));
   gtk_widget_set_halign (label, GTK_ALIGN_START);
-  gtk_style_context_add_class (gtk_widget_get_style_context (label), "dim-label");
   gtk_container_add (GTK_CONTAINER (labels_grid), label);
 
-  button = gtk_button_new_with_mnemonic (_("_Sign In"));
-  gtk_widget_set_valign (button, GTK_ALIGN_CENTER);
-  gtk_container_add (GTK_CONTAINER (grid), button);
+  button = gtk_info_bar_add_button (GTK_INFO_BAR (info_bar), _("_Sign In"), GTK_RESPONSE_OK);
+  gtk_widget_set_margin_end (button, 6);
 
   data = attention_needed_data_new (client, object, provider);
-  g_signal_connect_data (button,
-                         "clicked",
-                         G_CALLBACK (goa_utils_account_add_attention_needed_button_clicked),
+  g_signal_connect_data (info_bar,
+                         "response",
+                         G_CALLBACK (goa_utils_account_add_attention_needed_info_bar_response),
                          data,
                          (GClosureNotify) attention_needed_data_free,
                          0);
+
+ out:
+  g_free (markup);
 }
 
 void
@@ -241,9 +245,7 @@ goa_utils_check_duplicate (GoaClient              *client,
 {
   GList *accounts;
   GList *l;
-  gboolean ret;
-
-  ret = FALSE;
+  gboolean ret = FALSE;
 
   accounts = goa_client_get_accounts (client);
   for (l = accounts; l != NULL; l = l->next)
@@ -324,8 +326,11 @@ goa_utils_set_dialog_title (GoaProvider *provider, GtkDialog *dialog, gboolean a
   gchar *title;
 
   provider_name = goa_provider_get_provider_name (GOA_PROVIDER (provider), NULL);
-  /* Translators: the %s is the name of the provider. eg., Google. */
-  title = g_strdup_printf (_("%s account"), provider_name);
+  /* Translators: this is the title of the "Add Account" and "Refresh
+   * Account" dialogs. The %s is the name of the provider. eg.,
+   * 'Google'.
+   */
+  title = g_strdup_printf (_("%s Account"), provider_name);
   gtk_window_set_title (GTK_WINDOW (dialog), title);
   g_free (title);
   g_free (provider_name);
@@ -354,8 +359,8 @@ goa_utils_delete_credentials_for_id_sync (GoaProvider   *provider,
                                           GCancellable  *cancellable,
                                           GError       **error)
 {
-  gboolean ret;
-  gchar *password_key;
+  gboolean ret = FALSE;
+  gchar *password_key = NULL;
   GError *sec_error = NULL;
 
   g_return_val_if_fail (GOA_IS_PROVIDER (provider), FALSE);
@@ -363,13 +368,9 @@ goa_utils_delete_credentials_for_id_sync (GoaProvider   *provider,
   g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
-  ret = FALSE;
-
-  password_key = NULL;
-
   password_key = g_strdup_printf ("%s:gen%d:%s",
-                                  goa_provider_get_provider_type (GOA_PROVIDER (provider)),
-                                  goa_provider_get_credentials_generation (GOA_PROVIDER (provider)),
+                                  goa_provider_get_provider_type (provider),
+                                  goa_provider_get_credentials_generation (provider),
                                   id);
 
   secret_password_clear_sync (&secret_password_schema,
@@ -402,9 +403,9 @@ goa_utils_lookup_credentials_sync (GoaProvider   *provider,
                                    GCancellable  *cancellable,
                                    GError       **error)
 {
-  gchar *password_key;
-  GVariant *ret;
-  gchar *password;
+  gchar *password_key = NULL;
+  GVariant *ret = NULL;
+  gchar *password = NULL;
   const gchar *id;
   GError *sec_error = NULL;
 
@@ -413,15 +414,11 @@ goa_utils_lookup_credentials_sync (GoaProvider   *provider,
   g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), NULL);
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
-  ret = NULL;
-  password_key = NULL;
-  password = NULL;
-
   id = goa_account_get_id (goa_object_peek_account (object));
 
   password_key = g_strdup_printf ("%s:gen%d:%s",
-                                  goa_provider_get_provider_type (GOA_PROVIDER (provider)),
-                                  goa_provider_get_credentials_generation (GOA_PROVIDER (provider)),
+                                  goa_provider_get_provider_type (provider),
+                                  goa_provider_get_credentials_generation (provider),
                                   id);
 
   password = secret_password_lookup_sync (&secret_password_schema,
@@ -478,7 +475,7 @@ goa_utils_store_credentials_for_id_sync (GoaProvider   *provider,
                                          GCancellable  *cancellable,
                                          GError       **error)
 {
-  gboolean ret;
+  gboolean ret = FALSE;
   gchar *credentials_str;
   gchar *password_description;
   gchar *password_key;
@@ -490,15 +487,13 @@ goa_utils_store_credentials_for_id_sync (GoaProvider   *provider,
   g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
-  ret = FALSE;
-
   credentials_str = g_variant_print (credentials, TRUE);
   g_variant_ref_sink (credentials);
   g_variant_unref (credentials);
 
   password_key = g_strdup_printf ("%s:gen%d:%s",
-                                  goa_provider_get_provider_type (GOA_PROVIDER (provider)),
-                                  goa_provider_get_credentials_generation (GOA_PROVIDER (provider)),
+                                  goa_provider_get_provider_type (provider),
+                                  goa_provider_get_credentials_generation (provider),
                                   id);
   /* Translators: The %s is the type of the provider, e.g. 'google' or 'yahoo' */
   password_description = g_strdup_printf (_("GOA %s credentials for identity %s"),
@@ -838,17 +833,12 @@ gboolean
 goa_utils_parse_email_address (const gchar *email, gchar **out_username, gchar **out_domain)
 {
   gchar *at;
-  gchar *dot;
 
   if (email == NULL || email[0] == '\0')
     return FALSE;
 
   at = strchr (email, '@');
-  if (at == NULL || *(at + 1) == '\0')
-    return FALSE;
-
-  dot = strchr (at + 1, '.');
-  if (dot == NULL || *(dot + 1) == '\0')
+  if (at == NULL || at == email || *(at + 1) == '\0')
     return FALSE;
 
   if (out_username != NULL)
@@ -966,7 +956,7 @@ goa_utils_get_credentials (GoaProvider    *provider,
   if (!g_variant_lookup (credentials, id, "s", &password))
     {
       g_set_error (error, GOA_ERROR, GOA_ERROR_FAILED, /* TODO: more specific */
-                   _("Did not find %s with identity ‘%s’ in credentials"),
+                   _("Did not find %s with identity “%s” in credentials"),
                    id, username);
       goto out;
     }

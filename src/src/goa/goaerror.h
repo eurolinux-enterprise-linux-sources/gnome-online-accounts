@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,7 @@
 #ifndef __GOA_ERROR_H__
 #define __GOA_ERROR_H__
 
-#include <goa/goatypes.h>
+#include <glib.h>
 
 G_BEGIN_DECLS
 

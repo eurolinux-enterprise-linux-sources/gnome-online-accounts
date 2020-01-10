@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
- * Copyright (C) 2011 Collabora Ltd.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
+ * Copyright © 2011 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,37 +25,14 @@
 
 #include "goaprovider.h"
 #include "goaprovider-priv.h"
-#include "goaoauth2provider.h"
-#include "goaoauth2provider-priv.h"
 #include "goawindowsliveprovider.h"
 #include "goaobjectskeletonutils.h"
+#include "goarestproxy.h"
 
-/**
- * GoaWindowsLiveProvider:
- *
- * The #GoaWindowsLiveProvider structure contains only private data and should
- * only be accessed using the provided API.
- */
 struct _GoaWindowsLiveProvider
 {
-  /*< private >*/
   GoaOAuth2Provider parent_instance;
 };
-
-typedef struct _GoaWindowsLiveProviderClass GoaWindowsLiveProviderClass;
-
-struct _GoaWindowsLiveProviderClass
-{
-  GoaOAuth2ProviderClass parent_class;
-};
-
-/**
- * SECTION:goawindowsliveprovider
- * @title: GoaWindowsLiveProvider
- * @short_description: A provider for Windows Live accounts
- *
- * #GoaWindowsLiveProvider is used for handling Windows Live accounts.
- */
 
 G_DEFINE_TYPE_WITH_CODE (GoaWindowsLiveProvider, goa_windows_live_provider, GOA_TYPE_OAUTH2_PROVIDER,
                          goa_provider_ensure_extension_points_registered ();
@@ -76,7 +53,7 @@ static gchar *
 get_provider_name (GoaProvider *provider,
                    GoaObject   *object)
 {
-  return g_strdup (_("Microsoft Account"));
+  return g_strdup (_("Microsoft"));
 }
 
 static GIcon *
@@ -147,12 +124,6 @@ get_client_secret (GoaOAuth2Provider *oauth2_provider)
   return NULL;
 }
 
-static const gchar *
-get_authentication_cookie (GoaOAuth2Provider *oauth2_provider)
-{
-  return "PPAuth";
-}
-
 /* ---------------------------------------------------------------------------------------------------- */
 
 static gchar *
@@ -173,7 +144,7 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
 
   /* TODO: cancellable */
 
-  proxy = rest_proxy_new ("https://apis.live.net/v5.0/me", FALSE);
+  proxy = goa_rest_proxy_new ("https://apis.live.net/v5.0/me", FALSE);
   call = rest_proxy_new_call (proxy);
   rest_proxy_call_set_method (call, "GET");
   rest_proxy_call_add_param (call, "access_token", access_token);
@@ -209,8 +180,7 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
     }
 
   json_object = json_node_get_object (json_parser_get_root (parser));
-  id = g_strdup (json_object_get_string_member (json_object, "id"));
-  if (id == NULL)
+  if (!json_object_has_member (json_object, "id"))
     {
       g_warning ("Did not find id in JSON data");
       g_set_error (error,
@@ -219,10 +189,20 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
                    _("Could not parse response"));
       goto out;
     }
+  if (!json_object_has_member (json_object, "emails"))
+    {
+      g_warning ("Did not find emails in JSON data");
+      g_set_error (error,
+                   GOA_ERROR,
+                   GOA_ERROR_FAILED,
+                   _("Could not parse response"));
+      goto out;
+    }
+
+  id = g_strdup (json_object_get_string_member (json_object, "id"));
 
   json_object = json_object_get_object_member (json_object, "emails");
-  presentation_identity = g_strdup (json_object_get_string_member (json_object, "account"));
-  if (presentation_identity == NULL)
+  if (!json_object_has_member (json_object, "account"))
     {
       g_warning ("Did not find emails.account in JSON data");
       g_set_error (error,
@@ -231,6 +211,8 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
                    _("Could not parse response"));
       goto out;
     }
+
+  presentation_identity = g_strdup (json_object_get_string_member (json_object, "account"));
 
   ret = id;
   id = NULL;
@@ -407,7 +389,6 @@ goa_windows_live_provider_class_init (GoaWindowsLiveProviderClass *klass)
   oauth2_class->get_scope                = get_scope;
   oauth2_class->get_client_id            = get_client_id;
   oauth2_class->get_client_secret        = get_client_secret;
-  oauth2_class->get_authentication_cookie = get_authentication_cookie;
   oauth2_class->get_identity_sync        = get_identity_sync;
   oauth2_class->is_identity_node         = is_identity_node;
   oauth2_class->add_account_key_values   = add_account_key_values;

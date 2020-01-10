@@ -3,7 +3,6 @@
 
 #include "goaenums.h"
 #include "goaenumtypes.h"
-
 /* enumerations from "goaenums.h" */
 GType
 goa_error_get_type (void)
@@ -28,7 +27,6 @@ goa_error_get_type (void)
 
   return g_define_type_id__volatile;
 }
-
 
 /* Generated data ends here */
 

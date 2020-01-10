@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2015 Red Hat, Inc.
+ * Copyright © 2012 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -230,6 +230,29 @@ goa_object_skeleton_attach_maps (GoaObjectSkeleton *object,
         goa_object_skeleton_set_maps (object, NULL);
     }
   g_clear_object (&maps);
+}
+
+void
+goa_object_skeleton_attach_todo (GoaObjectSkeleton *object,
+                                 gboolean           todo_enabled)
+{
+  GoaTodo *todo = NULL;
+
+  todo = goa_object_get_todo (GOA_OBJECT (object));
+  if (todo_enabled)
+    {
+      if (todo == NULL)
+        {
+          todo = goa_todo_skeleton_new ();
+          goa_object_skeleton_set_todo (object, todo);
+        }
+    }
+  else
+    {
+      if (todo != NULL)
+        goa_object_skeleton_set_todo (object, NULL);
+    }
+  g_clear_object (&todo);
 }
 
 void

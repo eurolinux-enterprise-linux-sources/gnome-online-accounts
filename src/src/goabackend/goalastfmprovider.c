@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2015 Felipe Borges
+ * Copyright © 2015 Felipe Borges
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,11 +28,11 @@
 #include "goaoauth2provider.h"
 #include "goaoauth2provider-priv.h"
 #include "goalastfmprovider.h"
+#include "goarestproxy.h"
 #include "goautils.h"
 
 struct _GoaLastfmProvider
 {
-  /*< private >*/
   GoaOAuth2Provider parent_instance;
 };
 
@@ -191,7 +191,7 @@ lastfm_login_sync (GoaProvider                  *provider,
                          GOA_LASTFM_CLIENT_SECRET);
   sig_md5 = g_compute_checksum_for_string (G_CHECKSUM_MD5, sig, -1);
 
-  call = rest_proxy_new_call (rest_proxy_new (get_request_uri (provider), FALSE));
+  call = rest_proxy_new_call (goa_rest_proxy_new (get_request_uri (provider), FALSE));
 
   rest_proxy_call_set_method (call, "POST");
   rest_proxy_call_add_header (call, "Content-Type", "application/x-www-form-urlencoded");
@@ -224,17 +224,23 @@ lastfm_login_sync (GoaProvider                  *provider,
 
   root = json_parser_get_root (parser);
   json_obj = json_node_get_object (root);
-  session_obj = json_node_get_object (json_object_get_member (json_obj, "session"));
-
-  if (json_object_get_string_member (session_obj, "name") == NULL)
+  if (!json_object_has_member (json_obj, "session"))
     {
+      g_warning ("Did not find session in JSON data");
       g_set_error (error, GOA_ERROR, GOA_ERROR_FAILED, _("Could not parse response"));
       goto out;
     }
 
-
-  if (json_object_get_string_member (session_obj, "key") == NULL)
+  session_obj = json_node_get_object (json_object_get_member (json_obj, "session"));
+  if (!json_object_has_member (session_obj, "name"))
     {
+      g_warning ("Did not find session.name in JSON data");
+      g_set_error (error, GOA_ERROR, GOA_ERROR_FAILED, _("Could not parse response"));
+      goto out;
+    }
+  if (!json_object_has_member (session_obj, "key"))
+    {
+      g_warning ("Did not find session.key in JSON data");
       g_set_error (error, GOA_ERROR, GOA_ERROR_FAILED, _("Could not parse response"));
       goto out;
     }
@@ -278,7 +284,7 @@ ensure_credentials_sync (GoaProvider         *provider,
                            * (eg., debarshi.ray@gmail.com or rishi), and the
                            * (%s, %d) is the error domain and code.
                            */
-                          _("Invalid password with username ‘%s’ (%s, %d): "),
+                          _("Invalid password with username “%s” (%s, %d): "),
                           username,
                           g_quark_to_string ((*error)->domain),
                           (*error)->code);
@@ -517,26 +523,29 @@ check_cb (RestProxyCall *call,
     }
 
   json_obj = json_node_get_object (json_parser_get_root (parser));
-  session = json_object_get_member (json_obj, "session");
-  if (session == NULL)
+  if (!json_object_has_member (json_obj, "session"))
     {
+      g_warning ("Did not find session in JSON data");
       g_set_error (&data->error, GOA_ERROR, GOA_ERROR_FAILED, _("Authentication failed"));
       goto out;
     }
-  session_obj = json_node_get_object (session);
 
-  if (json_object_get_string_member (session_obj, "name") == NULL)
+  session = json_object_get_member (json_obj, "session");
+  session_obj = json_node_get_object (session);
+  if (!json_object_has_member (session_obj, "name"))
     {
+      g_warning ("Did not find session.name in JSON data");
+      g_set_error (&data->error, GOA_ERROR, GOA_ERROR_FAILED, _("Could not parse response"));
+      goto out;
+    }
+  if (!json_object_has_member (session_obj, "key"))
+    {
+      g_warning ("Did not find session.key in JSON data");
       g_set_error (&data->error, GOA_ERROR, GOA_ERROR_FAILED, _("Could not parse response"));
       goto out;
     }
 
   data->access_token = g_strdup (json_object_get_string_member (session_obj, "key"));
-  if (data->access_token == NULL)
-    {
-      g_set_error (&data->error, GOA_ERROR, GOA_ERROR_FAILED, _("Could not parse response"));
-      goto out;
-    }
 
  out:
   g_main_loop_quit (data->loop);
@@ -586,7 +595,7 @@ lastfm_login (GoaProvider                  *provider,
                          GOA_LASTFM_CLIENT_SECRET);
   sig_md5 = g_compute_checksum_for_string (G_CHECKSUM_MD5, sig, -1);
 
-  call = rest_proxy_new_call (rest_proxy_new (get_request_uri (provider), FALSE));
+  call = rest_proxy_new_call (goa_rest_proxy_new (get_request_uri (provider), FALSE));
 
   rest_proxy_call_set_method (call, "POST");
   rest_proxy_call_add_header (call, "Content-Type", "application/x-www-form-urlencoded");
@@ -737,6 +746,8 @@ add_account (GoaProvider    *provider,
     g_propagate_error (error, data.error);
   else
     g_assert (ret != NULL);
+
+  g_signal_handlers_disconnect_by_func (dialog, dialog_response_cb, &data);
 
   g_free (data.access_token);
   g_free (data.account_object_path);

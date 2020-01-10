@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2014 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,6 +29,7 @@
 #include "goautils.h"
 #include "goawebview.h"
 #include "goaoauthprovider.h"
+#include "goasouplogger.h"
 
 /**
  * SECTION:goaoauthprovider
@@ -397,26 +398,6 @@ goa_oauth_provider_get_callback_uri (GoaOAuthProvider *provider)
 }
 
 /**
- * goa_oauth_provider_get_authentication_cookie:
- * @provider: A #GoaOAuthProvider.
- *
- * Gets the name of a cookie whose presence indicates that the user has been able to
- * log in during the authorization step. This is used to modify the embedded web
- * browser UI that is presented to the user.
- *
- * This is a pure virtual method - a subclass must provide an
- * implementation.
- *
- * Returns: (transfer none): A string owned by @provider - do not free.
- */
-const gchar *
-goa_oauth_provider_get_authentication_cookie (GoaOAuthProvider *provider)
-{
-  g_return_val_if_fail (GOA_IS_OAUTH_PROVIDER (provider), NULL);
-  return GOA_OAUTH_PROVIDER_GET_CLASS (provider)->get_authentication_cookie (provider);
-}
-
-/**
  * goa_oauth_provider_get_identity_sync:
  * @provider: A #GoaOAuthProvider.
  * @access_token: A valid OAuth 1.0 access token.
@@ -453,7 +434,13 @@ goa_oauth_provider_get_identity_sync (GoaOAuthProvider *provider,
   g_return_val_if_fail (access_token != NULL, NULL);
   g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), NULL);
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-  return GOA_OAUTH_PROVIDER_GET_CLASS (provider)->get_identity_sync (provider, access_token, access_token_secret, out_presentation_identity, cancellable, error);
+
+  return GOA_OAUTH_PROVIDER_GET_CLASS (provider)->get_identity_sync (provider,
+                                                                     access_token,
+                                                                     access_token_secret,
+                                                                     out_presentation_identity,
+                                                                     cancellable,
+                                                                     error);
 }
 
 /**
@@ -516,27 +503,23 @@ get_tokens_sync (GoaOAuthProvider  *provider,
 {
   RestProxy *proxy;
   RestProxyCall *call;
-  gchar *ret;
+  SoupLogger *logger = NULL;
+  gchar *ret = NULL;
   guint status_code;
   GHashTable *f;
   const gchar *expires_in_str;
-  gchar *ret_access_token;
-  gchar *ret_access_token_secret;
-  gint ret_access_token_expires_in;
-  gchar *ret_session_handle;
-  gint ret_session_handle_expires_in;
-
-  ret = NULL;
-  ret_access_token = NULL;
-  ret_access_token_secret = NULL;
-  ret_access_token_expires_in = 0;
-  ret_session_handle = NULL;
-  ret_session_handle_expires_in = 0;
+  gchar *ret_access_token = NULL;
+  gchar *ret_access_token_secret = NULL;
+  gint ret_access_token_expires_in = 0;
+  gchar *ret_session_handle = NULL;
+  gint ret_session_handle_expires_in = 0;
 
   proxy = oauth_proxy_new (goa_oauth_provider_get_consumer_key (provider),
                            goa_oauth_provider_get_consumer_secret (provider),
                            goa_oauth_provider_get_token_uri (provider),
                            FALSE);
+  logger = goa_soup_logger_new (SOUP_LOGGER_LOG_BODY, -1);
+  rest_proxy_add_soup_feature (proxy, SOUP_SESSION_FEATURE (logger));
   oauth_proxy_set_token (OAUTH_PROXY (proxy), token);
   oauth_proxy_set_token_secret (OAUTH_PROXY (proxy), token_secret);
   call = rest_proxy_new_call (proxy);
@@ -605,6 +588,7 @@ get_tokens_sync (GoaOAuthProvider  *provider,
   g_free (ret_session_handle);
   g_clear_object (&call);
   g_clear_object (&proxy);
+  g_clear_object (&logger);
   return ret;
 }
 
@@ -657,11 +641,15 @@ on_web_view_decide_policy (WebKitWebView            *web_view,
                            WebKitPolicyDecisionType  decision_type,
                            gpointer                  user_data)
 {
+  GHashTable *key_value_pairs;
   IdentifyData *data = user_data;
+  SoupURI *uri;
   WebKitNavigationAction *action;
   WebKitURIRequest *request;
+  const gchar *query;
   const gchar *redirect_uri;
   const gchar *requested_uri;
+  gint response_id = GTK_RESPONSE_NONE;
 
   if (decision_type != WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION)
     return FALSE;
@@ -672,28 +660,42 @@ on_web_view_decide_policy (WebKitWebView            *web_view,
   request = webkit_navigation_action_get_request (action);
   requested_uri = webkit_uri_request_get_uri (request);
   redirect_uri = goa_oauth_provider_get_callback_uri (data->provider);
-  if (g_str_has_prefix (requested_uri, redirect_uri))
+
+  if (!g_str_has_prefix (requested_uri, redirect_uri))
+    goto default_behaviour;
+
+  uri = soup_uri_new (requested_uri);
+  query = soup_uri_get_query (uri);
+
+  if (query != NULL)
     {
-      SoupURI *uri;
-      GHashTable *key_value_pairs;
+      key_value_pairs = soup_form_decode (query);
 
-      uri = soup_uri_new (requested_uri);
-      key_value_pairs = soup_form_decode (uri->query);
-
-      /* TODO: error handling? */
       data->oauth_verifier = g_strdup (g_hash_table_lookup (key_value_pairs, "oauth_verifier"));
       if (data->oauth_verifier != NULL)
-        {
-          gtk_dialog_response (data->dialog, GTK_RESPONSE_OK);
-        }
+        response_id = GTK_RESPONSE_OK;
+
       g_hash_table_unref (key_value_pairs);
-      webkit_policy_decision_ignore (decision);
-      return TRUE; /* ignore the request */
     }
-  else
-    {
-      return FALSE; /* make default behavior apply */
-    }
+
+  if (data->oauth_verifier != NULL)
+    goto ignore_request;
+
+  /* TODO: The only OAuth1 provider is Flickr. It doesn't send any
+   * error code and only redirects to the URI specified in the Flickr
+   * App Garden. Re-evaluate when the situation changes.
+   */
+  response_id = GTK_RESPONSE_CANCEL;
+  goto ignore_request;
+
+ ignore_request:
+  g_assert (response_id != GTK_RESPONSE_NONE);
+  gtk_dialog_response (data->dialog, response_id);
+  webkit_policy_decision_ignore (decision);
+  return TRUE;
+
+ default_behaviour:
+  return FALSE;
 }
 
 static void
@@ -719,18 +721,19 @@ get_tokens_and_identity (GoaOAuthProvider *provider,
                          gchar           **out_password,
                          GError          **error)
 {
-  gboolean ret;
-  gchar *url;
+  gboolean ret = FALSE;
+  gchar *url = NULL;
   IdentifyData data;
-  gchar *escaped_request_token;
-  RestProxy *proxy;
-  RestProxyCall *call;
+  gchar *escaped_request_token = NULL;
+  RestProxy *proxy = NULL;
+  RestProxyCall *call = NULL;
+  SoupLogger *logger = NULL;
   GHashTable *f;
   GtkWidget *embed;
   GtkWidget *grid;
   GtkWidget *spinner;
   GtkWidget *web_view;
-  gchar **request_params;
+  gchar **request_params = NULL;
   guint n;
 
   g_return_val_if_fail (GOA_IS_OAUTH_PROVIDER (provider), FALSE);
@@ -739,13 +742,6 @@ get_tokens_and_identity (GoaOAuthProvider *provider,
   g_return_val_if_fail (GTK_IS_DIALOG (dialog), FALSE);
   g_return_val_if_fail (GTK_IS_BOX (vbox), FALSE);
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
-
-  ret = FALSE;
-  escaped_request_token = NULL;
-  proxy = NULL;
-  call = NULL;
-  url = NULL;
-  request_params = NULL;
 
   /* TODO: check with NM whether we're online, if not - return error */
 
@@ -758,6 +754,9 @@ get_tokens_and_identity (GoaOAuthProvider *provider,
   proxy = oauth_proxy_new (goa_oauth_provider_get_consumer_key (provider),
                            goa_oauth_provider_get_consumer_secret (provider),
                            goa_oauth_provider_get_request_uri (provider), FALSE);
+  logger = goa_soup_logger_new (SOUP_LOGGER_LOG_BODY, -1);
+  rest_proxy_add_soup_feature (proxy, SOUP_SESSION_FEATURE (logger));
+
   call = rest_proxy_new_call (proxy);
   rest_proxy_call_set_method (call, "POST");
   rest_proxy_call_add_param (call, "oauth_callback", goa_oauth_provider_get_callback_uri (provider));
@@ -778,8 +777,6 @@ get_tokens_and_identity (GoaOAuthProvider *provider,
   goa_utils_set_dialog_title (GOA_PROVIDER (provider), dialog, add_account);
 
   grid = gtk_grid_new ();
-  gtk_container_set_border_width (GTK_CONTAINER (grid), 5);
-  gtk_widget_set_margin_bottom (grid, 6);
   gtk_orientable_set_orientation (GTK_ORIENTABLE (grid), GTK_ORIENTATION_VERTICAL);
   gtk_grid_set_row_spacing (GTK_GRID (grid), 12);
   gtk_container_add (GTK_CONTAINER (vbox), grid);
@@ -954,6 +951,7 @@ get_tokens_and_identity (GoaOAuthProvider *provider,
 
   g_strfreev (request_params);
   g_clear_object (&proxy);
+  g_clear_object (&logger);
   return ret;
 }
 
@@ -1011,15 +1009,15 @@ goa_oauth_provider_add_account (GoaProvider *_provider,
                                 GError     **error)
 {
   GoaOAuthProvider *provider = GOA_OAUTH_PROVIDER (_provider);
-  GoaObject *ret;
-  gchar *access_token;
-  gchar *access_token_secret;
+  GoaObject *ret = NULL;
+  gchar *access_token = NULL;
+  gchar *access_token_secret = NULL;
   gint access_token_expires_in;
-  gchar *session_handle;
+  gchar *session_handle = NULL;
   gint session_handle_expires_in;
-  gchar *identity;
-  gchar *presentation_identity;
-  gchar *password;
+  gchar *identity = NULL;
+  gchar *presentation_identity = NULL;
+  gchar *password = NULL;
   AddData data;
   GVariantBuilder credentials;
   GVariantBuilder details;
@@ -1029,14 +1027,6 @@ goa_oauth_provider_add_account (GoaProvider *_provider,
   g_return_val_if_fail (GTK_IS_DIALOG (dialog), NULL);
   g_return_val_if_fail (GTK_IS_BOX (vbox), NULL);
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-
-  ret = NULL;
-  access_token = NULL;
-  access_token_secret = NULL;
-  session_handle = NULL;
-  identity = NULL;
-  presentation_identity = NULL;
-  password = NULL;
 
   memset (&data, '\0', sizeof (AddData));
   data.loop = g_main_loop_new (NULL, FALSE);
@@ -1137,31 +1127,23 @@ goa_oauth_provider_refresh_account (GoaProvider  *_provider,
   GoaOAuthProvider *provider = GOA_OAUTH_PROVIDER (_provider);
   GoaAccount *account;
   GtkWidget *dialog;
-  gchar *access_token;
-  gchar *access_token_secret;
-  gchar *password;
+  gchar *access_token = NULL;
+  gchar *access_token_secret = NULL;
+  gchar *password = NULL;
   gint access_token_expires_in;
-  gchar *session_handle;
+  gchar *session_handle = NULL;
   gint session_handle_expires_in;
-  gchar *identity;
+  gchar *identity = NULL;
   const gchar *existing_identity;
   const gchar *existing_presentation_identity;
   GVariantBuilder builder;
-  gboolean ret;
+  gboolean ret = FALSE;
 
   g_return_val_if_fail (GOA_IS_OAUTH_PROVIDER (provider), FALSE);
   g_return_val_if_fail (GOA_IS_CLIENT (client), FALSE);
   g_return_val_if_fail (GOA_IS_OBJECT (object), FALSE);
   g_return_val_if_fail (parent == NULL || GTK_IS_WINDOW (parent), FALSE);
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
-
-  access_token = NULL;
-  access_token_secret = NULL;
-  password = NULL;
-  session_handle = NULL;
-  identity = NULL;
-
-  ret = FALSE;
 
   dialog = gtk_dialog_new_with_buttons (NULL,
                                         parent,
@@ -1301,41 +1283,28 @@ goa_oauth_provider_get_access_token_sync (GoaOAuthProvider   *provider,
                                           GCancellable       *cancellable,
                                           GError            **error)
 {
-  GVariant *credentials;
+  GVariant *credentials = NULL;
   GVariantIter iter;
   const gchar *key;
   GVariant *value;
-  gchar *access_token;
-  gchar *access_token_secret;
-  gchar *session_handle;
-  gchar *access_token_for_refresh;
-  gchar *access_token_secret_for_refresh;
-  gchar *session_handle_for_refresh;
-  gchar *password;
-  gint access_token_expires_in;
-  gint session_handle_expires_in;
-  gboolean success;
+  gchar *access_token = NULL;
+  gchar *access_token_secret = NULL;
+  gchar *session_handle = NULL;
+  gchar *access_token_for_refresh = NULL;
+  gchar *access_token_secret_for_refresh = NULL;
+  gchar *session_handle_for_refresh = NULL;
+  gchar *password = NULL;
+  gint access_token_expires_in = 0;
+  gint session_handle_expires_in = 0;
+  gboolean success = FALSE;
   GVariantBuilder builder;
-  gchar *ret;
+  gchar *ret = NULL;
   GMutex *lock;
 
   g_return_val_if_fail (GOA_IS_OAUTH_PROVIDER (provider), NULL);
   g_return_val_if_fail (GOA_IS_OBJECT (object), NULL);
   g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), NULL);
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-
-  ret = NULL;
-  credentials = NULL;
-  access_token = NULL;
-  access_token_secret = NULL;
-  access_token_expires_in = 0;
-  session_handle = NULL;
-  session_handle_expires_in = 0;
-  access_token_for_refresh = NULL;
-  access_token_secret_for_refresh = NULL;
-  session_handle_for_refresh = NULL;
-  password = NULL;
-  success = FALSE;
 
   /* provider_lock is too coarse, use a per-object lock instead */
   G_LOCK (provider_lock);
@@ -1555,18 +1524,12 @@ goa_oauth_provider_ensure_credentials_sync (GoaProvider    *_provider,
                                             GError        **error)
 {
   GoaOAuthProvider *provider = GOA_OAUTH_PROVIDER (_provider);
-  gboolean ret;
-  gchar *access_token;
-  gchar *access_token_secret;
+  gboolean ret = FALSE;
+  gchar *access_token = NULL;
+  gchar *access_token_secret = NULL;
   gint access_token_expires_in;
-  gchar *identity;
-  gboolean force_refresh;
-
-  ret = FALSE;
-  access_token = NULL;
-  access_token_secret = NULL;
-  identity = NULL;
-  force_refresh = FALSE;
+  gchar *identity = NULL;
+  gboolean force_refresh = FALSE;
 
  again:
   access_token = goa_oauth_provider_get_access_token_sync (provider,
@@ -1656,14 +1619,11 @@ on_handle_get_access_token (GoaOAuthBased         *interface,
   const gchar *id;
   const gchar *method_name;
   const gchar *provider_type;
-  gchar *access_token;
-  gchar *access_token_secret;
+  gchar *access_token = NULL;
+  gchar *access_token_secret = NULL;
   gint access_token_expires_in;
 
   /* TODO: maybe log what app is requesting access */
-
-  access_token = NULL;
-  access_token_secret = NULL;
 
   object = GOA_OBJECT (g_dbus_interface_get_object (G_DBUS_INTERFACE (interface)));
   account = goa_object_peek_account (object);

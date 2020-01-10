@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2013, 2014, 2015, 2016 Red Hat, Inc.
+ * Copyright © 2013 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,8 +24,9 @@
 #define __GOA_PROVIDER_PRIV_H__
 
 #include <gio/gio.h>
+#include <goa/goa.h>
 #include <goabackend/goaprovider.h>
-#include <goabackend/goabackendtypes.h>
+#include <goabackend/goabackendenums.h>
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS
@@ -36,12 +37,6 @@ G_BEGIN_DECLS
  * The #GoaProvider structure contains only private data and should
  * only be accessed using the provided API.
  */
-struct _GoaProvider
-{
-  /*< private >*/
-  GObject parent_instance;
-  GoaProviderPrivate *priv;
-};
 
 /**
  * GoaProviderClass:
@@ -132,6 +127,31 @@ struct _GoaProviderClass
 void        goa_provider_ensure_builtins_loaded                (void);
 
 void        goa_provider_ensure_extension_points_registered    (void);
+
+gboolean    goa_provider_build_object                          (GoaProvider            *self,
+                                                                GoaObjectSkeleton      *object,
+                                                                GKeyFile               *key_file,
+                                                                const gchar            *group,
+                                                                GDBusConnection        *connection,
+                                                                gboolean                just_added,
+                                                                GError                **error);
+
+void        goa_provider_ensure_credentials                    (GoaProvider             *self,
+                                                                GoaObject               *object,
+                                                                GCancellable            *cancellable,
+                                                                GAsyncReadyCallback      callback,
+                                                                gpointer                 user_data);
+
+gboolean    goa_provider_ensure_credentials_finish             (GoaProvider             *self,
+                                                                gint                    *out_expires_in,
+                                                                GAsyncResult            *res,
+                                                                GError                 **error);
+
+gboolean    goa_provider_ensure_credentials_sync               (GoaProvider             *self,
+                                                                GoaObject               *object,
+                                                                gint                    *out_expires_in,
+                                                                GCancellable            *cancellable,
+                                                                GError                 **error);
 
 void        goa_provider_initialize                            (GoaProvider             *self);
 

@@ -14284,7 +14284,6 @@ if test -n "$TPAW_CFLAGS"; then
    gobject-2.0
    libxml-2.0
    telepathy-glib >= \$TELEPATHY_GLIB_REQUIRED
-   x11
    gtk+-3.0 >= \$GTK_REQUIRED
 \""; } >&5
   ($PKG_CONFIG --exists --print-errors "
@@ -14295,7 +14294,6 @@ if test -n "$TPAW_CFLAGS"; then
    gobject-2.0
    libxml-2.0
    telepathy-glib >= $TELEPATHY_GLIB_REQUIRED
-   x11
    gtk+-3.0 >= $GTK_REQUIRED
 ") 2>&5
   ac_status=$?
@@ -14309,7 +14307,6 @@ if test -n "$TPAW_CFLAGS"; then
    gobject-2.0
    libxml-2.0
    telepathy-glib >= $TELEPATHY_GLIB_REQUIRED
-   x11
    gtk+-3.0 >= $GTK_REQUIRED
 " 2>/dev/null`
 		      test "x$?" != "x0" && pkg_failed=yes
@@ -14331,7 +14328,6 @@ if test -n "$TPAW_LIBS"; then
    gobject-2.0
    libxml-2.0
    telepathy-glib >= \$TELEPATHY_GLIB_REQUIRED
-   x11
    gtk+-3.0 >= \$GTK_REQUIRED
 \""; } >&5
   ($PKG_CONFIG --exists --print-errors "
@@ -14342,7 +14338,6 @@ if test -n "$TPAW_LIBS"; then
    gobject-2.0
    libxml-2.0
    telepathy-glib >= $TELEPATHY_GLIB_REQUIRED
-   x11
    gtk+-3.0 >= $GTK_REQUIRED
 ") 2>&5
   ac_status=$?
@@ -14356,7 +14351,6 @@ if test -n "$TPAW_LIBS"; then
    gobject-2.0
    libxml-2.0
    telepathy-glib >= $TELEPATHY_GLIB_REQUIRED
-   x11
    gtk+-3.0 >= $GTK_REQUIRED
 " 2>/dev/null`
 		      test "x$?" != "x0" && pkg_failed=yes
@@ -14387,7 +14381,6 @@ fi
    gobject-2.0
    libxml-2.0
    telepathy-glib >= $TELEPATHY_GLIB_REQUIRED
-   x11
    gtk+-3.0 >= $GTK_REQUIRED
 " 2>&1`
         else
@@ -14399,7 +14392,6 @@ fi
    gobject-2.0
    libxml-2.0
    telepathy-glib >= $TELEPATHY_GLIB_REQUIRED
-   x11
    gtk+-3.0 >= $GTK_REQUIRED
 " 2>&1`
         fi
@@ -14414,7 +14406,6 @@ fi
    gobject-2.0
    libxml-2.0
    telepathy-glib >= $TELEPATHY_GLIB_REQUIRED
-   x11
    gtk+-3.0 >= $GTK_REQUIRED
 ) were not met:
 

@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2014, 2015 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,16 +31,7 @@
 G_BEGIN_DECLS
 
 #define GOA_TYPE_OAUTH_PROVIDER         (goa_oauth_provider_get_type ())
-#define GOA_OAUTH_PROVIDER(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), GOA_TYPE_OAUTH_PROVIDER, GoaOAuthProvider))
-#define GOA_OAUTH_PROVIDER_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), GOA_TYPE_OAUTH_PROVIDER, GoaOAuthProviderClass))
-#define GOA_OAUTH_PROVIDER_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), GOA_TYPE_OAUTH_PROVIDER, GoaOAuthProviderClass))
-#define GOA_IS_OAUTH_PROVIDER(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), GOA_TYPE_OAUTH_PROVIDER))
-
-#define GOA_IS_OAUTH_PROVIDER_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), GOA_TYPE_OAUTH_PROVIDER))
-
-typedef struct _GoaOAuthProvider GoaOAuthProvider;
-typedef struct _GoaOAuthProviderClass GoaOAuthProviderClass;
-typedef struct _GoaOAuthProviderPrivate GoaOAuthProviderPrivate;
+G_DECLARE_DERIVABLE_TYPE (GoaOAuthProvider, goa_oauth_provider, GOA, OAUTH_PROVIDER, GoaProvider);
 
 /**
  * GoaOAuthProvider:
@@ -48,12 +39,6 @@ typedef struct _GoaOAuthProviderPrivate GoaOAuthProviderPrivate;
  * The #GoaOAuthProvider structure contains only private data and should
  * only be accessed using the provided API.
  */
-struct _GoaOAuthProvider
-{
-  /*< private >*/
-  GoaProvider parent_instance;
-  GoaOAuthProviderPrivate *priv;
-};
 
 /**
  * GoaOAuthProviderClass:
@@ -64,7 +49,6 @@ struct _GoaOAuthProvider
  * @get_authorization_uri: Virtual function for goa_oauth_provider_get_authorization_uri().
  * @get_token_uri: Virtual function for goa_oauth_provider_get_token_uri().
  * @get_callback_uri: Virtual function for goa_oauth_provider_get_callback_uri().
- * @get_authentication_cookie: Virtual function for goa_oauth_provider_get_authentication_cookie().
  * @get_identity_sync: Virtual function for goa_oauth_provider_get_identity_sync().
  * @parse_request_token_error: Virtual function for goa_oauth_provider_parse_request_token_error().
  * @build_authorization_uri: Virtual function for goa_oauth_provider_build_authorization_uri().
@@ -88,7 +72,6 @@ struct _GoaOAuthProviderClass
   const gchar *(*get_authorization_uri)        (GoaOAuthProvider             *provider);
   const gchar *(*get_token_uri)                (GoaOAuthProvider             *provider);
   const gchar *(*get_callback_uri)             (GoaOAuthProvider             *provider);
-  const gchar *(*get_authentication_cookie)    (GoaOAuthProvider             *provider);
 
   gchar       *(*get_identity_sync)            (GoaOAuthProvider             *provider,
                                                 const gchar                  *access_token,
@@ -118,15 +101,8 @@ struct _GoaOAuthProviderClass
                                                 WebKitDOMNode                *node);
   gboolean     (*is_password_node)             (GoaOAuthProvider             *provider,
                                                 WebKitDOMHTMLInputElement    *element);
-
-  /*< private >*/
-  GoaOAuthProviderPrivate *priv;
-
-  /* Padding for future expansion */
-  gpointer goa_reserved[28];
 };
 
-GType        goa_oauth_provider_get_type                     (void) G_GNUC_CONST;
 const gchar *goa_oauth_provider_get_consumer_key             (GoaOAuthProvider             *provider);
 const gchar *goa_oauth_provider_get_consumer_secret          (GoaOAuthProvider             *provider);
 const gchar *goa_oauth_provider_get_request_uri              (GoaOAuthProvider             *provider);
@@ -134,7 +110,6 @@ gchar      **goa_oauth_provider_get_request_uri_params       (GoaOAuthProvider  
 const gchar *goa_oauth_provider_get_authorization_uri        (GoaOAuthProvider             *provider);
 const gchar *goa_oauth_provider_get_token_uri                (GoaOAuthProvider             *provider);
 const gchar *goa_oauth_provider_get_callback_uri             (GoaOAuthProvider             *provider);
-const gchar *goa_oauth_provider_get_authentication_cookie    (GoaOAuthProvider             *provider);
 gchar       *goa_oauth_provider_get_identity_sync            (GoaOAuthProvider          *provider,
                                                               const gchar               *access_token,
                                                               const gchar               *access_token_secret,

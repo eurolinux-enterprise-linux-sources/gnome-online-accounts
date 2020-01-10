@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2015, 2016 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,21 +24,15 @@
 #define __GOA_PROVIDER_H__
 
 #include <gtk/gtk.h>
-#include <goabackend/goabackendtypes.h>
+#include <goa/goa.h>
+#include <goabackend/goabackendenums.h>
 
 G_BEGIN_DECLS
 
 #define GOA_TYPE_PROVIDER         (goa_provider_get_type ())
-#define GOA_PROVIDER(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), GOA_TYPE_PROVIDER, GoaProvider))
-#define GOA_PROVIDER_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), GOA_TYPE_PROVIDER, GoaProviderClass))
-#define GOA_PROVIDER_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), GOA_TYPE_PROVIDER, GoaProviderClass))
-#define GOA_IS_PROVIDER(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), GOA_TYPE_PROVIDER))
-#define GOA_IS_PROVIDER_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), GOA_TYPE_PROVIDER))
+G_DECLARE_DERIVABLE_TYPE (GoaProvider, goa_provider, GOA, PROVIDER, GObject);
 
-typedef struct _GoaProviderClass GoaProviderClass;
 typedef struct _GoaProviderPrivate GoaProviderPrivate;
-
-GType                  goa_provider_get_type                     (void) G_GNUC_CONST;
 
 const gchar           *goa_provider_get_provider_type            (GoaProvider            *self);
 
@@ -76,31 +70,6 @@ void                   goa_provider_show_account                 (GoaProvider   
                                                                   GtkBox                 *vbox,
                                                                   GtkGrid                *dummy1,
                                                                   GtkGrid                *dummy2);
-
-gboolean               goa_provider_build_object                 (GoaProvider            *self,
-                                                                  GoaObjectSkeleton      *object,
-                                                                  GKeyFile               *key_file,
-                                                                  const gchar            *group,
-                                                                  GDBusConnection        *connection,
-                                                                  gboolean                just_added,
-                                                                  GError                **error);
-
-void                   goa_provider_ensure_credentials           (GoaProvider            *self,
-                                                                  GoaObject              *object,
-                                                                  GCancellable           *cancellable,
-                                                                  GAsyncReadyCallback     callback,
-                                                                  gpointer                user_data);
-
-gboolean               goa_provider_ensure_credentials_finish    (GoaProvider            *self,
-                                                                  gint                   *out_expires_in,
-                                                                  GAsyncResult           *res,
-                                                                  GError                **error);
-
-gboolean               goa_provider_ensure_credentials_sync      (GoaProvider            *self,
-                                                                  GoaObject              *object,
-                                                                  gint                   *out_expires_in,
-                                                                  GCancellable           *cancellable,
-                                                                  GError                **error);
 
 guint                  goa_provider_get_credentials_generation   (GoaProvider            *self);
 

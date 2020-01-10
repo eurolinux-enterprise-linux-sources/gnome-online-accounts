@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,36 +25,14 @@
 #include "goaprovider.h"
 #include "goaprovider-priv.h"
 #include "goaoauth2provider.h"
-#include "goaoauth2provider-priv.h"
 #include "goagoogleprovider.h"
 #include "goaobjectskeletonutils.h"
+#include "goarestproxy.h"
 
-/**
- * GoaGoogleProvider:
- *
- * The #GoaGoogleProvider structure contains only private data and should
- * only be accessed using the provided API.
- */
 struct _GoaGoogleProvider
 {
-  /*< private >*/
   GoaOAuth2Provider parent_instance;
 };
-
-typedef struct _GoaGoogleProviderClass GoaGoogleProviderClass;
-
-struct _GoaGoogleProviderClass
-{
-  GoaOAuth2ProviderClass parent_class;
-};
-
-/**
- * SECTION:goagoogleprovider
- * @title: GoaGoogleProvider
- * @short_description: A provider for Google
- *
- * #GoaGoogleProvider is used for handling Google accounts.
- */
 
 G_DEFINE_TYPE_WITH_CODE (GoaGoogleProvider, goa_google_provider, GOA_TYPE_OAUTH2_PROVIDER,
                          goa_provider_ensure_extension_points_registered ();
@@ -179,12 +157,6 @@ get_client_secret (GoaOAuth2Provider *oauth2_provider)
   return GOA_GOOGLE_CLIENT_SECRET;
 }
 
-static const gchar *
-get_authentication_cookie (GoaOAuth2Provider *oauth2_provider)
-{
-  return "LSID";
-}
-
 /* ---------------------------------------------------------------------------------------------------- */
 
 static gchar *
@@ -204,7 +176,7 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
 
   /* TODO: cancellable */
 
-  proxy = rest_proxy_new ("https://www.googleapis.com/oauth2/v2/userinfo", FALSE);
+  proxy = goa_rest_proxy_new ("https://www.googleapis.com/oauth2/v2/userinfo", FALSE);
   call = rest_proxy_new_call (proxy);
   rest_proxy_call_set_method (call, "GET");
   rest_proxy_call_add_param (call, "access_token", access_token);
@@ -240,8 +212,7 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
     }
 
   json_object = json_node_get_object (json_parser_get_root (parser));
-  email = g_strdup (json_object_get_string_member (json_object, "email"));
-  if (email == NULL)
+  if (!json_object_has_member (json_object, "email"))
     {
       g_warning ("Did not find email in JSON data");
       g_set_error (error,
@@ -251,6 +222,7 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
       goto out;
     }
 
+  email = g_strdup (json_object_get_string_member (json_object, "email"));
 
   ret = email;
   email = NULL;
@@ -281,11 +253,11 @@ is_identity_node (GoaOAuth2Provider *oauth2_provider, WebKitDOMHTMLInputElement 
     goto out;
 
   id = webkit_dom_element_get_id (WEBKIT_DOM_ELEMENT (element));
-  if (g_strcmp0 (id, "Email") != 0)
+  if (g_strcmp0 (id, "identifierId") != 0)
     goto out;
 
   name = webkit_dom_html_input_element_get_name (element);
-  if (g_strcmp0 (name, "Email") != 0)
+  if (g_strcmp0 (name, "identifier") != 0)
     goto out;
 
   ret = TRUE;
@@ -355,6 +327,7 @@ build_object (GoaProvider         *provider,
                         "smtp-user-name",  email_address,
                         "smtp-use-auth",   TRUE,
                         "smtp-auth-xoauth2", TRUE,
+                        "smtp-use-ssl",    TRUE,
                         "smtp-use-tls",    TRUE,
                         NULL);
           goa_object_skeleton_set_mail (object, mail);
@@ -492,7 +465,6 @@ goa_google_provider_class_init (GoaGoogleProviderClass *klass)
   provider_class->get_credentials_generation = get_credentials_generation;
 
   oauth2_class = GOA_OAUTH2_PROVIDER_CLASS (klass);
-  oauth2_class->get_authentication_cookie = get_authentication_cookie;
   oauth2_class->get_authorization_uri     = get_authorization_uri;
   oauth2_class->get_client_id             = get_client_id;
   oauth2_class->get_client_secret         = get_client_secret;

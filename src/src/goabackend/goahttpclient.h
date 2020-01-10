@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2015 Red Hat, Inc.
+ * Copyright © 2012 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,12 +30,8 @@
 G_BEGIN_DECLS
 
 #define GOA_TYPE_HTTP_CLIENT        (goa_http_client_get_type ())
-#define GOA_HTTP_CLIENT(o)          (G_TYPE_CHECK_INSTANCE_CAST ((o), GOA_TYPE_HTTP_CLIENT, GoaHttpClient))
-#define GOA_IS_HTTP_CLIENT(o)       (G_TYPE_CHECK_INSTANCE_TYPE ((o), GOA_TYPE_HTTP_CLIENT))
+G_DECLARE_FINAL_TYPE (GoaHttpClient, goa_http_client, GOA, HTTP_CLIENT, GObject);
 
-typedef struct _GoaHttpClient GoaHttpClient;
-
-GType           goa_http_client_get_type           (void) G_GNUC_CONST;
 GoaHttpClient  *goa_http_client_new                (void);
 void            goa_http_client_check              (GoaHttpClient       *self,
                                                     const gchar         *uri,
@@ -58,4 +54,4 @@ gboolean        goa_http_client_check_sync         (GoaHttpClient       *self,
 
 G_END_DECLS
 
-#endif /* __GOA_EWS_CLIENT_H__ */
+#endif /* __GOA_HTTP_CLIENT_H__ */

@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2014 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,7 @@
 #ifndef __GOA_BACKEND_ENUMS_H__
 #define __GOA_BACKEND_ENUMS_H__
 
-#include <gio/gio.h>
+#include <glib.h>
 
 G_BEGIN_DECLS
 
@@ -96,6 +96,7 @@ typedef enum /*< flags >*/
   GOA_PROVIDER_FEATURE_PRINTERS  = 1 << 11,
   GOA_PROVIDER_FEATURE_MAPS      = 1 << 12,
   GOA_PROVIDER_FEATURE_MUSIC     = 1 << 13,
+  GOA_PROVIDER_FEATURE_TODO      = 1 << 14,
   GOA_PROVIDER_FEATURE_INVALID   = 0
 } GoaProviderFeatures;
 

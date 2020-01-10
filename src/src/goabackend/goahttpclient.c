@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2014, 2015, 2016 Red Hat, Inc.
+ * Copyright © 2012 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,18 +21,12 @@
 #include <libsoup/soup.h>
 
 #include "goahttpclient.h"
+#include "goasouplogger.h"
 #include "goautils.h"
 
 struct _GoaHttpClient
 {
   GObject parent_instance;
-};
-
-typedef struct _GoaHttpClientClass GoaHttpClientClass;
-
-struct _GoaHttpClientClass
-{
-  GObjectClass parent_class;
 };
 
 G_DEFINE_TYPE (GoaHttpClient, goa_http_client, G_TYPE_OBJECT);
@@ -55,22 +49,6 @@ GoaHttpClient *
 goa_http_client_new (void)
 {
   return GOA_HTTP_CLIENT (g_object_new (GOA_TYPE_HTTP_CLIENT, NULL));
-}
-
-/* ---------------------------------------------------------------------------------------------------- */
-
-static void
-http_client_log_printer (SoupLogger         *logger,
-                         SoupLoggerLogLevel  level,
-                         gchar               direction,
-                         const gchar        *data,
-                         gpointer            user_data)
-{
-  gchar *message;
-
-  message = g_strdup_printf ("%c %s", direction, data);
-  g_log_default_handler ("goa", G_LOG_LEVEL_DEBUG, message, NULL);
-  g_free (message);
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -232,8 +210,7 @@ goa_http_client_check (GoaHttpClient       *self,
   data->session = soup_session_new_with_options (SOUP_SESSION_SSL_STRICT, FALSE,
                                                  NULL);
 
-  logger = soup_logger_new (SOUP_LOGGER_LOG_BODY, -1);
-  soup_logger_set_printer (logger, http_client_log_printer, NULL, NULL);
+  logger = goa_soup_logger_new (SOUP_LOGGER_LOG_BODY, -1);
   soup_session_add_feature (data->session, SOUP_SESSION_FEATURE (logger));
   g_object_unref (logger);
 
@@ -269,6 +246,7 @@ goa_http_client_check_finish (GoaHttpClient *self, GAsyncResult *res, GError **e
 {
   GSimpleAsyncResult *simple;
 
+  g_return_val_if_fail (GOA_IS_HTTP_CLIENT (self), FALSE);
   g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self), goa_http_client_check), FALSE);
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
@@ -309,6 +287,13 @@ goa_http_client_check_sync (GoaHttpClient       *self,
 {
   CheckSyncData data;
   GMainContext *context = NULL;
+
+  g_return_val_if_fail (GOA_IS_HTTP_CLIENT (self), FALSE);
+  g_return_val_if_fail (uri != NULL && uri[0] != '\0', FALSE);
+  g_return_val_if_fail (username != NULL && username[0] != '\0', FALSE);
+  g_return_val_if_fail (password != NULL && password[0] != '\0', FALSE);
+  g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
   data.error = error;
 

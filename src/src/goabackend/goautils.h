@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2014, 2015, 2016 Red Hat, Inc.
+ * Copyright © 2012 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,7 +27,8 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <libsoup/soup.h>
-#include <goabackend/goabackendtypes.h>
+
+#include "goaprovider.h"
 
 G_BEGIN_DECLS
 

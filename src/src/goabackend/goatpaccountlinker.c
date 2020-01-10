@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2010-2013 Collabora Ltd.
- * Copyright (C) 2013 Intel Corporation
+ * Copyright © 2010 – 2013 Collabora Ltd.
+ * Copyright © 2013 Intel Corporation
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -657,10 +657,13 @@ goa_tp_account_linker_remove_tp_account_finish (GoaTpAccountLinker  *self,
 {
   GTask *task;
 
+  g_return_val_if_fail (GOA_IS_TP_ACCOUNT_LINKER (self), FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
   g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
   task = G_TASK (res);
 
-  g_warn_if_fail (g_task_get_source_tag (task) == goa_tp_account_linker_remove_tp_account);
+  g_return_val_if_fail (g_task_get_source_tag (task) == goa_tp_account_linker_remove_tp_account, FALSE);
 
   return g_task_propagate_boolean (task, error);
 }

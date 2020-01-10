@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
  * Copyright (C) 2011 Willem van Engen <gnome@willem.engen.nl>
- * Copyright (C) 2012, 2015 Red Hat, Inc.
+ * Copyright © 2012 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,36 +25,14 @@
 
 #include "goaprovider.h"
 #include "goaprovider-priv.h"
-#include "goaoauthprovider.h"
 #include "goaflickrprovider.h"
 #include "goaobjectskeletonutils.h"
+#include "goasouplogger.h"
 
-/**
- * GoaFlickrProvider:
- *
- * The #GoaFlickrProvider structure contains only private data and should
- * only be accessed using the provided API.
- */
 struct _GoaFlickrProvider
 {
-  /*< private >*/
   GoaOAuthProvider parent_instance;
 };
-
-typedef struct _GoaFlickrProviderClass GoaFlickrProviderClass;
-
-struct _GoaFlickrProviderClass
-{
-  GoaOAuthProviderClass parent_class;
-};
-
-/**
- * SECTION:goaflickrprovider
- * @title: GoaFlickrProvider
- * @short_description: A provider for Flickr
- *
- * #GoaFlickrProvider is used for handling Flickr accounts.
- */
 
 G_DEFINE_TYPE_WITH_CODE (GoaFlickrProvider, goa_flickr_provider, GOA_TYPE_OAUTH_PROVIDER,
                          goa_provider_ensure_extension_points_registered ();
@@ -105,31 +83,29 @@ get_consumer_secret (GoaOAuthProvider *oauth_provider)
 static const gchar *
 get_request_uri (GoaOAuthProvider *oauth_provider)
 {
-  return "https://m.flickr.com/services/oauth/request_token";
+  return "https://www.flickr.com/services/oauth/request_token";
 }
 
 static const gchar *
 get_authorization_uri (GoaOAuthProvider *oauth_provider)
 {
-  return "https://m.flickr.com/services/oauth/authorize";
+  return "https://www.flickr.com/services/oauth/authorize";
 }
 
 static const gchar *
 get_token_uri (GoaOAuthProvider *oauth_provider)
 {
-  return "https://m.flickr.com/services/oauth/access_token";
+  return "https://www.flickr.com/services/oauth/access_token";
 }
 
 static const gchar *
 get_callback_uri (GoaOAuthProvider *oauth_provider)
 {
-  return "https://www.gnome.org/goa-1.0/oauth";
-}
-
-static const gchar *
-get_authentication_cookie (GoaOAuthProvider *oauth_provider)
-{
-  return "cookie_session";
+  /* Should match the URI specified in the Flickr App
+   * Garden in order to detect when the user denied access via
+   * the OAuth1 web page.
+   */
+  return "https://www.gnome.org/";
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -142,23 +118,15 @@ get_identity_sync (GoaOAuthProvider  *oauth_provider,
                    GCancellable      *cancellable,
                    GError           **error)
 {
-  GError *identity_error;
-  RestProxy *proxy;
-  RestProxyCall *call;
-  JsonParser *parser;
+  GError *identity_error = NULL;
+  RestProxy *proxy = NULL;
+  RestProxyCall *call = NULL;
+  JsonParser *parser = NULL;
   JsonObject *json_object;
-  gchar *ret;
-  gchar *id;
-  gchar *presentation_identity;
-
-  ret = NULL;
-
-  identity_error = NULL;
-  proxy = NULL;
-  call = NULL;
-  parser = NULL;
-  id = NULL;
-  presentation_identity = NULL;
+  SoupLogger *logger = NULL;
+  gchar *ret = NULL;
+  gchar *id = NULL;
+  gchar *presentation_identity = NULL;
 
   /* TODO: cancellable */
 
@@ -168,6 +136,9 @@ get_identity_sync (GoaOAuthProvider  *oauth_provider,
                                       access_token_secret,
                                       "https://api.flickr.com/services/rest",
                                       FALSE);
+  logger = goa_soup_logger_new (SOUP_LOGGER_LOG_BODY, -1);
+  rest_proxy_add_soup_feature (proxy, SOUP_SESSION_FEATURE (logger));
+
   call = rest_proxy_new_call (proxy);
   rest_proxy_call_add_param (call, "method", "flickr.test.login");
   rest_proxy_call_add_param (call, "format", "json");
@@ -205,8 +176,7 @@ get_identity_sync (GoaOAuthProvider  *oauth_provider,
     }
 
   json_object = json_node_get_object (json_parser_get_root (parser));
-  json_object = json_object_get_object_member (json_object, "user");
-  if (json_object == NULL)
+  if (!json_object_has_member (json_object, "user"))
     {
       g_warning ("Did not find user in JSON data");
       g_set_error (error,
@@ -215,8 +185,9 @@ get_identity_sync (GoaOAuthProvider  *oauth_provider,
                    _("Could not parse response"));
       goto out;
     }
-  id = g_strdup (json_object_get_string_member (json_object, "id"));
-  if (id == NULL)
+
+  json_object = json_object_get_object_member (json_object, "user");
+  if (!json_object_has_member (json_object, "id"))
     {
       g_warning ("Did not find user.id in JSON data");
       g_set_error (error,
@@ -225,8 +196,7 @@ get_identity_sync (GoaOAuthProvider  *oauth_provider,
                    _("Could not parse response"));
       goto out;
     }
-  json_object = json_object_get_object_member (json_object, "username");
-  if (json_object == NULL)
+  if (!json_object_has_member (json_object, "username"))
     {
       g_warning ("Did not find user.username in JSON data");
       g_set_error (error,
@@ -235,8 +205,11 @@ get_identity_sync (GoaOAuthProvider  *oauth_provider,
                    _("Could not parse response"));
       goto out;
     }
-  presentation_identity = g_strdup (json_object_get_string_member (json_object, "_content"));
-  if (presentation_identity == NULL)
+
+  id = g_strdup (json_object_get_string_member (json_object, "id"));
+
+  json_object = json_object_get_object_member (json_object, "username");
+  if (!json_object_has_member (json_object, "_content"))
     {
       g_warning ("Did not find user.username._content in JSON data");
       g_set_error (error,
@@ -245,6 +218,8 @@ get_identity_sync (GoaOAuthProvider  *oauth_provider,
                    _("Could not parse response"));
       goto out;
     }
+
+  presentation_identity = g_strdup (json_object_get_string_member (json_object, "_content"));
 
   ret = id;
   id = NULL;
@@ -259,6 +234,7 @@ get_identity_sync (GoaOAuthProvider  *oauth_provider,
   g_clear_error (&identity_error);
   g_clear_object (&call);
   g_clear_object (&proxy);
+  g_clear_object (&logger);
   g_free (id);
   g_free (presentation_identity);
   return ret;
@@ -270,11 +246,8 @@ static gboolean
 is_deny_node (GoaOAuthProvider *oauth_provider, WebKitDOMNode *node)
 {
   WebKitDOMElement *element;
-  gboolean ret;
-  gchar *id;
-
-  id = NULL;
-  ret = FALSE;
+  gboolean ret = FALSE;
+  gchar *id = NULL;
 
   if (!WEBKIT_DOM_IS_HTML_ANCHOR_ELEMENT (node))
     goto out;
@@ -310,10 +283,8 @@ static gchar *
 parse_request_token_error (GoaOAuthProvider *oauth_provider, RestProxyCall *call)
 {
   const gchar *payload;
-  gchar *msg;
+  gchar *msg = NULL;
   guint status;
-
-  msg = NULL;
 
   payload = rest_proxy_call_get_payload (call);
   status = rest_proxy_call_get_status_code (call);
@@ -335,12 +306,9 @@ build_object (GoaProvider         *provider,
               gboolean             just_added,
               GError             **error)
 {
-  GoaAccount *account;
+  GoaAccount *account = NULL;
   gboolean photos_enabled;
-  gboolean ret;
-
-  account = NULL;
-  ret = FALSE;
+  gboolean ret = FALSE;
 
   /* Chain up */
   if (!GOA_PROVIDER_CLASS (goa_flickr_provider_parent_class)->build_object (provider,
@@ -414,7 +382,6 @@ goa_flickr_provider_class_init (GoaFlickrProviderClass *klass)
   oauth_class->get_authorization_uri    = get_authorization_uri;
   oauth_class->get_token_uri            = get_token_uri;
   oauth_class->get_callback_uri         = get_callback_uri;
-  oauth_class->get_authentication_cookie = get_authentication_cookie;
   oauth_class->parse_request_token_error = parse_request_token_error;
   oauth_class->add_account_key_values    = add_account_key_values;
 }

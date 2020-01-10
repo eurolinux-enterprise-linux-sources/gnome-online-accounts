@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2013, 2015 Red Hat, Inc.
+ * Copyright © 2013 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,6 +29,7 @@
 #include "goaoauth2provider-priv.h"
 #include "goapocketprovider.h"
 #include "goaobjectskeletonutils.h"
+#include "goarestproxy.h"
 
 #define V3_OAUTH_AUTHORIZE_URL "https://getpocket.com/v3/oauth/authorize"
 
@@ -140,7 +141,7 @@ build_authorization_uri (GoaOAuth2Provider  *oauth2_provider,
   if (self->authorization_uri != NULL)
     goto end;
 
-  proxy = rest_proxy_new (get_request_uri (oauth2_provider), FALSE);
+  proxy = goa_rest_proxy_new (get_request_uri (oauth2_provider), FALSE);
   call = rest_proxy_new_call (proxy);
 
   rest_proxy_call_set_method (call, "POST");
@@ -223,7 +224,7 @@ process_redirect_url (GoaOAuth2Provider            *oauth2_provider,
   const gchar *payload;
   gboolean ret = FALSE;
 
-  proxy = rest_proxy_new (V3_OAUTH_AUTHORIZE_URL, FALSE);
+  proxy = goa_rest_proxy_new (V3_OAUTH_AUTHORIZE_URL, FALSE);
   call = rest_proxy_new_call (proxy);
 
   rest_proxy_call_set_method (call, "POST");
@@ -259,12 +260,6 @@ out:
   return ret;
 }
 
-static const gchar *
-get_authentication_cookie (GoaOAuth2Provider *oauth2_provider)
-{
-  return NULL;
-}
-
 /* ---------------------------------------------------------------------------------------------------- */
 
 static gchar *
@@ -277,6 +272,8 @@ get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
   GoaPocketProvider *self = GOA_POCKET_PROVIDER (oauth2_provider);
   if (out_presentation_identity != NULL)
     *out_presentation_identity = g_strdup (self->identity);
+  if (!self->identity)
+    g_set_error (error, GOA_ERROR, GOA_ERROR_FAILED, "Identity is saved to disk already");
   return g_strdup (self->identity);
 }
 
@@ -445,5 +442,4 @@ goa_pocket_provider_class_init (GoaPocketProviderClass *klass)
   oauth2_class->is_identity_node          = is_identity_node;
   oauth2_class->add_account_key_values    = add_account_key_values;
   oauth2_class->process_redirect_url      = process_redirect_url;
-  oauth2_class->get_authentication_cookie = get_authentication_cookie;
 }

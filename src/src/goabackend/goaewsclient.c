@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2014 Red Hat, Inc.
+ * Copyright © 2012 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,13 +35,6 @@
 struct _GoaEwsClient
 {
   GObject parent_instance;
-};
-
-typedef struct _GoaEwsClientClass GoaEwsClientClass;
-
-struct _GoaEwsClientClass
-{
-  GObjectClass parent_class;
 };
 
 G_DEFINE_TYPE (GoaEwsClient, goa_ews_client, G_TYPE_OBJECT);
@@ -169,11 +162,8 @@ ews_client_autodiscover_cancelled_cb (GCancellable *cancellable, gpointer user_d
 static gboolean
 ews_client_autodiscover_parse_protocol (xmlNode *node)
 {
-  gboolean as_url;
-  gboolean oab_url;
-
-  as_url = FALSE;
-  oab_url = FALSE;
+  gboolean as_url = FALSE;
+  gboolean oab_url = FALSE;
 
   for (node = node->children; node; node = node->next)
     {
@@ -192,17 +182,15 @@ ews_client_autodiscover_parse_protocol (xmlNode *node)
 static void
 ews_client_autodiscover_response_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
-  GError *error;
+  GError *error = NULL;
   AutodiscoverData *data = user_data;
-  gboolean op_res;
+  gboolean op_res = FALSE;
   guint status;
   gint idx;
   gsize size;
   xmlDoc *doc;
   xmlNode *node;
 
-  error = NULL;
-  op_res = FALSE;
   size = sizeof (data->msgs) / sizeof (data->msgs[0]);
 
   for (idx = 0; idx < size; idx++)
@@ -258,7 +246,7 @@ ews_client_autodiscover_response_cb (SoupSession *session, SoupMessage *msg, gpo
                    GOA_ERROR,
                    GOA_ERROR_FAILED, /* TODO: more specific */
                    /* Translators: the parameter is an XML element name. */
-                   _("Failed to find ‘%s’ element"), "Autodiscover");
+                   _("Failed to find “%s” element"), "Autodiscover");
       goto out;
     }
 
@@ -273,7 +261,7 @@ ews_client_autodiscover_response_cb (SoupSession *session, SoupMessage *msg, gpo
                    GOA_ERROR,
                    GOA_ERROR_FAILED, /* TODO: more specific */
                    /* Translators: the parameter is an XML element name. */
-                   _("Failed to find ‘%s’ element"), "Response");
+                   _("Failed to find “%s” element"), "Response");
       goto out;
     }
 
@@ -288,7 +276,7 @@ ews_client_autodiscover_response_cb (SoupSession *session, SoupMessage *msg, gpo
                    GOA_ERROR,
                    GOA_ERROR_FAILED, /* TODO: more specific */
                    /* Translators: the parameter is an XML element name. */
-                   _("Failed to find ‘%s’ element"), "Account");
+                   _("Failed to find “%s” element"), "Account");
       goto out;
     }
 

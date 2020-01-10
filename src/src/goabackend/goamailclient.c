@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2013, 2014, 2015 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -410,6 +410,7 @@ goa_mail_client_check_finish (GoaMailClient *self, GAsyncResult *res, GError **e
 {
   GTask *task;
 
+  g_return_val_if_fail (GOA_IS_MAIL_CLIENT (self), FALSE);
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
   g_return_val_if_fail (g_task_is_valid (res, self), FALSE);

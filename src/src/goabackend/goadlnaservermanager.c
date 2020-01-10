@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2014 Pranav Kant
+ * Copyright © 2014 Pranav Kant
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,8 +23,9 @@
 #include "goadleynaservermediadevice.h"
 #include "goadlnaservermanager.h"
 
-struct _GoaDlnaServerManagerPrivate
+struct _GoaDlnaServerManager
 {
+  GObject parent_instance;
   DleynaServerManager *proxy;
   GHashTable *servers;
 };
@@ -38,7 +39,7 @@ enum
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (GoaDlnaServerManager, goa_dlna_server_manager, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GoaDlnaServerManager, goa_dlna_server_manager, G_TYPE_OBJECT);
 
 static GObject *goa_dlna_server_manager_singleton = NULL;
 
@@ -48,7 +49,6 @@ goa_dlna_server_manager_server_new_cb (GObject      *source_object,
                                        gpointer      user_data)
 {
   GoaDlnaServerManager *self = GOA_DLNA_SERVER_MANAGER (user_data);
-  GoaDlnaServerManagerPrivate *priv = self->priv;
   DleynaServerMediaDevice *server;
   GError *error = NULL;
   const gchar *object_path;
@@ -68,7 +68,7 @@ goa_dlna_server_manager_server_new_cb (GObject      *source_object,
            dleyna_server_media_device_get_friendly_name (server),
            dleyna_server_media_device_get_udn (server),
            object_path);
-  g_hash_table_insert (priv->servers, (gpointer) object_path, server);
+  g_hash_table_insert (self->servers, (gpointer) object_path, server);
   g_signal_emit (self, signals[SERVER_FOUND], 0, server);
 
  out:
@@ -94,13 +94,12 @@ goa_dlna_server_manager_server_lost_cb (GoaDlnaServerManager *self,
                                         const gchar *object_path,
                                         gpointer *data)
 {
-  GoaDlnaServerManagerPrivate *priv = self->priv;
   DleynaServerMediaDevice *server;
 
-  server = DLEYNA_SERVER_MEDIA_DEVICE (g_hash_table_lookup (priv->servers, object_path));
+  server = DLEYNA_SERVER_MEDIA_DEVICE (g_hash_table_lookup (self->servers, object_path));
   g_return_if_fail (server != NULL);
 
-  g_hash_table_steal (priv->servers, object_path);
+  g_hash_table_steal (self->servers, object_path);
   g_debug ("%s '%s' %s %s",
            G_STRFUNC,
            dleyna_server_media_device_get_friendly_name (server),
@@ -116,12 +115,11 @@ goa_dlna_server_manager_proxy_get_servers_cb (GObject      *source_object,
                                               gpointer      user_data)
 {
   GoaDlnaServerManager *self = GOA_DLNA_SERVER_MANAGER (user_data);
-  GoaDlnaServerManagerPrivate *priv = self->priv;
   GError *error = NULL;
   gchar **object_paths = NULL;
   guint i;
 
-  dleyna_server_manager_call_get_servers_finish (priv->proxy, &object_paths, res, &error);
+  dleyna_server_manager_call_get_servers_finish (self->proxy, &object_paths, res, &error);
   if (error != NULL)
     {
       g_warning ("Unable to fetch the list of available servers: %s", error->message);
@@ -132,8 +130,8 @@ goa_dlna_server_manager_proxy_get_servers_cb (GObject      *source_object,
   for (i = 0; object_paths[i] != NULL; i++)
     goa_dlna_server_manager_server_found_cb (self, object_paths[i], NULL);
 
-  g_signal_connect_swapped (priv->proxy, "found-server", G_CALLBACK (goa_dlna_server_manager_server_found_cb), self);
-  g_signal_connect_swapped (priv->proxy, "lost-server", G_CALLBACK (goa_dlna_server_manager_server_lost_cb), self);
+  g_signal_connect_swapped (self->proxy, "found-server", G_CALLBACK (goa_dlna_server_manager_server_found_cb), self);
+  g_signal_connect_swapped (self->proxy, "lost-server", G_CALLBACK (goa_dlna_server_manager_server_lost_cb), self);
 
  out:
   g_strfreev (object_paths);
@@ -146,10 +144,9 @@ goa_dlna_server_manager_proxy_new_cb (GObject *source_object,
                                       gpointer user_data)
 {
   GoaDlnaServerManager *self = GOA_DLNA_SERVER_MANAGER (user_data);
-  GoaDlnaServerManagerPrivate *priv = self->priv;
   GError *error = NULL;
 
-  priv->proxy = dleyna_server_manager_proxy_new_for_bus_finish (res, &error);
+  self->proxy = dleyna_server_manager_proxy_new_for_bus_finish (res, &error);
   if (error != NULL)
     {
       g_warning ("Unable to connect to the dLeynaServer.Manager DBus object: %s",
@@ -160,7 +157,7 @@ goa_dlna_server_manager_proxy_new_cb (GObject *source_object,
 
   g_debug ("%s DLNA server manager initialized", G_STRFUNC);
 
-  dleyna_server_manager_call_get_servers (priv->proxy,
+  dleyna_server_manager_call_get_servers (self->proxy,
                                           NULL,
                                           goa_dlna_server_manager_proxy_get_servers_cb,
                                           g_object_ref (self));
@@ -173,10 +170,9 @@ static void
 goa_dlna_server_manager_dispose (GObject *object)
 {
   GoaDlnaServerManager *self = GOA_DLNA_SERVER_MANAGER (object);
-  GoaDlnaServerManagerPrivate *priv = self->priv;
 
-  g_clear_pointer (&priv->servers, (GDestroyNotify) g_hash_table_unref);
-  g_clear_object (&priv->proxy);
+  g_clear_pointer (&self->servers, (GDestroyNotify) g_hash_table_unref);
+  g_clear_object (&self->proxy);
 
   G_OBJECT_CLASS (goa_dlna_server_manager_parent_class)->dispose (object);
 }
@@ -203,9 +199,6 @@ goa_dlna_server_manager_constructor (GType type,
 static void
 goa_dlna_server_manager_init (GoaDlnaServerManager *self)
 {
-  GoaDlnaServerManagerPrivate *priv;
-
-  self->priv = priv = goa_dlna_server_manager_get_instance_private (self);
   dleyna_server_manager_proxy_new_for_bus (G_BUS_TYPE_SESSION,
                                            G_DBUS_PROXY_FLAGS_NONE,
                                            "com.intel.dleyna-server",
@@ -213,7 +206,7 @@ goa_dlna_server_manager_init (GoaDlnaServerManager *self)
                                            NULL, /* GCancellable */
                                            goa_dlna_server_manager_proxy_new_cb,
                                            g_object_ref (self));
-  priv->servers = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, g_object_unref);
+  self->servers = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, g_object_unref);
 }
 
 static void
@@ -256,10 +249,9 @@ goa_dlna_server_manager_dup_singleton (void)
 GList *
 goa_dlna_server_manager_dup_servers (GoaDlnaServerManager *self)
 {
-  GoaDlnaServerManagerPrivate *priv = self->priv;
   GList *servers;
 
-  servers = g_hash_table_get_values (priv->servers);
+  servers = g_hash_table_get_values (self->servers);
   g_list_foreach (servers, (GFunc) g_object_ref, NULL);
 
   return servers;

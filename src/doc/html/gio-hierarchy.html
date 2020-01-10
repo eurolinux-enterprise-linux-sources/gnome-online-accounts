@@ -3,12 +3,12 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>Object Hierarchy: GNOME Online Accounts Reference Manual</title>
-<meta name="generator" content="DocBook XSL Stylesheets V1.79.1">
+<meta name="generator" content="DocBook XSL Stylesheets Vsnapshot">
 <link rel="home" href="index.html" title="GNOME Online Accounts Reference Manual">
 <link rel="up" href="index.html" title="GNOME Online Accounts Reference Manual">
 <link rel="prev" href="ix01.html" title="Index">
 <link rel="next" href="annotation-glossary.html" title="Annotation Glossary">
-<meta name="generator" content="GTK-Doc V1.25 (XML mode)">
+<meta name="generator" content="GTK-Doc V1.26 (XML mode)">
 <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
@@ -23,9 +23,9 @@
 <div class="titlepage"><div><div><h1 class="title">
 <a name="gio-hierarchy"></a>Object Hierarchy</h1></div></div></div>
 <pre class="screen">
-    <a href="/usr/share/gtk-doc/html/gobjectgobject-The-Base-Object-Type.html#GObject-struct">GObject</a>
+    <a href="/usr/share/gtk-doc/html/gobject/gobject-The-Base-Object-Type.html#GObject-struct">GObject</a>
     <span class="lineart">├──</span> <a class="link" href="GoaClient.html" title="GoaClient">GoaClient</a>
-    <span class="lineart">├──</span> <a href="/usr/share/gtk-doc/html/gioGDBusProxy.html#GDBusProxy-struct">GDBusProxy</a>
+    <span class="lineart">├──</span> <a href="/usr/share/gtk-doc/html/gio/GDBusProxy.html#GDBusProxy-struct">GDBusProxy</a>
     <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaAccount.html#GoaAccountProxy">GoaAccountProxy</a>
     <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaManager.html#GoaManagerProxy">GoaManagerProxy</a>
     <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaOAuthBased.html#GoaOAuthBasedProxy">GoaOAuthBasedProxy</a>
@@ -45,7 +45,7 @@
     <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaTicketing.html#GoaTicketingProxy">GoaTicketingProxy</a>
     <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaReadLater.html#GoaReadLaterProxy">GoaReadLaterProxy</a>
     <span class="lineart">│</span>   <span class="lineart">╰──</span> <a class="link" href="GoaPrinters.html#GoaPrintersProxy">GoaPrintersProxy</a>
-    <span class="lineart">├──</span> <a href="/usr/share/gtk-doc/html/gioGDBusInterfaceSkeleton.html#GDBusInterfaceSkeleton-struct">GDBusInterfaceSkeleton</a>
+    <span class="lineart">├──</span> <a href="/usr/share/gtk-doc/html/gio/GDBusInterfaceSkeleton.html#GDBusInterfaceSkeleton-struct">GDBusInterfaceSkeleton</a>
     <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaAccount.html#GoaAccountSkeleton">GoaAccountSkeleton</a>
     <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaManager.html#GoaManagerSkeleton">GoaManagerSkeleton</a>
     <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaOAuthBased.html#GoaOAuthBasedSkeleton">GoaOAuthBasedSkeleton</a>
@@ -65,23 +65,16 @@
     <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaTicketing.html#GoaTicketingSkeleton">GoaTicketingSkeleton</a>
     <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaReadLater.html#GoaReadLaterSkeleton">GoaReadLaterSkeleton</a>
     <span class="lineart">│</span>   <span class="lineart">╰──</span> <a class="link" href="GoaPrinters.html#GoaPrintersSkeleton">GoaPrintersSkeleton</a>
-    <span class="lineart">├──</span> <a href="/usr/share/gtk-doc/html/gioGDBusObjectManagerClient.html#GDBusObjectManagerClient-struct">GDBusObjectManagerClient</a>
+    <span class="lineart">├──</span> <a href="/usr/share/gtk-doc/html/gio/GDBusObjectManagerClient.html#GDBusObjectManagerClient-struct">GDBusObjectManagerClient</a>
     <span class="lineart">│</span>   <span class="lineart">╰──</span> <a class="link" href="GoaObjectManagerClient.html" title="GoaObjectManagerClient">GoaObjectManagerClient</a>
-    <span class="lineart">├──</span> <a href="/usr/share/gtk-doc/html/gioGDBusObjectProxy.html#GDBusObjectProxy-struct">GDBusObjectProxy</a>
+    <span class="lineart">├──</span> <a href="/usr/share/gtk-doc/html/gio/GDBusObjectProxy.html#GDBusObjectProxy-struct">GDBusObjectProxy</a>
     <span class="lineart">│</span>   <span class="lineart">╰──</span> <a class="link" href="GoaObject.html#GoaObjectProxy">GoaObjectProxy</a>
-    <span class="lineart">├──</span> <a href="/usr/share/gtk-doc/html/gioGDBusObjectSkeleton.html#GDBusObjectSkeleton-struct">GDBusObjectSkeleton</a>
+    <span class="lineart">├──</span> <a href="/usr/share/gtk-doc/html/gio/GDBusObjectSkeleton.html#GDBusObjectSkeleton-struct">GDBusObjectSkeleton</a>
     <span class="lineart">│</span>   <span class="lineart">╰──</span> <a class="link" href="GoaObject.html#GoaObjectSkeleton">GoaObjectSkeleton</a>
     <span class="lineart">╰──</span> <a class="link" href="GoaProvider.html" title="GoaProvider">GoaProvider</a>
         <span class="lineart">├──</span> <a class="link" href="GoaOAuthProvider.html" title="GoaOAuthProvider">GoaOAuthProvider</a>
-        <span class="lineart">│</span>   <span class="lineart">╰──</span> <a class="link" href="GoaFlickrProvider.html" title="GoaFlickrProvider">GoaFlickrProvider</a>
-        <span class="lineart">├──</span> <a class="link" href="GoaOAuth2Provider.html" title="GoaOAuth2Provider">GoaOAuth2Provider</a>
-        <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaGoogleProvider.html" title="GoaGoogleProvider">GoaGoogleProvider</a>
-        <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaFacebookProvider.html" title="GoaFacebookProvider">GoaFacebookProvider</a>
-        <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaFoursquareProvider.html" title="GoaFoursquareProvider">GoaFoursquareProvider</a>
-        <span class="lineart">│</span>   <span class="lineart">├──</span> <a class="link" href="GoaWindowsLiveProvider.html" title="GoaWindowsLiveProvider">GoaWindowsLiveProvider</a>
-        <span class="lineart">│</span>   <span class="lineart">╰──</span> <a class="link" href="goa-goalastfmprovider.html#GoaLastfmProvider">GoaLastfmProvider</a>
-        <span class="lineart">╰──</span> <a class="link" href="GoaMediaServerProvider.html" title="GoaMediaServerProvider">GoaMediaServerProvider</a>
-    <a href="https://developer.gnome.org/gobject/unstable/GTypeModule.html">GInterface</a>
+        <span class="lineart">╰──</span> <a class="link" href="GoaOAuth2Provider.html" title="GoaOAuth2Provider">GoaOAuth2Provider</a>
+    <a href="/usr/share/gtk-doc/html/gobject/GTypeModule.html">GInterface</a>
     <span class="lineart">├──</span> <a class="link" href="GoaAccount.html" title="GoaAccount">GoaAccount</a>
     <span class="lineart">├──</span> <a class="link" href="GoaManager.html" title="GoaManager">GoaManager</a>
     <span class="lineart">├──</span> <a class="link" href="GoaObject.html" title="GoaObject">GoaObject</a>
@@ -101,10 +94,11 @@
     <span class="lineart">├──</span> <a class="link" href="GoaMediaServer.html" title="GoaMediaServer">GoaMediaServer</a>
     <span class="lineart">├──</span> <a class="link" href="GoaTicketing.html" title="GoaTicketing">GoaTicketing</a>
     <span class="lineart">├──</span> <a class="link" href="GoaReadLater.html" title="GoaReadLater">GoaReadLater</a>
-    <span class="lineart">╰──</span> <a class="link" href="GoaPrinters.html" title="GoaPrinters">GoaPrinters</a>
+    <span class="lineart">├──</span> <a class="link" href="GoaPrinters.html" title="GoaPrinters">GoaPrinters</a>
+    <span class="lineart">╰──</span> <a class="link" href="GoaTodo.html" title="GoaTodo">GoaTodo</a>
 </pre>
 </div>
 <div class="footer">
-<hr>Generated by GTK-Doc V1.25</div>
+<hr>Generated by GTK-Doc V1.26</div>
 </body>
 </html>

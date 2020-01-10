@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2016 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -45,8 +45,10 @@ on_bus_acquired (GDBusConnection *connection,
                  const gchar     *name,
                  gpointer         user_data)
 {
-  if (connection != NULL)
-    the_daemon = goa_daemon_new ();
+  g_return_if_fail (G_IS_DBUS_CONNECTION (connection));
+  g_return_if_fail (name != NULL && name[0] != '\0');
+
+  the_daemon = goa_daemon_new (connection);
   g_debug ("Connected to the session bus");
 }
 
@@ -55,6 +57,9 @@ on_name_lost (GDBusConnection *connection,
               const gchar     *name,
               gpointer         user_data)
 {
+  g_return_if_fail (connection == NULL || G_IS_DBUS_CONNECTION (connection));
+  g_return_if_fail (name != NULL && name[0] != '\0');
+
   g_info ("Lost (or failed to acquire) the name %s on the session message bus", name);
   g_main_loop_quit (loop);
 }
@@ -64,6 +69,9 @@ on_name_acquired (GDBusConnection *connection,
                   const gchar     *name,
                   gpointer         user_data)
 {
+  g_return_if_fail (G_IS_DBUS_CONNECTION (connection));
+  g_return_if_fail (name != NULL && name[0] != '\0');
+
   g_debug ("Acquired the name %s on the session message bus", name);
 }
 
@@ -80,14 +88,9 @@ main (int    argc,
       char **argv)
 {
   GError *error;
-  GOptionContext *opt_context;
-  gint ret;
-  guint name_owner_id;
-
-  ret = 1;
-  loop = NULL;
-  opt_context = NULL;
-  name_owner_id = 0;
+  GOptionContext *opt_context = NULL;
+  gint ret = 1;
+  guint name_owner_id = 0;
 
   setlocale (LC_ALL, "");
   bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);

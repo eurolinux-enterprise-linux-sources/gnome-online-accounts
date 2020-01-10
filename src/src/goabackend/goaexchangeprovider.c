@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2014, 2015, 2016 Red Hat, Inc.
+ * Copyright © 2012 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,37 +21,14 @@
 
 #include "goaewsclient.h"
 #include "goaprovider.h"
-#include "goaprovider-priv.h"
 #include "goaexchangeprovider.h"
 #include "goaobjectskeletonutils.h"
 #include "goautils.h"
 
-/**
- * GoaExchangeProvider:
- *
- * The #GoaExchangeProvider structure contains only private data and should
- * only be accessed using the provided API.
- */
 struct _GoaExchangeProvider
 {
-  /*< private >*/
   GoaProvider parent_instance;
 };
-
-typedef struct _GoaExchangeProviderClass GoaExchangeProviderClass;
-
-struct _GoaExchangeProviderClass
-{
-  GoaProviderClass parent_class;
-};
-
-/**
- * SECTION:goaexchangeprovider
- * @title: GoaExchangeProvider
- * @short_description: A provider for Microsoft Exchange servers
- *
- * #GoaExchangeProvider is used to access Microsoft Exchange servers.
- */
 
 G_DEFINE_TYPE_WITH_CODE (GoaExchangeProvider, goa_exchange_provider, GOA_TYPE_PROVIDER,
                          goa_provider_ensure_extension_points_registered ();
@@ -105,20 +82,14 @@ build_object (GoaProvider         *provider,
               gboolean             just_added,
               GError             **error)
 {
-  GoaAccount *account;
-  GoaExchange *exchange;
-  GoaMail *mail;
-  GoaPasswordBased *password_based;
+  GoaAccount *account = NULL;
+  GoaExchange *exchange = NULL;
+  GoaMail *mail = NULL;
+  GoaPasswordBased *password_based = NULL;
   gboolean calendar_enabled;
   gboolean contacts_enabled;
   gboolean mail_enabled;
-  gboolean ret;
-
-  account = NULL;
-  exchange = NULL;
-  mail = NULL;
-  password_based = NULL;
-  ret = FALSE;
+  gboolean ret = FALSE;
 
   /* Chain up */
   if (!GOA_PROVIDER_CLASS (goa_exchange_provider_parent_class)->build_object (provider,
@@ -232,20 +203,14 @@ ensure_credentials_sync (GoaProvider         *provider,
                          GError             **error)
 {
   GoaAccount *account;
-  GoaEwsClient *ews_client;
+  GoaEwsClient *ews_client = NULL;
   GoaExchange *exchange;
   gboolean accept_ssl_errors;
-  gboolean ret;
+  gboolean ret = FALSE;
   const gchar *email_address;
   const gchar *server;
-  gchar *username;
-  gchar *password;
-
-  ews_client = NULL;
-  password = NULL;
-  username = NULL;
-
-  ret = FALSE;
+  gchar *username = NULL;
+  gchar *password = NULL;
 
   if (!goa_utils_get_credentials (provider, object, "password", &username, &password, cancellable, error))
     {
@@ -280,7 +245,7 @@ ensure_credentials_sync (GoaProvider         *provider,
                            * (eg., debarshi.ray@gmail.com or rishi), and the
                            * (%s, %d) is the error domain and code.
                            */
-                          _("Invalid password with username ‘%s’ (%s, %d): "),
+                          _("Invalid password with username “%s” (%s, %d): "),
                           username,
                           g_quark_to_string ((*error)->domain),
                           (*error)->code);
@@ -363,16 +328,11 @@ static void
 on_email_address_or_password_changed (GtkEditable *editable, gpointer user_data)
 {
   AddAccountData *data = user_data;
-  gboolean can_add;
+  gboolean can_add = FALSE;
   const gchar *email;
-  gchar *domain;
-  gchar *url;
-  gchar *username;
-
-  can_add = FALSE;
-  domain = NULL;
-  url = NULL;
-  username = NULL;
+  gchar *domain = NULL;
+  gchar *url = NULL;
+  gchar *username = NULL;
 
   email = gtk_entry_get_text (GTK_ENTRY (data->email_address));
   if (!goa_utils_parse_email_address (email, &username, &domain))
@@ -547,20 +507,15 @@ add_account (GoaProvider    *provider,
   AddAccountData data;
   GVariantBuilder credentials;
   GVariantBuilder details;
-  GoaEwsClient *ews_client;
-  GoaObject *ret;
-  gboolean accept_ssl_errors;
+  GoaEwsClient *ews_client = NULL;
+  GoaObject *ret = NULL;
+  gboolean accept_ssl_errors = FALSE;
   const gchar *email_address;
   const gchar *server;
   const gchar *password;
   const gchar *username;
   const gchar *provider_type;
   gint response;
-
-  ews_client = NULL;
-  accept_ssl_errors = FALSE;
-
-  ret = NULL;
 
   memset (&data, 0, sizeof (AddAccountData));
   data.cancellable = g_cancellable_new ();
@@ -697,6 +652,8 @@ add_account (GoaProvider    *provider,
   else
     g_assert (ret != NULL);
 
+  g_signal_handlers_disconnect_by_func (dialog, dialog_response_cb, &data);
+
   g_free (data.account_object_path);
   g_clear_pointer (&data.loop, (GDestroyNotify) g_main_loop_unref);
   g_clear_object (&data.cancellable);
@@ -716,12 +673,12 @@ refresh_account (GoaProvider    *provider,
   AddAccountData data;
   GVariantBuilder builder;
   GoaAccount *account;
-  GoaEwsClient *ews_client;
+  GoaEwsClient *ews_client = NULL;
   GoaExchange *exchange;
   GtkWidget *dialog;
   GtkWidget *vbox;
   gboolean accept_ssl_errors;
-  gboolean ret;
+  gboolean ret = FALSE;
   const gchar *email_address;
   const gchar *server;
   const gchar *password;
@@ -733,9 +690,6 @@ refresh_account (GoaProvider    *provider,
   g_return_val_if_fail (GOA_IS_OBJECT (object), FALSE);
   g_return_val_if_fail (parent == NULL || GTK_IS_WINDOW (parent), FALSE);
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
-
-  ews_client = NULL;
-  ret = FALSE;
 
   dialog = gtk_dialog_new_with_buttons (NULL,
                                         parent,
@@ -895,11 +849,9 @@ on_handle_get_password (GoaPasswordBased      *interface,
   const gchar *account_id;
   const gchar *method_name;
   const gchar *provider_type;
-  gchar *password;
+  gchar *password = NULL;
 
   /* TODO: maybe log what app is requesting access */
-
-  password = NULL;
 
   object = GOA_OBJECT (g_dbus_interface_get_object (G_DBUS_INTERFACE (interface)));
   account = goa_object_peek_account (object);

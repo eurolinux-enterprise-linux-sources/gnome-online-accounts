@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012 Red Hat, Inc.
+ * Copyright © 2012 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,7 @@
 #include <goa/goa.h>
 
 #include "goaidentityenumtypes.h"
+#include "goaidentitymanagererror.h"
 #include "goaidentityutils.h"
 
 #include "goakerberosidentitymanager.h"
@@ -98,23 +99,15 @@ export_identity (GoaIdentityService *self,
   object = G_DBUS_OBJECT_SKELETON (goa_identity_service_object_skeleton_new (object_path));
   interface = G_DBUS_INTERFACE_SKELETON (goa_identity_service_identity_skeleton_new ());
 
-  g_object_bind_property (G_OBJECT (identity),
-                          "identifier",
-                          G_OBJECT (interface),
-                          "identifier",
-                          G_BINDING_SYNC_CREATE);
+  g_object_bind_property (identity, "identifier", interface, "identifier", G_BINDING_SYNC_CREATE);
 
-  g_object_bind_property (G_OBJECT (identity),
+  g_object_bind_property (identity,
                           "expiration-timestamp",
-                          G_OBJECT (interface),
+                          interface,
                           "expiration-timestamp",
                           G_BINDING_SYNC_CREATE);
 
-  g_object_bind_property (G_OBJECT (identity),
-                          "is-signed-in",
-                          G_OBJECT (interface),
-                          "is-signed-in",
-                          G_BINDING_SYNC_CREATE);
+  g_object_bind_property (identity, "is-signed-in", interface, "is-signed-in", G_BINDING_SYNC_CREATE);
 
   g_dbus_object_skeleton_add_interface (object, interface);
   g_object_unref (interface);
@@ -146,22 +139,26 @@ on_sign_in_done (GoaIdentityService *self,
   GoaIdentity      *identity;
   char             *object_path;
   GError           *error;
+  gboolean          had_error;
 
   error = NULL;
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result), &error))
+  /* Workaround for bgo#764163 */
+  had_error = g_task_had_error (G_TASK (result));
+  identity = g_task_propagate_pointer (G_TASK (result), &error);
+  if (had_error)
     {
       g_task_return_error (operation_result, error);
       g_object_unref (operation_result);
       return;
     }
 
-  identity = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (result));
   object_path = export_identity (self, identity);
 
-  g_task_return_pointer (operation_result, object_path, (GDestroyNotify) g_free);
+  g_task_return_pointer (operation_result, object_path, g_free);
 
   /* User is signed in, so we're mostly done
    */
+  g_object_unref (identity);
   g_object_unref (operation_result);
 }
 
@@ -212,7 +209,7 @@ find_object_with_principal (GoaIdentityService *self,
           break;
         }
     }
-  g_list_free_full (objects, (GDestroyNotify) g_object_unref);
+  g_list_free_full (objects, g_object_unref);
 
   return found_object;
 }
@@ -367,7 +364,7 @@ goa_identity_service_handle_sign_in (GoaIdentityServiceManager *manager,
           g_dbus_method_invocation_return_error (invocation,
                                                  GOA_IDENTITY_MANAGER_ERROR,
                                                  GOA_IDENTITY_MANAGER_ERROR_ACCESSING_CREDENTIALS,
-                                                 _("initial secret passed before secret key exchange"));
+                                                 "initial secret passed before secret key exchange");
           return TRUE;
         }
 
@@ -398,10 +395,11 @@ goa_identity_service_handle_sign_in (GoaIdentityServiceManager *manager,
            cancellable,
            (GAsyncReadyCallback)
            on_sign_in_done,
-           operation_result);
+           g_object_ref (operation_result));
 
   g_free (preauth_source);
   g_object_unref (cancellable);
+  g_object_unref (operation_result);
 
   return TRUE;
 }
@@ -412,9 +410,13 @@ on_sign_out_handled (GoaIdentityService    *self,
                      GDBusMethodInvocation *invocation)
 {
   GError *error;
+  gboolean had_error;
 
   error = NULL;
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result), &error))
+  /* Workaround for bgo#764163 */
+  had_error = g_task_had_error (G_TASK (result));
+  g_task_propagate_boolean (G_TASK (result), &error);
+  if (had_error)
     g_dbus_method_invocation_take_error (invocation, error);
   else
     goa_identity_service_manager_complete_sign_out (GOA_IDENTITY_SERVICE_MANAGER (self),
@@ -426,7 +428,7 @@ on_sign_out_handled (GoaIdentityService    *self,
 static void
 on_identity_signed_out (GoaIdentityManager *manager,
                         GAsyncResult       *result,
-                        GSimpleAsyncResult *operation_result)
+                        GTask              *operation_result)
 {
   GoaIdentityService *self;
   GError             *error;
@@ -434,17 +436,7 @@ on_identity_signed_out (GoaIdentityManager *manager,
   const char         *identifier;
   GoaObject          *object = NULL;
 
-  error = NULL;
-  goa_identity_manager_sign_identity_out_finish (manager, result, &error);
-
-  if (error != NULL)
-    {
-      g_debug ("GoaIdentityService: Identity could not be signed out: %s",
-               error->message);
-      g_simple_async_result_take_error (operation_result, error);
-    }
-
-  self = GOA_IDENTITY_SERVICE (g_async_result_get_source_object (G_ASYNC_RESULT (operation_result)));
+  self = GOA_IDENTITY_SERVICE (g_task_get_source_object (operation_result));
   identity = g_object_get_data (G_OBJECT (operation_result), "identity");
 
   identifier = goa_identity_get_identifier (identity);
@@ -453,8 +445,19 @@ on_identity_signed_out (GoaIdentityManager *manager,
   if (object != NULL)
     ensure_account_credentials (self, object);
 
-  g_simple_async_result_complete_in_idle (operation_result);
+  error = NULL;
+  goa_identity_manager_sign_identity_out_finish (manager, result, &error);
+  if (error != NULL)
+    {
+      g_debug ("GoaIdentityService: Identity could not be signed out: %s",
+               error->message);
+      g_task_return_error (operation_result, error);
+      goto out;
+    }
 
+  g_task_return_boolean (operation_result, TRUE);
+
+ out:
   g_clear_object (&object);
   g_object_unref (operation_result);
 }
@@ -462,7 +465,7 @@ on_identity_signed_out (GoaIdentityManager *manager,
 static void
 on_got_identity_for_sign_out (GoaIdentityManager *manager,
                               GAsyncResult       *result,
-                              GSimpleAsyncResult *operation_result)
+                              GTask              *operation_result)
 {
   GError *error;
   GoaIdentity *identity = NULL;
@@ -474,16 +477,11 @@ on_got_identity_for_sign_out (GoaIdentityManager *manager,
     {
       g_debug ("GoaIdentityService: Identity could not be signed out: %s",
                error->message);
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
+      g_task_return_error (operation_result, error);
       goto out;
     }
 
-  g_object_set_data_full (G_OBJECT (operation_result),
-                          "identity",
-                          g_object_ref (identity),
-                          (GDestroyNotify)
-                          g_object_unref);
+  g_object_set_data_full (G_OBJECT (operation_result), "identity", g_object_ref (identity), g_object_unref);
 
   goa_identity_manager_sign_identity_out (manager,
                                           identity,
@@ -503,20 +501,17 @@ goa_identity_service_handle_sign_out (GoaIdentityServiceManager *manager,
                                       const char                *identifier)
 {
   GoaIdentityService *self = GOA_IDENTITY_SERVICE (manager);
-  GSimpleAsyncResult *result;
+  GTask *task;
 
-  result = g_simple_async_result_new (G_OBJECT (self),
-                                      (GAsyncReadyCallback)
-                                      on_sign_out_handled,
-                                      g_object_ref (invocation),
-                                      goa_identity_service_handle_sign_out);
-
+  task = g_task_new (self, NULL, (GAsyncReadyCallback) on_sign_out_handled, g_object_ref (invocation));
   goa_identity_manager_get_identity (self->priv->identity_manager,
                                      identifier,
                                      NULL,
                                      (GAsyncReadyCallback)
                                      on_got_identity_for_sign_out,
-                                     result);
+                                     g_object_ref (task));
+
+  g_object_unref (task);
   return TRUE;
 }
 
@@ -631,12 +626,10 @@ goa_identity_service_handle_exchange_secret_keys (GoaIdentityServiceManager *man
   g_object_set_data_full (G_OBJECT (operation_result),
                           "identifier",
                           g_strdup (identifier),
-                          (GDestroyNotify)
                           g_free);
   g_object_set_data_full (G_OBJECT (operation_result),
                           "input-key",
                           g_strdup (input_key),
-                          (GDestroyNotify)
                           g_free);
   sender = g_dbus_method_invocation_get_sender (invocation);
   watch_id = g_bus_watch_name (G_BUS_TYPE_SESSION,
@@ -647,7 +640,6 @@ goa_identity_service_handle_exchange_secret_keys (GoaIdentityServiceManager *man
                                (GBusNameVanishedCallback)
                                on_caller_vanished,
                                g_object_ref (operation_result),
-                               (GDestroyNotify)
                                g_object_unref);
   g_hash_table_insert (self->priv->watched_client_connections,
                        g_strdup (sender),
@@ -675,22 +667,17 @@ goa_identity_service_init (GoaIdentityService *self)
   g_debug ("GoaIdentityService: initializing");
   self->priv->watched_client_connections = g_hash_table_new_full (g_str_hash,
                                                                   g_str_equal,
-                                                                  (GDestroyNotify)
                                                                   g_free,
                                                                   (GDestroyNotify)
                                                                   g_bus_unwatch_name);
 
   self->priv->key_holders = g_hash_table_new_full (g_str_hash,
                                                    g_str_equal,
-                                                   (GDestroyNotify)
                                                    g_free,
-                                                   (GDestroyNotify)
                                                    g_object_unref);
   self->priv->pending_temporary_account_results = g_hash_table_new_full (g_str_hash,
                                                                          g_str_equal,
-                                                                         (GDestroyNotify)
                                                                          g_free,
-                                                                         (GDestroyNotify)
                                                                          g_object_unref);
 }
 
@@ -776,7 +763,7 @@ on_identity_needs_renewal (GoaIdentityManager *identity_manager,
 static void
 on_identity_signed_in (GoaIdentityManager *manager,
                        GAsyncResult       *result,
-                       GSimpleAsyncResult *operation_result)
+                       GTask              *operation_result)
 {
   GError *error;
   GoaIdentity *identity;
@@ -788,77 +775,51 @@ on_identity_signed_in (GoaIdentityManager *manager,
     {
       g_debug ("GoaIdentityService: could not sign in identity: %s",
                error->message);
-      g_simple_async_result_take_error (operation_result, error);
+      g_task_return_error (operation_result, error);
     }
   else
     {
       g_debug ("GoaIdentityService: identity signed in");
-      g_simple_async_result_set_op_res_gpointer (operation_result,
-                                                 g_object_ref (identity),
-                                                 (GDestroyNotify)
-                                                 g_object_unref);
+      g_task_return_pointer (operation_result, g_object_ref (identity), g_object_unref);
     }
-  g_simple_async_result_complete_in_idle (operation_result);
+
   g_object_unref (operation_result);
 }
 
 static void
-on_temporary_account_created_for_identity (GoaIdentityService *self,
-                                           GAsyncResult       *result,
-                                           GoaIdentity        *identity)
-{
-  GoaObject   *object;
-  const char  *principal;
-  GError      *error;
-
-  principal = goa_identity_get_identifier (identity);
-  g_hash_table_remove (self->priv->pending_temporary_account_results,
-                       principal);
-
-  error = NULL;
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result), &error))
-    {
-      const char *identifier;
-
-      identifier = goa_identity_get_identifier (identity);
-      g_debug ("Could not add temporary account for identity %s: %s",
-               identifier,
-               error->message);
-      g_error_free (error);
-      return;
-    }
-
-  object = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (result));
-
-  if (object != NULL)
-    ensure_account_credentials (self, object);
-}
-
-static void
-on_account_added (GoaManager         *manager,
-                  GAsyncResult       *result,
-                  GSimpleAsyncResult *operation_result)
+on_temporary_account_added (GoaManager   *manager,
+                            GAsyncResult *result,
+                            GTask        *operation_result)
 {
   GoaIdentityService *self;
   GDBusObjectManager *object_manager;
+  const char *principal;
   char *object_path;
+  GoaIdentity *identity;
   GoaObject *object;
   GError *error;
 
-  self = GOA_IDENTITY_SERVICE (g_async_result_get_source_object (G_ASYNC_RESULT (operation_result)));
+  self = GOA_IDENTITY_SERVICE (g_task_get_source_object (operation_result));
   object_path = NULL;
   object = NULL;
   error = NULL;
+
+  identity = GOA_IDENTITY (g_task_get_task_data (operation_result));
+
+  principal = goa_identity_get_identifier (identity);
+  g_hash_table_remove (self->priv->pending_temporary_account_results, principal);
 
   if (!goa_manager_call_add_account_finish (manager,
                                             &object_path,
                                             result,
                                             &error))
     {
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
+      const char *identifier;
+
+      identifier = goa_identity_get_identifier (identity);
+      g_debug ("Could not add temporary account for identity %s: %s", identifier, error->message);
+      g_error_free (error);
+      goto out;
     }
 
   if (object_path != NULL && object_path[0] != '\0')
@@ -871,15 +832,11 @@ on_account_added (GoaManager         *manager,
       g_free (object_path);
     }
 
-  if (object == NULL)
-    g_simple_async_result_set_op_res_gpointer (operation_result, NULL, NULL);
-  else
-    g_simple_async_result_set_op_res_gpointer (operation_result,
-                                               object,
-                                               (GDestroyNotify)
-                                               g_object_unref);
+  if (object != NULL)
+    ensure_account_credentials (self, object);
 
-  g_simple_async_result_complete_in_idle (operation_result);
+ out:
+  g_clear_object (&object);
   g_object_unref (operation_result);
 }
 
@@ -890,18 +847,13 @@ add_temporary_account (GoaIdentityService *self,
   char               *realm;
   char               *preauth_source;
   const char         *principal;
-  GSimpleAsyncResult *operation_result;
+  GTask              *operation_result;
   GVariantBuilder     credentials;
   GVariantBuilder     details;
   GoaManager         *manager;
-  GoaObject *object;
 
   principal = goa_identity_get_identifier (identity);
-
-  object = g_hash_table_lookup (self->priv->pending_temporary_account_results,
-                                principal);
-
-  if (object != NULL)
+  if (g_hash_table_contains (self->priv->pending_temporary_account_results, principal))
     {
       g_debug ("GoaIdentityService: would add temporary identity %s, but it's already pending", principal);
       return;
@@ -927,11 +879,9 @@ add_temporary_account (GoaIdentityService *self,
 
   g_debug ("GoaIdentityService: asking to sign back in");
 
-  operation_result = g_simple_async_result_new (G_OBJECT (self),
-                                                (GAsyncReadyCallback)
-                                                on_temporary_account_created_for_identity,
-                                                identity,
-                                                add_temporary_account);
+  operation_result = g_task_new (self, NULL, NULL, NULL);
+  g_task_set_task_data (operation_result, g_object_ref (identity), g_object_unref);
+
   g_hash_table_insert (self->priv->pending_temporary_account_results,
                        g_strdup (principal),
                        g_object_ref (operation_result));
@@ -945,10 +895,11 @@ add_temporary_account (GoaIdentityService *self,
                                 g_variant_builder_end (&details),
                                 NULL,
                                 (GAsyncReadyCallback)
-                                on_account_added,
-                                operation_result);
+                                on_temporary_account_added,
+                                g_object_ref (operation_result));
   g_free (realm);
   g_free (preauth_source);
+  g_object_unref (operation_result);
 }
 
 static void
@@ -1062,9 +1013,8 @@ close_system_prompt (GoaIdentityManager  *manager,
   if (data->identity != identity)
     return;
 
-  g_signal_handlers_disconnect_by_func (G_OBJECT (manager),
-                                        G_CALLBACK (close_system_prompt),
-                                        data);
+  g_signal_handlers_disconnect_by_func (manager, G_CALLBACK (close_system_prompt), data);
+
   error = NULL;
   if (!gcr_system_prompt_close (data->prompt, NULL, &error))
     {
@@ -1154,7 +1104,7 @@ query_user (GoaIdentityService *self,
                                        query,
                                        cancellable);
 
-  g_signal_connect (G_OBJECT (self->priv->identity_manager),
+  g_signal_connect (self->priv->identity_manager,
                     "identity-refreshed",
                     G_CALLBACK (close_system_prompt),
                     request);
@@ -1270,17 +1220,16 @@ on_identity_inquiry (GoaIdentityInquiry *inquiry,
 static void
 cancel_sign_in (GoaIdentityManager *identity_manager,
                 GoaIdentity        *identity,
-                GSimpleAsyncResult *operation_result)
+                GTask              *operation_result)
 {
   GoaIdentity *operation_identity;
 
-  operation_identity = g_simple_async_result_get_source_tag (operation_result);
+  operation_identity = g_task_get_task_data (operation_result);
   if (operation_identity == identity)
     {
       GCancellable *cancellable;
 
-      cancellable = g_object_get_data (G_OBJECT (operation_result),
-                                       "cancellable");
+      cancellable = g_task_get_cancellable (operation_result);
       g_cancellable_cancel (cancellable);
     }
 }
@@ -1295,20 +1244,14 @@ sign_in (GoaIdentityService     *self,
          GAsyncReadyCallback     callback,
          gpointer                user_data)
 {
-  GSimpleAsyncResult *operation_result;
+  GTask *operation_result;
 
   g_debug ("GoaIdentityService: asking to sign in");
 
-  operation_result = g_simple_async_result_new (G_OBJECT (self),
-                                                callback,
-                                                user_data,
-                                                NULL);
-  g_simple_async_result_set_check_cancellable (operation_result, cancellable);
+  operation_result = g_task_new (self, cancellable, callback, user_data);
+  g_task_set_task_data (operation_result, user_data, NULL);
 
-  g_object_set_data (G_OBJECT (operation_result),
-                     "cancellable",
-                     cancellable);
-  g_signal_connect_object (G_OBJECT (self->priv->identity_manager),
+  g_signal_connect_object (self->priv->identity_manager,
                            "identity-refreshed",
                            G_CALLBACK (cancel_sign_in),
                            operation_result,
@@ -1325,7 +1268,9 @@ sign_in (GoaIdentityService     *self,
                                          cancellable,
                                          (GAsyncReadyCallback)
                                          on_identity_signed_in,
-                                         operation_result);
+                                         g_object_ref (operation_result));
+
+  g_object_unref (operation_result);
 }
 
 static void
@@ -1375,8 +1320,12 @@ on_sign_out_for_account_change_done (GoaIdentityService *self,
                                      GAsyncResult       *result)
 {
   GError *error = NULL;
+  gboolean had_error;
 
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result), &error))
+  /* Workaround for bgo#764163 */
+  had_error = g_task_had_error (G_TASK (result));
+  g_task_propagate_boolean (G_TASK (result), &error);
+  if (had_error)
     {
       g_debug ("Log out failed: %s", error->message);
       g_error_free (error);
@@ -1393,22 +1342,21 @@ on_ticketing_done (GoaIdentityService *self,
 {
   GoaObject *object;
 
-  object = g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (result));
-
+  object = g_task_get_task_data (G_TASK (result));
   ensure_account_credentials (self, object);
 }
 
 static void
-on_got_ticket (GoaTicketing       *ticketing,
-               GAsyncResult       *result,
-               GSimpleAsyncResult *operation_result)
+on_got_ticket (GoaTicketing *ticketing,
+               GAsyncResult *result,
+               GTask        *operation_result)
 {
   GoaObject          *object;
   GoaAccount         *account;
   GError             *error;
   const char         *account_identity;
 
-  object = g_simple_async_result_get_source_tag (operation_result);
+  object = g_task_get_task_data (operation_result);
   account = goa_object_peek_account (object);
   account_identity = goa_account_get_identity (account);
 
@@ -1420,16 +1368,15 @@ on_got_ticket (GoaTicketing       *ticketing,
       g_debug ("GoaIdentityService: could not get ticket for account %s: %s",
                account_identity,
                error->message);
-      g_error_free (error);
 
-      g_simple_async_result_complete_in_idle (operation_result);
+      g_task_return_error (operation_result, error);
       g_object_unref (operation_result);
       return;
     }
 
   g_debug ("GoaIdentityService: got ticket for account %s",
            account_identity);
-  g_simple_async_result_complete_in_idle (operation_result);
+  g_task_return_boolean (operation_result, TRUE);
   g_object_unref (operation_result);
 }
 
@@ -1463,14 +1410,11 @@ on_account_interface_added (GDBusObjectManager *manager,
 
   if (ticketing != NULL)
     {
+      GTask *operation_result;
 
-      GSimpleAsyncResult *operation_result;
+      operation_result = g_task_new (self, NULL, (GAsyncReadyCallback) on_ticketing_done, NULL);
+      g_task_set_task_data (operation_result, object, NULL);
 
-      operation_result = g_simple_async_result_new (G_OBJECT (self),
-                                                    (GAsyncReadyCallback)
-                                                    on_ticketing_done,
-                                                    NULL,
-                                                    object);
       /* Ticketing interface is present, sign in if not already
        * signed in.
        */
@@ -1478,7 +1422,9 @@ on_account_interface_added (GDBusObjectManager *manager,
                                      NULL,
                                      (GAsyncReadyCallback)
                                      on_got_ticket,
-                                     operation_result);
+                                     g_object_ref (operation_result));
+
+      g_object_unref (operation_result);
       return;
     }
 }
@@ -1494,7 +1440,7 @@ on_account_interface_removed (GDBusObjectManager *manager,
   GDBusInterfaceInfo *info;
   const char         *provider_type;
   const char         *account_identity;
-  GSimpleAsyncResult *result;
+  GTask              *task;
 
   account = goa_object_peek_account (object);
 
@@ -1526,18 +1472,15 @@ on_account_interface_removed (GDBusObjectManager *manager,
 
   g_debug ("Kerberos account %s was disabled and should now be signed out", account_identity);
 
-  result = g_simple_async_result_new (G_OBJECT (self),
-                                      (GAsyncReadyCallback)
-                                      on_sign_out_for_account_change_done,
-                                      NULL,
-                                      on_account_interface_removed);
-
+  task = g_task_new (self, NULL, (GAsyncReadyCallback) on_sign_out_for_account_change_done, NULL);
   goa_identity_manager_get_identity (self->priv->identity_manager,
                                      account_identity,
                                      NULL,
                                      (GAsyncReadyCallback)
                                      on_got_identity_for_sign_out,
-                                     result);
+                                     g_object_ref (task));
+
+  g_object_unref (task);
 }
 
 static void
@@ -1548,30 +1491,15 @@ on_identities_listed (GoaIdentityManager *manager,
   GError *error = NULL;
   GList *identities, *node;
 
-  g_signal_connect (G_OBJECT (self->priv->identity_manager),
-                    "identity-added",
-                    G_CALLBACK (on_identity_added),
-                    self);
-  g_signal_connect (G_OBJECT (self->priv->identity_manager),
-                    "identity-removed",
-                    G_CALLBACK (on_identity_removed),
-                    self);
-  g_signal_connect (G_OBJECT (self->priv->identity_manager),
-                    "identity-refreshed",
-                    G_CALLBACK (on_identity_refreshed),
-                    self);
-  g_signal_connect (G_OBJECT (self->priv->identity_manager),
+  g_signal_connect (self->priv->identity_manager, "identity-added", G_CALLBACK (on_identity_added), self);
+  g_signal_connect (self->priv->identity_manager, "identity-removed", G_CALLBACK (on_identity_removed), self);
+  g_signal_connect (self->priv->identity_manager, "identity-refreshed", G_CALLBACK (on_identity_refreshed), self);
+  g_signal_connect (self->priv->identity_manager,
                     "identity-needs-renewal",
                     G_CALLBACK (on_identity_needs_renewal),
                     self);
-  g_signal_connect (G_OBJECT (self->priv->identity_manager),
-                    "identity-expiring",
-                    G_CALLBACK (on_identity_expiring),
-                    self);
-  g_signal_connect (G_OBJECT (self->priv->identity_manager),
-                    "identity-expired",
-                    G_CALLBACK (on_identity_expired),
-                    self);
+  g_signal_connect (self->priv->identity_manager, "identity-expiring", G_CALLBACK (on_identity_expiring), self);
+  g_signal_connect (self->priv->identity_manager, "identity-expired", G_CALLBACK (on_identity_expired), self);
 
   identities = goa_identity_manager_list_identities_finish (manager, result, &error);
 
@@ -1619,14 +1547,8 @@ ensure_credentials_for_accounts (GoaIdentityService *self)
 
   object_manager = goa_client_get_object_manager (self->priv->client);
 
-  g_signal_connect (G_OBJECT (object_manager),
-                    "interface-added",
-                    G_CALLBACK (on_account_interface_added),
-                    self);
-  g_signal_connect (G_OBJECT (object_manager),
-                    "interface-removed",
-                    G_CALLBACK (on_account_interface_removed),
-                    self);
+  g_signal_connect (object_manager, "interface-added", G_CALLBACK (on_account_interface_added), self);
+  g_signal_connect (object_manager, "interface-removed", G_CALLBACK (on_account_interface_removed), self);
 
   accounts = goa_client_get_accounts (self->priv->client);
 

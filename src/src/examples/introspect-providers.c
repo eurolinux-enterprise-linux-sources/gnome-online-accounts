@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Red Hat, Inc.
+ * Copyright © 2016 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -63,6 +63,10 @@ static struct
   {
     .feature = GOA_PROVIDER_FEATURE_TICKETING,
     .key = "TicketingEnabled"
+  },
+  {
+    .feature = GOA_PROVIDER_FEATURE_TODO,
+    .key = "TodoEnabled"
   },
   {
     .feature = GOA_PROVIDER_FEATURE_READ_LATER,

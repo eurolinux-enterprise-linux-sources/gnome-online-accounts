@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2014, 2015 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,7 +26,6 @@
 #include <gio/gio.h>
 #include <goabackend/goaoauth2provider.h>
 #include <goabackend/goaprovider-priv.h>
-#include <goabackend/goabackendtypes.h>
 #include <webkit2/webkit2.h>
 #include <webkitdom/webkitdom.h>
 
@@ -38,12 +37,6 @@ G_BEGIN_DECLS
  * The #GoaOAuth2Provider structure contains only private data and should
  * only be accessed using the provided API.
  */
-struct _GoaOAuth2Provider
-{
-  /*< private >*/
-  GoaProvider parent_instance;
-  GoaOAuth2ProviderPrivate *priv;
-};
 
 /**
  * GoaOAuth2ProviderClass:
@@ -54,7 +47,6 @@ struct _GoaOAuth2Provider
  * @get_scope: Virtual function for goa_oauth2_provider_get_scope().
  * @get_client_id: Virtual function for goa_oauth2_provider_get_client_id().
  * @get_client_secret: Virtual function for goa_oauth2_provider_get_client_secret().
- * @get_authentication_cookie: Virtual function for goa_oauth2_provider_get_authentication_cookie().
  * @get_identity_sync: Virtual function for goa_oauth2_provider_get_identity_sync().
  * @build_authorization_uri: Virtual function for goa_oauth2_provider_build_authorization_uri().
  * @get_use_mobile_browser: Virtual function for goa_oauth2_provider_get_use_mobile_browser().
@@ -76,7 +68,6 @@ struct _GoaOAuth2ProviderClass
   const gchar *(*get_redirect_uri)             (GoaOAuth2Provider            *provider);
   const gchar *(*get_client_id)                (GoaOAuth2Provider            *provider);
   const gchar *(*get_client_secret)            (GoaOAuth2Provider            *provider);
-  const gchar *(*get_authentication_cookie)    (GoaOAuth2Provider            *provider);
   gchar       *(*get_identity_sync)            (GoaOAuth2Provider            *provider,
                                                 const gchar                  *access_token,
                                                 gchar                       **out_presentation_identity,
@@ -111,11 +102,6 @@ struct _GoaOAuth2ProviderClass
                                                 const gchar                  *redirect_url,
                                                 gchar                       **access_token,
                                                 GError                      **error);
-
-
-  /*< private >*/
-  /* Padding for future expansion */
-  gpointer goa_reserved[28];
 };
 
 G_END_DECLS

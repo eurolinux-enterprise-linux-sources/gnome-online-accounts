@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2015 Damián Nohales
- * Copyright (C) 2015 Red Hat, Inc.
+ * Copyright © 2015 Damián Nohales
+ * Copyright © 2015 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -77,7 +77,7 @@ web_extension_document_loaded_cb (WebKitWebPage *web_page, gpointer user_data)
   GoaWebExtension *self = GOA_WEB_EXTENSION (user_data);
   WebKitDOMDocument *document;
   WebKitDOMDOMWindow *dom_window;
-  WebKitDOMNodeList *elements;
+  WebKitDOMNodeList *elements = NULL;
   gulong element_count;
   gulong i;
 
@@ -141,6 +141,8 @@ web_extension_document_loaded_cb (WebKitWebPage *web_page, gpointer user_data)
             }
         }
     }
+
+  g_clear_object (&elements);
 }
 
 static void

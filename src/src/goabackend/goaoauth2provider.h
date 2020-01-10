@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2014, 2015 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,30 +24,23 @@
 #define __GOA_OAUTH2_PROVIDER_H__
 
 #include <gio/gio.h>
-#include <goabackend/goabackendtypes.h>
+
+#include "goabackend/goaprovider.h"
+#include "goabackend/goaprovider-priv.h"
 
 G_BEGIN_DECLS
 
 #define GOA_TYPE_OAUTH2_PROVIDER         (goa_oauth2_provider_get_type ())
-#define GOA_OAUTH2_PROVIDER(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), GOA_TYPE_OAUTH2_PROVIDER, GoaOAuth2Provider))
-#define GOA_OAUTH2_PROVIDER_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), GOA_TYPE_OAUTH2_PROVIDER, GoaOAuth2ProviderClass))
-#define GOA_OAUTH2_PROVIDER_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), GOA_TYPE_OAUTH2_PROVIDER, GoaOAuth2ProviderClass))
-#define GOA_IS_OAUTH2_PROVIDER(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), GOA_TYPE_OAUTH2_PROVIDER))
+G_DECLARE_DERIVABLE_TYPE (GoaOAuth2Provider, goa_oauth2_provider, GOA, OAUTH2_PROVIDER, GoaProvider);
 
-#define GOA_IS_OAUTH2_PROVIDER_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), GOA_TYPE_OAUTH2_PROVIDER))
-
-typedef struct _GoaOAuth2Provider GoaOAuth2Provider;
-typedef struct _GoaOAuth2ProviderClass GoaOAuth2ProviderClass;
 typedef struct _GoaOAuth2ProviderPrivate GoaOAuth2ProviderPrivate;
 
-GType        goa_oauth2_provider_get_type                     (void) G_GNUC_CONST;
 const gchar *goa_oauth2_provider_get_authorization_uri        (GoaOAuth2Provider             *provider);
 const gchar *goa_oauth2_provider_get_token_uri                (GoaOAuth2Provider             *provider);
 const gchar *goa_oauth2_provider_get_redirect_uri             (GoaOAuth2Provider             *provider);
 const gchar *goa_oauth2_provider_get_scope                    (GoaOAuth2Provider             *provider);
 const gchar *goa_oauth2_provider_get_client_id                (GoaOAuth2Provider             *provider);
 const gchar *goa_oauth2_provider_get_client_secret            (GoaOAuth2Provider             *provider);
-const gchar *goa_oauth2_provider_get_authentication_cookie    (GoaOAuth2Provider             *provider);
 gchar       *goa_oauth2_provider_get_identity_sync            (GoaOAuth2Provider             *provider,
                                                                const gchar              *access_token,
                                                                gchar                   **out_presentation_identity,

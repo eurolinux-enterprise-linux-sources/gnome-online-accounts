@@ -98,6 +98,10 @@ tpaw_protocol_icon_name (const gchar *protocol)
   else if (!tp_strdiff (protocol, "simple"))
     /* SIMPLE uses the same icon as SIP */
     protocol = "sip";
+  else if (!tp_strdiff (protocol, "skype-dbus") ||
+           !tp_strdiff (protocol, "skype-x11") ||
+           !tp_strdiff (protocol, "skypeweb"))
+    protocol = "skype";
   else if (!tp_strdiff (protocol, "sms"))
     return g_strdup ("phone");
 
@@ -129,7 +133,9 @@ tpaw_protocol_name_to_display_name (const gchar *proto_name)
     { "sametime", "Sametime", FALSE },
     { "skype-dbus", "Skype (D-BUS)", FALSE },
     { "skype-x11", "Skype (X11)", FALSE },
+    { "skypeweb", "Skype", FALSE },
     { "zephyr", "Zephyr", FALSE },
+    { "facebook", "Facebook Messenger", FALSE },
     { NULL, NULL }
   };
 
@@ -157,7 +163,6 @@ tpaw_service_name_to_display_name (const gchar *service_name)
     gboolean translated;
   } names[] = {
     { "google-talk", N_("Google Talk"), FALSE },
-    { "facebook", N_("Facebook Chat"), TRUE },
     { NULL, NULL }
   };
 

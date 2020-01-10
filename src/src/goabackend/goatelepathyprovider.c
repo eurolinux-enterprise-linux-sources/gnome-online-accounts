@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2015, 2016 Red Hat, Inc.
- * Copyright (C) 2013 Intel Corporation
+ * Copyright © 2012 – 2017 Red Hat, Inc.
+ * Copyright © 2013 Intel Corporation
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -48,15 +48,8 @@ enum {
 
 static GParamSpec *properties[NUM_PROPERTIES] = { NULL, };
 
-/**
- * GoaTelepathyProvider:
- *
- * The #GoaTelepathyProvider structure contains only private data and should
- * only be accessed using the provided API.
- */
 struct _GoaTelepathyProvider
 {
-  /*< private >*/
   GoaProvider parent_instance;
   GoaTelepathyProviderPrivate *priv;
 };
@@ -67,14 +60,6 @@ struct _GoaTelepathyProviderClass
 {
   GoaProviderClass parent_class;
 };
-
-/**
- * SECTION:goatelepathyprovider
- * @title: GoaTelepathyProvider
- * @short_description: A provider for Telepathy
- *
- * #GoaTelepathyProvider is used for handling Telepathy IM accounts.
- */
 
 G_DEFINE_TYPE (GoaTelepathyProvider, goa_telepathy_provider, GOA_TYPE_PROVIDER);
 
@@ -468,7 +453,7 @@ add_account (GoaProvider  *provider,
 
   account_widget = tpaw_account_widget_new_for_protocol (settings,
       dialog, TRUE);
-  gtk_box_pack_start (GTK_BOX (vbox), GTK_WIDGET (account_widget), FALSE, FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (vbox), GTK_WIDGET (account_widget));
   gtk_widget_show (GTK_WIDGET (account_widget));
   g_signal_connect (account_widget, "account-created",
       G_CALLBACK (tp_account_created_cb), &data);
@@ -819,7 +804,7 @@ remove_account_finish (GoaProvider   *provider,
   g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
   task = G_TASK (res);
 
-  g_warn_if_fail (g_task_get_source_tag (task) == remove_account);
+  g_return_val_if_fail (g_task_get_source_tag (task) == remove_account, FALSE);
 
   return g_task_propagate_boolean (task, error);
 }
@@ -942,20 +927,25 @@ show_account (GoaProvider         *provider,
   GtkWidget *button_box = NULL;
   gint row = 0;
 
+  goa_utils_account_add_attention_needed (client, object, provider, vbox);
+
   grid = gtk_grid_new ();
   gtk_widget_set_halign (grid, GTK_ALIGN_CENTER);
   gtk_widget_set_hexpand (grid, TRUE);
+  gtk_widget_set_margin_end (grid, 72);
+  gtk_widget_set_margin_start (grid, 72);
+  gtk_widget_set_margin_top (grid, 24);
   gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
   gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
-  gtk_box_pack_start (vbox, grid, FALSE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (vbox), grid);
 
   goa_utils_account_add_header (object, GTK_GRID (grid), row++);
 
-  /* Translators: This is a label for a series of
-   * options switches. For example: “Use for Mail”. */
   goa_util_add_row_switch_from_keyfile_with_blurb (GTK_GRID (grid),
                                                    row++,
                                                    object,
+                                                   /* Translators: This is a label for a series of
+                                                    * options switches. For example: “Use for Mail”. */
                                                    _("Use for"),
                                                    "chat-disabled",
                                                    _("C_hat"));
@@ -974,12 +964,9 @@ show_account (GoaProvider         *provider,
   button_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
   gtk_box_pack_start (GTK_BOX (button_box), params_button,
       FALSE, FALSE, 12);
-  gtk_box_pack_start (GTK_BOX (button_box), details_button,
-      FALSE, FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (button_box), details_button);
 
   goa_util_add_row_widget (GTK_GRID (grid), row++, NULL, button_box);
-
-  goa_utils_account_add_attention_needed (client, object, provider, vbox);
 
   edit_data_unref (data);
 }

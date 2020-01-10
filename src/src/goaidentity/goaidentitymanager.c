@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012 Red Hat, Inc.
+ * Copyright © 2012 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -117,17 +117,6 @@ goa_identity_manager_default_init (GoaIdentityManagerInterface *interface)
                                             G_TYPE_NONE,
                                             1,
                                             GOA_TYPE_IDENTITY);
-}
-
-GQuark
-goa_identity_manager_error_quark (void)
-{
-  static GQuark error_quark = 0;
-
-  if (error_quark == 0)
-    error_quark = g_quark_from_static_string ("goa-identity-manager-error");
-
-  return error_quark;
 }
 
 void

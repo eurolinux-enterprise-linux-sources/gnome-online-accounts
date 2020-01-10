@@ -29,7 +29,7 @@
     </authorgroup>
 
     <copyright>
-      <year>2011, 2012</year>
+      <year>2011 – 2017</year>
       <holder>The GOA Authors</holder>
     </copyright>
 
@@ -124,10 +124,12 @@
       <xi:include href="../src/goa/goa-generated-doc-org.gnome.OnlineAccounts.Maps.xml"/>
       <xi:include href="../src/goa/goa-generated-doc-org.gnome.OnlineAccounts.Music.xml"/>
       <xi:include href="../src/goa/goa-generated-doc-org.gnome.OnlineAccounts.Photos.xml"/>
+      <xi:include href="../src/goa/goa-generated-doc-org.gnome.OnlineAccounts.Printers.xml"/>
       <xi:include href="../src/goa/goa-generated-doc-org.gnome.OnlineAccounts.Files.xml"/>
       <xi:include href="../src/goa/goa-generated-doc-org.gnome.OnlineAccounts.Exchange.xml"/>
       <xi:include href="../src/goa/goa-generated-doc-org.gnome.OnlineAccounts.MediaServer.xml"/>
       <xi:include href="../src/goa/goa-generated-doc-org.gnome.OnlineAccounts.Ticketing.xml"/>
+      <xi:include href="../src/goa/goa-generated-doc-org.gnome.OnlineAccounts.Todo.xml"/>
     </chapter>
   </part>
 
@@ -157,6 +159,7 @@
       <xi:include href="xml/GoaExchange.xml"/>
       <xi:include href="xml/GoaMediaServer.xml"/>
       <xi:include href="xml/GoaTicketing.xml"/>
+      <xi:include href="xml/GoaTodo.xml"/>
       <xi:include href="xml/GoaReadLater.xml"/>
       <xi:include href="xml/GoaPrinters.xml"/>
     </chapter>
@@ -170,18 +173,6 @@
       <xi:include href="xml/goaprovider.xml"/>
       <xi:include href="xml/goaoauthprovider.xml"/>
       <xi:include href="xml/goaoauth2provider.xml"/>
-    </chapter>
-    <chapter>
-      <title>Providers</title>
-      <xi:include href="xml/goaexchangeprovider.xml"/>
-      <xi:include href="xml/goagoogleprovider.xml"/>
-      <xi:include href="xml/goamediaserverprovider.xml"/>
-      <xi:include href="xml/goawindowsliveprovider.xml"/>
-      <xi:include href="xml/goafacebookprovider.xml"/>
-      <xi:include href="xml/goaflickrprovider.xml"/>
-      <xi:include href="xml/goafoursquareprovider.xml"/>
-      <xi:include href="xml/goatelepathyprovider.xml"/>
-      <xi:include href="xml/goalastfmprovider.xml"/>
     </chapter>
   </part>
 

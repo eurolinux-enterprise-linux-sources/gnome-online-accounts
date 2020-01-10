@@ -4,14 +4,23 @@
 %global webkitgtk4_version 2.7.2
 
 Name:		gnome-online-accounts
-Version:	3.22.5
+Version:	3.26.2
 Release:	1%{?dist}
 Summary:	Single sign-on framework for GNOME
 
 License:	LGPLv2+
 URL:		https://wiki.gnome.org/Projects/GnomeOnlineAccounts
-Source0:	https://download.gnome.org/sources/gnome-online-accounts/3.22/%{name}-%{version}.tar.xz
+Source0:	https://download.gnome.org/sources/gnome-online-accounts/3.26/%{name}-%{version}.tar.xz
 
+# https://bugzilla.redhat.com/show_bug.cgi?id=1503726
+Patch0:		0001-Avoid-bumping-the-GLib-version.patch
+
+# https://bugzilla.gnome.org/show_bug.cgi?id=781005
+Patch1:		gnome-online-accounts-remove-the-option-to-preseed-the-providers.patch
+
+BuildRequires:	autoconf
+BuildRequires:	automake
+BuildRequires:	libtool
 BuildRequires:	pkgconfig(gcr-3)
 BuildRequires:	pkgconfig(gio-2.0) >= %{glib2_version}
 BuildRequires:	pkgconfig(glib-2.0) >= %{glib2_version}
@@ -35,7 +44,6 @@ BuildRequires:	vala
 Requires:	glib2%{?_isa} >= %{glib2_version}
 Requires:	gtk3%{?_isa} >= %{gtk3_version}
 Requires:	libsoup%{?_isa} >= %{libsoup_version}
-Requires:	realmd
 Requires:	webkitgtk4%{?_isa} >= %{webkitgtk4_version}
 
 %description
@@ -54,11 +62,17 @@ developing applications that use %{name}.
 
 %prep
 %setup -q
+%patch0 -p1
+%patch1 -p1
 
 %build
+autoreconf --force --install --verbose
 %configure \
+  --disable-lastfm \
+  --disable-media-server \
+  --disable-silent-rules \
   --disable-static \
-  --enable-gtk-doc \
+  --disable-todoist \
 %if 0%{?rhel}
   --disable-facebook \
   --disable-foursquare \
@@ -71,11 +85,11 @@ developing applications that use %{name}.
   --enable-exchange \
   --enable-flickr \
   --enable-google \
+  --enable-gtk-doc \
   --enable-imap-smtp \
   --enable-kerberos \
   --enable-owncloud \
   --enable-pocket \
-  --disable-silent-rules \
   --enable-windows-live
 %make_build
 
@@ -151,6 +165,18 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_datadir}/vala/
 
 %changelog
+* Tue Dec 19 2017 Debarshi Ray <rishi@fedoraproject.org> - 3.26.2-1
+- Update to 3.26.2
+Resolves: #1525963
+
+* Thu Oct 26 2017 Debarshi Ray <rishi@fedoraproject.org> - 3.26.1-2
+- Backport fix for adding multiple accounts of the same type (GNOME #781005)
+Resolves: #1503726
+
+* Wed Oct 18 2017 Debarshi Ray <rishi@fedoraproject.org> - 3.26.1-1
+- Update to 3.26.1
+Resolves: #1503726
+
 * Fri Mar 10 2017 Debarshi Ray <rishi@fedoraproject.org> - 3.22.5-1
 - Update to 3.22.5
 Resolves: #1386953, #1430813

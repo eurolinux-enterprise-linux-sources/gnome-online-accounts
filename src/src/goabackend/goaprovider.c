@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2013, 2014, 2015, 2016 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,6 +35,7 @@
 #include "goapocketprovider.h"
 #include "goamediaserverprovider.h"
 #include "goalastfmprovider.h"
+#include "goatodoistprovider.h"
 
 #ifdef GOA_KERBEROS_ENABLED
 #include "goakerberosprovider.h"
@@ -101,9 +102,7 @@ static void goa_provider_show_account_real (GoaProvider         *provider,
                                             GtkGrid             *dummy1,
                                             GtkGrid             *dummy2);
 
-#define GOA_PROVIDER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GOA_TYPE_PROVIDER, GoaProviderPrivate))
-
-G_DEFINE_ABSTRACT_TYPE (GoaProvider, goa_provider, G_TYPE_OBJECT);
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (GoaProvider, goa_provider, G_TYPE_OBJECT);
 
 static struct {
   GoaProviderFeatures feature;
@@ -175,6 +174,11 @@ static struct {
     .blurb = N_("_Maps"),
   },
   {
+    .feature = GOA_PROVIDER_FEATURE_TODO,
+    .property = "todo-disabled",
+    .blurb = N_("T_o Do"),
+  },
+  {
     .feature = GOA_PROVIDER_FEATURE_INVALID,
     .property = NULL,
     .blurb = NULL,
@@ -188,10 +192,13 @@ goa_provider_get_property (GObject *object,
                            GParamSpec *pspec)
 {
     GoaProvider *self = GOA_PROVIDER (object);
+    GoaProviderPrivate *priv;
+
+    priv = goa_provider_get_instance_private (self);
 
     switch (property_id) {
     case PROP_PRESEED_DATA:
-        g_value_set_variant (value, self->priv->preseed_data);
+        g_value_set_variant (value, priv->preseed_data);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -221,8 +228,11 @@ static void
 goa_provider_dispose (GObject *object)
 {
   GoaProvider *self = GOA_PROVIDER (object);
+  GoaProviderPrivate *priv;
 
-  g_clear_pointer (&self->priv->preseed_data, g_variant_unref);
+  priv = goa_provider_get_instance_private (self);
+
+  g_clear_pointer (&priv->preseed_data, g_variant_unref);
 
   G_OBJECT_CLASS (goa_provider_parent_class)->dispose (object);
 }
@@ -230,15 +240,12 @@ goa_provider_dispose (GObject *object)
 static void
 goa_provider_init (GoaProvider *self)
 {
-  self->priv = GOA_PROVIDER_GET_PRIVATE (self);
 }
 
 static void
 goa_provider_class_init (GoaProviderClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-  g_type_class_add_private (klass, sizeof (GoaProviderPrivate));
 
   object_class->set_property = goa_provider_set_property;
   object_class->get_property = goa_provider_get_property;
@@ -586,12 +593,17 @@ goa_provider_show_account_real (GoaProvider         *provider,
 
   row = 0;
 
+  goa_utils_account_add_attention_needed (client, object, provider, vbox);
+
   grid = gtk_grid_new ();
   gtk_widget_set_halign (grid, GTK_ALIGN_CENTER);
   gtk_widget_set_hexpand (grid, TRUE);
+  gtk_widget_set_margin_end (grid, 72);
+  gtk_widget_set_margin_start (grid, 72);
+  gtk_widget_set_margin_top (grid, 24);
   gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
   gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
-  gtk_box_pack_start (vbox, grid, FALSE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (vbox), grid);
 
   goa_utils_account_add_header (object, GTK_GRID (grid), row++);
 
@@ -611,8 +623,6 @@ goa_provider_show_account_real (GoaProvider         *provider,
           label = NULL;
         }
     }
-
-  goa_utils_account_add_attention_needed (client, object, provider, vbox);
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -786,7 +796,7 @@ goa_provider_ensure_credentials_finish (GoaProvider         *self,
   g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
   task = G_TASK (res);
 
-  g_warn_if_fail (g_task_get_source_tag (task) == goa_provider_ensure_credentials);
+  g_return_val_if_fail (g_task_get_source_tag (task) == goa_provider_ensure_credentials, FALSE);
 
   /* Workaround for bgo#764163 */
   had_error = g_task_had_error (task);
@@ -862,6 +872,15 @@ goa_provider_ensure_credentials_sync (GoaProvider     *self,
   ret = GOA_PROVIDER_GET_CLASS (self)->ensure_credentials_sync (self, object, out_expires_in, cancellable, error);
 
  out:
+  if (!ret && error != NULL && *error == NULL)
+    {
+      const gchar *provider_type;
+
+      provider_type = goa_provider_get_provider_type (self);
+      g_critical ("GoaProvider (%s) failed to set error correctly", provider_type);
+      g_set_error_literal (error, GOA_ERROR, GOA_ERROR_NOT_AUTHORIZED, _("Unknown error"));
+    }
+
   g_clear_object (&account);
   return ret;
 }
@@ -971,11 +990,11 @@ static struct
 #ifdef GOA_FACEBOOK_ENABLED
   { GOA_FACEBOOK_NAME, goa_facebook_provider_get_type },
 #endif
-#ifdef GOA_FLICKR_ENABLED
-  { GOA_FLICKR_NAME, goa_flickr_provider_get_type },
-#endif
 #ifdef GOA_WINDOWS_LIVE_ENABLED
   { GOA_WINDOWS_LIVE_NAME, goa_windows_live_provider_get_type },
+#endif
+#ifdef GOA_FLICKR_ENABLED
+  { GOA_FLICKR_NAME, goa_flickr_provider_get_type },
 #endif
 #ifdef GOA_POCKET_ENABLED
   { GOA_POCKET_NAME, goa_pocket_provider_get_type },
@@ -988,6 +1007,9 @@ static struct
 #endif
 #ifdef GOA_LASTFM_ENABLED
   { GOA_LASTFM_NAME, goa_lastfm_provider_get_type },
+#endif
+#ifdef GOA_TODOIST_ENABLED
+  { GOA_TODOIST_NAME, goa_todoist_provider_get_type },
 #endif
 #ifdef GOA_IMAP_SMTP_ENABLED
   { GOA_IMAP_SMTP_NAME, goa_imap_smtp_provider_get_type },
@@ -1379,7 +1401,7 @@ goa_provider_remove_account_finish_real (GoaProvider   *self,
   g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
   task = G_TASK (res);
 
-  g_warn_if_fail (g_task_get_source_tag (task) == goa_provider_remove_account_real);
+  g_return_val_if_fail (g_task_get_source_tag (task) == goa_provider_remove_account_real, FALSE);
 
   return g_task_propagate_boolean (task, error);
 }
@@ -1401,9 +1423,13 @@ void
 goa_provider_set_preseed_data (GoaProvider *self,
                                GVariant    *preseed_data)
 {
-  g_clear_pointer (&self->priv->preseed_data, g_variant_unref);
+  GoaProviderPrivate *priv;
+
+  priv = goa_provider_get_instance_private (self);
+
+  g_clear_pointer (&priv->preseed_data, g_variant_unref);
   if (preseed_data != NULL)
-    self->priv->preseed_data = g_variant_ref_sink (preseed_data);
+    priv->preseed_data = g_variant_ref_sink (preseed_data);
   g_object_notify (G_OBJECT (self), "preseed-data");
 }
 
@@ -1419,7 +1445,10 @@ goa_provider_set_preseed_data (GoaProvider *self,
 GVariant *
 goa_provider_get_preseed_data (GoaProvider *self)
 {
-  return self->priv->preseed_data;
+  GoaProviderPrivate *priv;
+
+  priv = goa_provider_get_instance_private (self);
+  return priv->preseed_data;
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -1620,11 +1649,12 @@ goa_util_add_row_switch_from_keyfile_with_blurb (GtkGrid      *grid,
 
       label = gtk_label_new_with_mnemonic (blurb);
       gtk_label_set_mnemonic_widget (GTK_LABEL (label), switch_);
+      gtk_label_set_width_chars (GTK_LABEL (label), 18);
       gtk_label_set_xalign (GTK_LABEL (label), 0.0);
-      gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 0);
+      gtk_container_add (GTK_CONTAINER (hbox), label);
     }
 
-  gtk_box_pack_end (GTK_BOX (hbox), switch_, FALSE, FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (hbox), switch_);
   goa_util_add_row_widget (grid, row, label_text, hbox);
   return switch_;
 }

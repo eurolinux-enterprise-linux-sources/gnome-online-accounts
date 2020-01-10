@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2013, 2014, 2015 Red Hat, Inc.
+ * Copyright © 2011 – 2017 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,8 +27,6 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include <goabackend/goabackendtypes.h>
-
 #include "goamailauth.h"
 
 G_BEGIN_DECLS
@@ -40,9 +38,7 @@ G_BEGIN_DECLS
 typedef struct _GoaSmtpAuth GoaSmtpAuth;
 
 GType        goa_smtp_auth_get_type  (void) G_GNUC_CONST;
-GoaMailAuth *goa_smtp_auth_new       (GoaProvider       *provider,
-                                      GoaObject         *object,
-                                      const gchar       *domain,
+GoaMailAuth *goa_smtp_auth_new       (const gchar       *domain,
                                       const gchar       *user_name,
                                       const gchar       *password);
 gboolean     goa_smtp_auth_is_login  (GoaSmtpAuth       *self);
