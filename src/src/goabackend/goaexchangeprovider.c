@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2014 Red Hat, Inc.
+ * Copyright (C) 2012, 2013, 2014, 2015, 2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,7 @@
 #include "goaprovider.h"
 #include "goaprovider-priv.h"
 #include "goaexchangeprovider.h"
+#include "goaobjectskeletonutils.h"
 #include "goautils.h"
 
 /**
@@ -74,13 +75,13 @@ get_provider_name (GoaProvider *provider, GoaObject *object)
 }
 
 static GoaProviderGroup
-get_provider_group (GoaProvider *_provider)
+get_provider_group (GoaProvider *provider)
 {
   return GOA_PROVIDER_GROUP_BRANDED;
 }
 
 static GoaProviderFeatures
-get_provider_features (GoaProvider *_provider)
+get_provider_features (GoaProvider *provider)
 {
   return GOA_PROVIDER_FEATURE_BRANDED |
          GOA_PROVIDER_FEATURE_MAIL |
@@ -105,8 +106,6 @@ build_object (GoaProvider         *provider,
               GError             **error)
 {
   GoaAccount *account;
-  GoaCalendar *calendar;
-  GoaContacts *contacts;
   GoaExchange *exchange;
   GoaMail *mail;
   GoaPasswordBased *password_based;
@@ -116,8 +115,6 @@ build_object (GoaProvider         *provider,
   gboolean ret;
 
   account = NULL;
-  calendar = NULL;
-  contacts = NULL;
   exchange = NULL;
   mail = NULL;
   password_based = NULL;
@@ -171,38 +168,12 @@ build_object (GoaProvider         *provider,
     }
 
   /* Calendar */
-  calendar = goa_object_get_calendar (GOA_OBJECT (object));
   calendar_enabled = g_key_file_get_boolean (key_file, group, "CalendarEnabled", NULL);
-  if (calendar_enabled)
-    {
-      if (calendar == NULL)
-        {
-          calendar = goa_calendar_skeleton_new ();
-          goa_object_skeleton_set_calendar (object, calendar);
-        }
-    }
-  else
-    {
-      if (calendar != NULL)
-        goa_object_skeleton_set_calendar (object, NULL);
-    }
+  goa_object_skeleton_attach_calendar (object, NULL, calendar_enabled, FALSE);
 
   /* Contacts */
-  contacts = goa_object_get_contacts (GOA_OBJECT (object));
   contacts_enabled = g_key_file_get_boolean (key_file, group, "ContactsEnabled", NULL);
-  if (contacts_enabled)
-    {
-      if (contacts == NULL)
-        {
-          contacts = goa_contacts_skeleton_new ();
-          goa_object_skeleton_set_contacts (object, contacts);
-        }
-    }
-  else
-    {
-      if (contacts != NULL)
-        goa_object_skeleton_set_contacts (object, NULL);
-    }
+  goa_object_skeleton_attach_contacts (object, NULL, contacts_enabled, FALSE);
 
   /* Exchange */
   exchange = goa_object_get_exchange (GOA_OBJECT (object));
@@ -245,16 +216,9 @@ build_object (GoaProvider         *provider,
   ret = TRUE;
 
  out:
-  if (exchange != NULL)
-    g_object_unref (exchange);
-  if (contacts != NULL)
-    g_object_unref (contacts);
-  if (calendar != NULL)
-    g_object_unref (calendar);
-  if (mail != NULL)
-    g_object_unref (mail);
-  if (password_based != NULL)
-    g_object_unref (password_based);
+  g_clear_object (&exchange);
+  g_clear_object (&mail);
+  g_clear_object (&password_based);
   return ret;
 }
 
@@ -267,7 +231,6 @@ ensure_credentials_sync (GoaProvider         *provider,
                          GCancellable        *cancellable,
                          GError             **error)
 {
-  GVariant *credentials;
   GoaAccount *account;
   GoaEwsClient *ews_client;
   GoaExchange *exchange;
@@ -275,20 +238,16 @@ ensure_credentials_sync (GoaProvider         *provider,
   gboolean ret;
   const gchar *email_address;
   const gchar *server;
-  const gchar *username;
+  gchar *username;
   gchar *password;
 
-  credentials = NULL;
   ews_client = NULL;
   password = NULL;
+  username = NULL;
 
   ret = FALSE;
 
-  credentials = goa_utils_lookup_credentials_sync (provider,
-                                                   object,
-                                                   cancellable,
-                                                   error);
-  if (credentials == NULL)
+  if (!goa_utils_get_credentials (provider, object, "password", &username, &password, cancellable, error))
     {
       if (error != NULL)
         {
@@ -300,34 +259,19 @@ ensure_credentials_sync (GoaProvider         *provider,
 
   account = goa_object_peek_account (object);
   email_address = goa_account_get_presentation_identity (account);
-  username = goa_account_get_identity (account);
-
-  if (!g_variant_lookup (credentials, "password", "s", &password))
-    {
-      if (error != NULL)
-        {
-          *error = g_error_new (GOA_ERROR,
-                                GOA_ERROR_NOT_AUTHORIZED,
-                                _("Did not find password with identity ‘%s’ in credentials"),
-                                username);
-        }
-      goto out;
-    }
-
   exchange = goa_object_peek_exchange (object);
   accept_ssl_errors = goa_exchange_get_accept_ssl_errors (exchange);
   server = goa_exchange_get_host (exchange);
 
   ews_client = goa_ews_client_new ();
-  ret = goa_ews_client_autodiscover_sync (ews_client,
-                                          email_address,
-                                          password,
-                                          username,
-                                          server,
-                                          accept_ssl_errors,
-                                          cancellable,
-                                          error);
-  if (!ret)
+  if (!goa_ews_client_autodiscover_sync (ews_client,
+                                         email_address,
+                                         password,
+                                         username,
+                                         server,
+                                         accept_ssl_errors,
+                                         cancellable,
+                                         error))
     {
       if (error != NULL)
         {
@@ -349,12 +293,12 @@ ensure_credentials_sync (GoaProvider         *provider,
   if (out_expires_in != NULL)
     *out_expires_in = 0;
 
+  ret = TRUE;
+
  out:
-  if (ews_client != NULL)
-    g_object_unref (ews_client);
+  g_clear_object (&ews_client);
+  g_free (username);
   g_free (password);
-  if (credentials != NULL)
-    g_variant_unref (credentials);
   return ret;
 }
 
@@ -539,7 +483,7 @@ create_account_details_ui (GoaProvider    *provider,
   if (new_account)
     {
       gtk_window_get_size (GTK_WINDOW (data->dialog), &width, NULL);
-      gtk_widget_set_size_request (GTK_WIDGET (data->dialog), width, -1);
+      gtk_window_set_default_size (GTK_WINDOW (data->dialog), width, -1);
     }
   else
     {
@@ -552,7 +496,7 @@ create_account_details_ui (GoaProvider    *provider,
       if (parent != NULL)
         {
           gtk_window_get_size (parent, &width, NULL);
-          gtk_widget_set_size_request (GTK_WIDGET (data->dialog), (gint) (0.5 * width), -1);
+          gtk_window_set_default_size (GTK_WINDOW (data->dialog), (gint) (0.5 * width), -1);
         }
     }
 }
@@ -754,11 +698,9 @@ add_account (GoaProvider    *provider,
     g_assert (ret != NULL);
 
   g_free (data.account_object_path);
-  if (data.loop != NULL)
-    g_main_loop_unref (data.loop);
+  g_clear_pointer (&data.loop, (GDestroyNotify) g_main_loop_unref);
   g_clear_object (&data.cancellable);
-  if (ews_client != NULL)
-    g_object_unref (ews_client);
+  g_clear_object (&ews_client);
   return ret;
 }
 
@@ -909,52 +851,16 @@ refresh_account (GoaProvider    *provider,
     g_propagate_error (error, data.error);
 
   gtk_widget_destroy (dialog);
-  if (data.loop != NULL)
-    g_main_loop_unref (data.loop);
+  g_clear_pointer (&data.loop, (GDestroyNotify) g_main_loop_unref);
   g_clear_object (&data.cancellable);
-  if (ews_client != NULL)
-    g_object_unref (ews_client);
+  g_clear_object (&ews_client);
   return ret;
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
 
 static void
-show_account (GoaProvider         *provider,
-              GoaClient           *client,
-              GoaObject           *object,
-              GtkBox              *vbox,
-              GtkGrid             *grid,
-              G_GNUC_UNUSED GtkGrid *dummy)
-{
-  gint row;
-
-  row = 0;
-
-  goa_util_add_account_info (grid, row++, object);
-
-  goa_util_add_row_switch_from_keyfile_with_blurb (grid, row++, object,
-                                                   /* Translators: This is a label for a series of
-                                                    * options switches. For example: “Use for Mail”. */
-                                                   _("Use for"),
-                                                   "mail-disabled",
-                                                   _("_Mail"));
-
-  goa_util_add_row_switch_from_keyfile_with_blurb (grid, row++, object,
-                                                   NULL,
-                                                   "calendar-disabled",
-                                                   _("Cale_ndar"));
-
-  goa_util_add_row_switch_from_keyfile_with_blurb (grid, row++, object,
-                                                   NULL,
-                                                   "contacts-disabled",
-                                                   _("_Contacts"));
-}
-
-/* ---------------------------------------------------------------------------------------------------- */
-
-static void
-goa_exchange_provider_init (GoaExchangeProvider *provider)
+goa_exchange_provider_init (GoaExchangeProvider *self)
 {
 }
 
@@ -971,7 +877,6 @@ goa_exchange_provider_class_init (GoaExchangeProviderClass *klass)
   provider_class->add_account                = add_account;
   provider_class->refresh_account            = refresh_account;
   provider_class->build_object               = build_object;
-  provider_class->show_account               = show_account;
   provider_class->ensure_credentials_sync    = ensure_credentials_sync;
 }
 
@@ -987,38 +892,28 @@ on_handle_get_password (GoaPasswordBased      *interface,
   GoaAccount *account;
   GoaProvider *provider;
   GError *error;
-  GVariant *credentials;
-  const gchar *identity;
+  const gchar *account_id;
+  const gchar *method_name;
+  const gchar *provider_type;
   gchar *password;
 
   /* TODO: maybe log what app is requesting access */
 
   password = NULL;
-  credentials = NULL;
 
   object = GOA_OBJECT (g_dbus_interface_get_object (G_DBUS_INTERFACE (interface)));
   account = goa_object_peek_account (object);
-  identity = goa_account_get_identity (account);
-  provider = goa_provider_get_for_provider_type (goa_account_get_provider_type (account));
+  account_id = goa_account_get_id (account);
+  provider_type = goa_account_get_provider_type (account);
+  method_name = g_dbus_method_invocation_get_method_name (invocation);
+  g_debug ("Handling %s for account (%s, %s)", method_name, provider_type, account_id);
+
+  provider = goa_provider_get_for_provider_type (provider_type);
 
   error = NULL;
-  credentials = goa_utils_lookup_credentials_sync (provider,
-                                                   object,
-                                                   NULL, /* GCancellable* */
-                                                   &error);
-  if (credentials == NULL)
+  if (!goa_utils_get_credentials (provider, object, "password", NULL, &password, NULL, &error))
     {
       g_dbus_method_invocation_take_error (invocation, error);
-      goto out;
-    }
-
-  if (!g_variant_lookup (credentials, "password", "s", &password))
-    {
-      g_dbus_method_invocation_return_error (invocation,
-                                             GOA_ERROR,
-                                             GOA_ERROR_FAILED, /* TODO: more specific */
-                                             _("Did not find password with identity ‘%s’ in credentials"),
-                                             identity);
       goto out;
     }
 
@@ -1026,8 +921,6 @@ on_handle_get_password (GoaPasswordBased      *interface,
 
  out:
   g_free (password);
-  if (credentials != NULL)
-    g_variant_unref (credentials);
   g_object_unref (provider);
   return TRUE; /* invocation was handled */
 }

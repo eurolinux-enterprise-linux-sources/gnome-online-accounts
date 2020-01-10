@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2013, 2014 Red Hat, Inc.
+ * Copyright (C) 2011, 2013, 2014, 2015, 2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,15 +28,8 @@
 #include "goasmtpauth.h"
 #include "goautils.h"
 
-/**
- * GoaImapSmtpProvider:
- *
- * The #GoaImapSmtpProvider structure contains only private data and should
- * only be accessed using the provided API.
- */
 struct _GoaImapSmtpProvider
 {
-  /*< private >*/
   GoaProvider parent_instance;
 };
 
@@ -46,14 +39,6 @@ struct _GoaImapSmtpProviderClass
 {
   GoaProviderClass parent_class;
 };
-
-/**
- * SECTION:goaimapsmtpprovider
- * @title: GoaImapSmtpProvider
- * @short_description: A provider for IMAP and SMTP servers
- *
- * #GoaImapSmtpProvider is used to access IMAP and SMTP mail servers.
- */
 
 G_DEFINE_TYPE_WITH_CODE (GoaImapSmtpProvider, goa_imap_smtp_provider, GOA_TYPE_PROVIDER,
                          goa_provider_ensure_extension_points_registered ();
@@ -307,7 +292,6 @@ ensure_credentials_sync (GoaProvider         *provider,
                          GError             **error)
 {
   GVariant *credentials;
-  GoaAccount *account;
   GoaMailAuth *imap_auth;
   GoaMailAuth *smtp_auth;
   GoaMailClient *mail_client;
@@ -316,7 +300,6 @@ ensure_credentials_sync (GoaProvider         *provider,
   gboolean imap_accept_ssl_errors;
   gboolean ret;
   gboolean smtp_accept_ssl_errors;
-  const gchar *identity;
   gchar *domain;
   gchar *email_address;
   gchar *imap_password;
@@ -341,11 +324,7 @@ ensure_credentials_sync (GoaProvider         *provider,
 
   ret = FALSE;
 
-  credentials = goa_utils_lookup_credentials_sync (provider,
-                                                   object,
-                                                   cancellable,
-                                                   error);
-  if (credentials == NULL)
+  if (!goa_utils_get_credentials (provider, object, "imap-password", NULL, &imap_password, cancellable, error))
     {
       if (error != NULL)
         {
@@ -355,27 +334,9 @@ ensure_credentials_sync (GoaProvider         *provider,
       goto out;
     }
 
-  account = goa_object_peek_account (object);
-  identity = goa_account_get_identity (account);
-
   mail_client = goa_mail_client_new ();
 
   /* IMAP */
-
-  if (!g_variant_lookup (credentials, "imap-password", "s", &imap_password))
-    {
-      if (error != NULL)
-        {
-          *error = g_error_new (GOA_ERROR,
-                                GOA_ERROR_NOT_AUTHORIZED,
-                                /* Translators: the first parameter is a field name. The second is
-                                 * a GOA account identifier. */
-                                _("Did not find %s with identity ‘%s’ in credentials"),
-                                "imap-password",
-                                identity);
-        }
-      goto out;
-    }
 
   imap_accept_ssl_errors = goa_util_lookup_keyfile_boolean (object, "ImapAcceptSslErrors");
   imap_server = goa_util_lookup_keyfile_string (object, "ImapHost");
@@ -383,15 +344,14 @@ ensure_credentials_sync (GoaProvider         *provider,
   imap_tls_type = get_tls_type_from_object (object, "ImapUseSsl", "ImapUseTls");
 
   imap_auth = goa_imap_auth_login_new (NULL, NULL, imap_username, imap_password);
-  ret = goa_mail_client_check_sync (mail_client,
-                                    imap_server,
-                                    imap_tls_type,
-                                    imap_accept_ssl_errors,
-                                    (imap_tls_type == GOA_TLS_TYPE_SSL) ? 993 : 143,
-                                    imap_auth,
-                                    cancellable,
-                                    error);
-  if (!ret)
+  if (!goa_mail_client_check_sync (mail_client,
+                                   imap_server,
+                                   imap_tls_type,
+                                   imap_accept_ssl_errors,
+                                   (imap_tls_type == GOA_TLS_TYPE_SSL) ? 993 : 143,
+                                   imap_auth,
+                                   cancellable,
+                                   error))
     {
       if (error != NULL)
         {
@@ -415,22 +375,14 @@ ensure_credentials_sync (GoaProvider         *provider,
   /* SMTP */
 
   if (!goa_util_lookup_keyfile_boolean (object, "SmtpUseAuth"))
-    {
-      ret = TRUE;
-      goto smtp_done;
-    }
+    goto smtp_done;
 
-  if (!g_variant_lookup (credentials, "smtp-password", "s", &smtp_password))
+  if (!goa_utils_get_credentials (provider, object, "smtp-password", NULL, &smtp_password, cancellable, error))
     {
       if (error != NULL)
         {
-          *error = g_error_new (GOA_ERROR,
-                                GOA_ERROR_NOT_AUTHORIZED,
-                                /* Translators: the first parameter is a field name. The second is
-                                 * a GOA account identifier. */
-                                _("Did not find %s with identity ‘%s’ in credentials"),
-                                "smtp-password",
-                                identity);
+          (*error)->domain = GOA_ERROR;
+          (*error)->code = GOA_ERROR_NOT_AUTHORIZED;
         }
       goto out;
     }
@@ -443,15 +395,14 @@ ensure_credentials_sync (GoaProvider         *provider,
   email_address = goa_util_lookup_keyfile_string (object, "EmailAddress");
   goa_utils_parse_email_address (email_address, NULL, &domain);
   smtp_auth = goa_smtp_auth_new (NULL, NULL, domain, smtp_username, smtp_password);
-  ret = goa_mail_client_check_sync (mail_client,
-                                    smtp_server,
-                                    smtp_tls_type,
-                                    smtp_accept_ssl_errors,
-                                    (smtp_tls_type == GOA_TLS_TYPE_SSL) ? 465 : 587,
-                                    smtp_auth,
-                                    cancellable,
-                                    error);
-  if (!ret)
+  if (!goa_mail_client_check_sync (mail_client,
+                                   smtp_server,
+                                   smtp_tls_type,
+                                   smtp_accept_ssl_errors,
+                                   (smtp_tls_type == GOA_TLS_TYPE_SSL) ? 465 : 587,
+                                   smtp_auth,
+                                   cancellable,
+                                   error))
     {
       if (error != NULL)
         {
@@ -477,6 +428,8 @@ ensure_credentials_sync (GoaProvider         *provider,
   if (out_expires_in != NULL)
     *out_expires_in = 0;
 
+  ret = TRUE;
+
  out:
   g_clear_object (&imap_auth);
   g_clear_object (&smtp_auth);
@@ -489,8 +442,7 @@ ensure_credentials_sync (GoaProvider         *provider,
   g_free (smtp_password);
   g_free (smtp_server);
   g_free (smtp_username);
-  if (credentials != NULL)
-    g_variant_unref (credentials);
+  g_clear_pointer (&credentials, (GDestroyNotify) g_variant_unref);
   return ret;
 }
 
@@ -662,6 +614,25 @@ create_encryption_ui (GtkWidget  *grid,
 }
 
 static void
+show_progress_ui (GtkContainer *container, gboolean progress)
+{
+  GList *children;
+  GList *l;
+
+  children = gtk_container_get_children (container);
+  for (l = children; l != NULL; l = l->next)
+    {
+      GtkWidget *widget = GTK_WIDGET (l->data);
+      gdouble opacity;
+
+      opacity = progress ? 1.0 : 0.0;
+      gtk_widget_set_opacity (widget, opacity);
+    }
+
+  g_list_free (children);
+}
+
+static void
 create_account_details_ui (GoaProvider    *provider,
                            GtkDialog      *dialog,
                            GtkBox         *vbox,
@@ -770,25 +741,24 @@ create_account_details_ui (GoaProvider    *provider,
   gtk_dialog_set_response_sensitive (data->dialog, GTK_RESPONSE_OK, FALSE);
 
   data->progress_grid = gtk_grid_new ();
-  gtk_widget_set_no_show_all (data->progress_grid, TRUE);
   gtk_orientable_set_orientation (GTK_ORIENTABLE (data->progress_grid), GTK_ORIENTATION_HORIZONTAL);
   gtk_grid_set_column_spacing (GTK_GRID (data->progress_grid), 3);
   gtk_container_add (GTK_CONTAINER (grid0), data->progress_grid);
 
   spinner = gtk_spinner_new ();
+  gtk_widget_set_opacity (spinner, 0.0);
   gtk_widget_set_size_request (spinner, 20, 20);
-  gtk_widget_show (spinner);
   gtk_spinner_start (GTK_SPINNER (spinner));
   gtk_container_add (GTK_CONTAINER (data->progress_grid), spinner);
 
   label = gtk_label_new (_("Connecting…"));
-  gtk_widget_show (label);
+  gtk_widget_set_opacity (label, 0.0);
   gtk_container_add (GTK_CONTAINER (data->progress_grid), label);
 
   if (new_account)
     {
       gtk_window_get_size (GTK_WINDOW (data->dialog), &width, NULL);
-      gtk_widget_set_size_request (GTK_WIDGET (data->dialog), width, -1);
+      gtk_window_set_default_size (GTK_WINDOW (data->dialog), width, -1);
     }
   else
     {
@@ -801,7 +771,7 @@ create_account_details_ui (GoaProvider    *provider,
       if (parent != NULL)
         {
           gtk_window_get_size (parent, &width, NULL);
-          gtk_widget_set_size_request (GTK_WIDGET (data->dialog), (gint) (0.5 * width), -1);
+          gtk_window_set_default_size (GTK_WINDOW (data->dialog), (gint) (0.5 * width), -1);
         }
     }
 }
@@ -866,7 +836,7 @@ dialog_response_cb (GtkDialog *dialog, gint response_id, gpointer user_data)
 }
 
 static void
-imap_check_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
+mail_check_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
   GoaMailClient *client = GOA_MAIL_CLIENT (source_object);
   AddAccountData *data = user_data;
@@ -874,7 +844,7 @@ imap_check_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
   goa_mail_client_check_finish (client, res, &data->error);
   g_main_loop_quit (data->loop);
   gtk_widget_set_sensitive (data->forward_button, TRUE);
-  gtk_widget_hide (data->progress_grid);
+  show_progress_ui (GTK_CONTAINER (data->progress_grid), FALSE);
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -982,6 +952,9 @@ add_account (GoaProvider    *provider,
       goto out;
     }
 
+  gtk_widget_set_no_show_all (data.cluebar, TRUE);
+  gtk_widget_hide (data.cluebar);
+
   encryption = gtk_combo_box_get_active_id (GTK_COMBO_BOX (data.imap_encryption));
   imap_tls_type = get_tls_type_from_string_id (encryption);
 
@@ -998,11 +971,11 @@ add_account (GoaProvider    *provider,
                          (imap_tls_type == GOA_TLS_TYPE_SSL) ? 993 : 143,
                          imap_auth,
                          data.cancellable,
-                         imap_check_cb,
+                         mail_check_cb,
                          &data);
 
   gtk_widget_set_sensitive (data.forward_button, FALSE);
-  gtk_widget_show (data.progress_grid);
+  show_progress_ui (GTK_CONTAINER (data.progress_grid), TRUE);
   g_main_loop_run (data.loop);
 
   if (g_cancellable_is_cancelled (data.cancellable))
@@ -1051,7 +1024,8 @@ add_account (GoaProvider    *provider,
 
   /* SMTP */
 
-  /* Re-use the password from the IMAP page */
+  /* Re-use the username and password from the IMAP page */
+  gtk_entry_set_text (GTK_ENTRY (data.smtp_username), imap_username);
   gtk_entry_set_text (GTK_ENTRY (data.smtp_password), imap_password);
 
   gtk_notebook_next_page (GTK_NOTEBOOK (data.notebook));
@@ -1070,6 +1044,9 @@ add_account (GoaProvider    *provider,
       goto out;
     }
 
+  gtk_widget_set_no_show_all (data.cluebar, TRUE);
+  gtk_widget_hide (data.cluebar);
+
   encryption = gtk_combo_box_get_active_id (GTK_COMBO_BOX (data.smtp_encryption));
   smtp_tls_type = get_tls_type_from_string_id (encryption);
 
@@ -1087,11 +1064,11 @@ add_account (GoaProvider    *provider,
                          (smtp_tls_type == GOA_TLS_TYPE_SSL) ? 465 : 587,
                          smtp_auth,
                          data.cancellable,
-                         imap_check_cb,
+                         mail_check_cb,
                          &data);
 
   gtk_widget_set_sensitive (data.forward_button, FALSE);
-  gtk_widget_show (data.progress_grid);
+  show_progress_ui (GTK_CONTAINER (data.progress_grid), TRUE);
   g_main_loop_run (data.loop);
 
   smtp_use_auth = goa_mail_auth_is_needed (smtp_auth);
@@ -1135,6 +1112,7 @@ add_account (GoaProvider    *provider,
       gtk_widget_show_all (data.cluebar);
 
       g_clear_object (&smtp_auth);
+      g_clear_pointer (&domain, g_free);
       goto smtp_again;
     }
 
@@ -1203,8 +1181,7 @@ add_account (GoaProvider    *provider,
 
   g_free (domain);
   g_free (data.account_object_path);
-  if (data.loop != NULL)
-    g_main_loop_unref (data.loop);
+  g_clear_pointer (&data.loop, (GDestroyNotify) g_main_loop_unref);
   g_clear_object (&data.cancellable);
   g_clear_object (&imap_auth);
   g_clear_object (&smtp_auth);
@@ -1334,6 +1311,9 @@ refresh_account (GoaProvider    *provider,
       goto out;
     }
 
+  gtk_widget_set_no_show_all (data.cluebar, TRUE);
+  gtk_widget_hide (data.cluebar);
+
   imap_password = gtk_entry_get_text (GTK_ENTRY (data.imap_password));
   g_cancellable_reset (data.cancellable);
   imap_auth = goa_imap_auth_login_new (NULL, NULL, imap_username, imap_password);
@@ -1344,11 +1324,11 @@ refresh_account (GoaProvider    *provider,
                          (imap_tls_type == GOA_TLS_TYPE_SSL) ? 993 : 143,
                          imap_auth,
                          data.cancellable,
-                         imap_check_cb,
+                         mail_check_cb,
                          &data);
 
   gtk_widget_set_sensitive (data.forward_button, FALSE);
-  gtk_widget_show (data.progress_grid);
+  show_progress_ui (GTK_CONTAINER (data.progress_grid), TRUE);
   g_main_loop_run (data.loop);
 
   if (g_cancellable_is_cancelled (data.cancellable))
@@ -1407,6 +1387,9 @@ refresh_account (GoaProvider    *provider,
       goto out;
     }
 
+  gtk_widget_set_no_show_all (data.cluebar, TRUE);
+  gtk_widget_hide (data.cluebar);
+
   smtp_password = gtk_entry_get_text (GTK_ENTRY (data.smtp_password));
   g_cancellable_reset (data.cancellable);
   goa_utils_parse_email_address (email_address, NULL, &domain);
@@ -1418,11 +1401,11 @@ refresh_account (GoaProvider    *provider,
                          (smtp_tls_type == GOA_TLS_TYPE_SSL) ? 465 : 587,
                          smtp_auth,
                          data.cancellable,
-                         imap_check_cb,
+                         mail_check_cb,
                          &data);
 
   gtk_widget_set_sensitive (data.forward_button, FALSE);
-  gtk_widget_show (data.progress_grid);
+  show_progress_ui (GTK_CONTAINER (data.progress_grid), TRUE);
   g_main_loop_run (data.loop);
 
   if (g_cancellable_is_cancelled (data.cancellable))
@@ -1452,6 +1435,7 @@ refresh_account (GoaProvider    *provider,
       gtk_widget_show_all (data.cluebar);
 
       g_clear_object (&smtp_auth);
+      g_clear_pointer (&domain, g_free);
       goto smtp_again;
     }
 
@@ -1488,8 +1472,7 @@ refresh_account (GoaProvider    *provider,
   g_free (imap_username);
   g_free (smtp_server);
   g_free (smtp_username);
-  if (data.loop != NULL)
-    g_main_loop_unref (data.loop);
+  g_clear_pointer (&data.loop, (GDestroyNotify) g_main_loop_unref);
   g_clear_object (&data.cancellable);
   g_clear_object (&imap_auth);
   g_clear_object (&smtp_auth);
@@ -1513,10 +1496,10 @@ show_label (GtkWidget *grid, gint row, const gchar *left, const gchar *right)
   gtk_grid_attach (GTK_GRID (grid), label, 0, row, 1, 1);
 
   label = gtk_label_new (right);
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
   gtk_label_set_max_width_chars (GTK_LABEL (label), 24);
   gtk_label_set_width_chars (GTK_LABEL (label), 24);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0);
   gtk_grid_attach (GTK_GRID (grid), label, 1, row, 3, 1);
 }
 
@@ -1525,16 +1508,25 @@ show_account (GoaProvider         *provider,
               GoaClient           *client,
               GoaObject           *object,
               GtkBox              *vbox,
-              GtkGrid             *grid,
-              G_GNUC_UNUSED GtkGrid *dummy)
+              G_GNUC_UNUSED GtkGrid *dummy1,
+              G_GNUC_UNUSED GtkGrid *dummy2)
 {
+  GtkWidget *grid;
   const gchar *username;
   gchar *value_str;
   gchar *value_str_1;
   gint row;
 
   row = 0;
-  goa_util_add_account_info (grid, row++, object);
+
+  grid = gtk_grid_new ();
+  gtk_widget_set_halign (grid, GTK_ALIGN_CENTER);
+  gtk_widget_set_hexpand (grid, TRUE);
+  gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
+  gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
+  gtk_box_pack_start (vbox, grid, FALSE, TRUE, 0);
+
+  goa_utils_account_add_header (object, GTK_GRID (grid), row++);
 
   username = g_get_user_name ();
 
@@ -1554,6 +1546,7 @@ show_account (GoaProvider         *provider,
 
       tmp = g_strconcat (value_str_1, "@", value_str, NULL);
       show_label (GTK_WIDGET (grid), row++, _("IMAP"), tmp);
+      g_free (tmp);
     }
   else
       show_label (GTK_WIDGET (grid), row++, _("IMAP"), value_str);
@@ -1568,11 +1561,14 @@ show_account (GoaProvider         *provider,
 
       tmp = g_strconcat (value_str_1, "@", value_str, NULL);
       show_label (GTK_WIDGET (grid), row++, _("SMTP"), tmp);
+      g_free (tmp);
     }
   else
       show_label (GTK_WIDGET (grid), row++, _("SMTP"), value_str);
   g_free (value_str_1);
   g_free (value_str);
+
+  goa_utils_account_add_attention_needed (client, object, provider, vbox);
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -1612,41 +1608,28 @@ on_handle_get_password (GoaPasswordBased      *interface,
   GoaAccount *account;
   GoaProvider *provider;
   GError *error;
-  GVariant *credentials;
-  const gchar *identity;
+  const gchar *account_id;
+  const gchar *method_name;
+  const gchar *provider_type;
   gchar *password;
 
   /* TODO: maybe log what app is requesting access */
 
   password = NULL;
-  credentials = NULL;
 
   object = GOA_OBJECT (g_dbus_interface_get_object (G_DBUS_INTERFACE (interface)));
   account = goa_object_peek_account (object);
-  identity = goa_account_get_identity (account);
-  provider = goa_provider_get_for_provider_type (goa_account_get_provider_type (account));
+  account_id = goa_account_get_id (account);
+  provider_type = goa_account_get_provider_type (account);
+  method_name = g_dbus_method_invocation_get_method_name (invocation);
+  g_debug ("Handling %s for account (%s, %s)", method_name, provider_type, account_id);
+
+  provider = goa_provider_get_for_provider_type (provider_type);
 
   error = NULL;
-  credentials = goa_utils_lookup_credentials_sync (provider,
-                                                   object,
-                                                   NULL, /* GCancellable* */
-                                                   &error);
-  if (credentials == NULL)
+  if (!goa_utils_get_credentials (provider, object, id, NULL, &password, NULL, &error))
     {
       g_dbus_method_invocation_take_error (invocation, error);
-      goto out;
-    }
-
-  if (!g_variant_lookup (credentials, id, "s", &password))
-    {
-      g_dbus_method_invocation_return_error (invocation,
-                                             GOA_ERROR,
-                                             GOA_ERROR_FAILED, /* TODO: more specific */
-                                             /* Translators: the first parameter is a field name.
-                                              * The second is a GOA account identifier. */
-                                             "Did not find %s with identity ‘%s’ in credentials",
-                                             id,
-                                             identity);
       goto out;
     }
 
@@ -1654,8 +1637,6 @@ on_handle_get_password (GoaPasswordBased      *interface,
 
  out:
   g_free (password);
-  if (credentials != NULL)
-    g_variant_unref (credentials);
   g_object_unref (provider);
   return TRUE; /* invocation was handled */
 }

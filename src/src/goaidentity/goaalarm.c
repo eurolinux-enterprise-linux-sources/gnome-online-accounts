@@ -24,11 +24,11 @@
 #include <sys/timerfd.h>
 #endif
 
+#include <errno.h>
 #include <unistd.h>
 #include <string.h>
 
 #include <glib.h>
-#include <glib/gi18n.h>
 #include <gio/gio.h>
 #include <gio/gunixinputstream.h>
 
@@ -324,7 +324,7 @@ schedule_wakeups_with_timerfd (GoaAlarm *self)
 
   if (fd < 0)
     {
-      g_debug ("GoaAlarm: could not create timer fd: %m");
+      g_debug ("GoaAlarm: could not create timer fd: %s", strerror (errno));
       return FALSE;
     }
 
@@ -337,7 +337,7 @@ schedule_wakeups_with_timerfd (GoaAlarm *self)
 
   if (result < 0)
     {
-      g_debug ("GoaAlarm: could not set timer: %m");
+      g_debug ("GoaAlarm: could not set timer: %s", strerror (errno));
       return FALSE;
     }
 

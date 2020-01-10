@@ -19,7 +19,7 @@
 #include "config.h"
 #include "goaidentityservice.h"
 
-#include <glib/gi18n-lib.h>
+#include <glib/gi18n.h>
 #include <gmodule.h>
 
 #include <glib.h>
@@ -47,11 +47,7 @@ struct _GoaIdentityServicePrivate
   GHashTable               *key_holders;
   GHashTable               *pending_temporary_account_results;
 
-  /* FIXME: This is a little ucky, since the goa service
-   * is in process, we should able to use direct calls.
-   */
   GoaClient                *client;
-  GoaManager               *accounts_manager;
 };
 
 static void identity_service_manager_interface_init (GoaIdentityServiceManagerIface *interface);
@@ -60,6 +56,7 @@ static void
 sign_in (GoaIdentityService     *self,
          const char             *identifier,
          gconstpointer           initial_password,
+         const char             *preauth_source,
          GoaIdentitySignInFlags  flags,
          GCancellable           *cancellable,
          GAsyncReadyCallback     callback,
@@ -144,7 +141,7 @@ unexport_identity (GoaIdentityService *self,
 static void
 on_sign_in_done (GoaIdentityService *self,
                  GAsyncResult       *result,
-                 GSimpleAsyncResult *operation_result)
+                 GTask              *operation_result)
 {
   GoaIdentity      *identity;
   char             *object_path;
@@ -153,8 +150,7 @@ on_sign_in_done (GoaIdentityService *self,
   error = NULL;
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result), &error))
     {
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
+      g_task_return_error (operation_result, error);
       g_object_unref (operation_result);
       return;
     }
@@ -162,14 +158,10 @@ on_sign_in_done (GoaIdentityService *self,
   identity = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (result));
   object_path = export_identity (self, identity);
 
-  g_simple_async_result_set_op_res_gpointer (operation_result,
-                                             object_path,
-                                             (GDestroyNotify)
-                                             g_free);
+  g_task_return_pointer (operation_result, object_path, (GDestroyNotify) g_free);
 
   /* User is signed in, so we're mostly done
    */
-  g_simple_async_result_complete_in_idle (operation_result);
   g_object_unref (operation_result);
 }
 
@@ -292,27 +284,26 @@ on_sign_in_handled (GoaIdentityService    *self,
                     GDBusMethodInvocation *invocation)
 {
   GError *error = NULL;
+  char *object_path;
 
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result), &error))
-    {
-      g_dbus_method_invocation_take_error (invocation, error);
-    }
+  object_path = g_task_propagate_pointer (G_TASK (result), &error);
+  if (error != NULL)
+    g_dbus_method_invocation_take_error (invocation, error);
   else
-    {
-      const char *object_path;
+    goa_identity_service_manager_complete_sign_in (GOA_IDENTITY_SERVICE_MANAGER (self),
+                                                   invocation,
+                                                   object_path);
 
-      object_path = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (result));
-      goa_identity_service_manager_complete_sign_in (GOA_IDENTITY_SERVICE_MANAGER (self),
-                                                     invocation,
-                                                     object_path);
-    }
+  g_free (object_path);
+  g_object_unref (invocation);
 }
 
 static void
 read_sign_in_details (GoaIdentityServiceManager  *manager,
                       GVariant                   *details,
                       GoaIdentitySignInFlags     *flags,
-                      char                      **secret_key)
+                      char                      **secret_key,
+                      char                      **preauth_source)
 {
   GVariantIter  iter;
   char          *key;
@@ -324,6 +315,8 @@ read_sign_in_details (GoaIdentityServiceManager  *manager,
     {
       if (g_strcmp0 (key, "initial-password") == 0)
         *secret_key = g_strdup (value);
+      else if (g_strcmp0 (key, "preauthentication-source") == 0)
+        *preauth_source = g_strdup (value);
       else if (g_strcmp0 (key, "disallow-renewal") == 0
                && g_strcmp0 (value, "true") == 0)
         *flags |= GOA_IDENTITY_SIGN_IN_FLAGS_DISALLOW_RENEWAL;
@@ -343,23 +336,30 @@ goa_identity_service_handle_sign_in (GoaIdentityServiceManager *manager,
                                      GVariant                  *details)
 {
   GoaIdentityService     *self = GOA_IDENTITY_SERVICE (manager);
-  GSimpleAsyncResult     *operation_result;
+  GTask                  *operation_result;
   GoaIdentitySignInFlags  flags;
   char                   *secret_key;
+  char                   *preauth_source;
   gconstpointer           initial_password;
   GCancellable           *cancellable;
 
   secret_key = NULL;
+  preauth_source = NULL;
   initial_password = NULL;
 
-  read_sign_in_details (manager, details, &flags, &secret_key);
+  read_sign_in_details (manager, details, &flags, &secret_key, &preauth_source);
 
   if (secret_key != NULL)
     {
       GcrSecretExchange *secret_exchange;
+      gchar *key;
 
-      secret_exchange = g_hash_table_lookup (self->priv->key_holders,
-                                             g_dbus_method_invocation_get_sender (invocation));
+      key = g_strdup_printf ("%s %s",
+                             g_dbus_method_invocation_get_sender (invocation),
+                             identifier);
+
+      secret_exchange = g_hash_table_lookup (self->priv->key_holders, key);
+      g_free (key);
 
       if (secret_exchange == NULL)
         {
@@ -377,15 +377,11 @@ goa_identity_service_handle_sign_in (GoaIdentityServiceManager *manager,
       initial_password = gcr_secret_exchange_get_secret (secret_exchange, NULL);
     }
 
-  operation_result = g_simple_async_result_new (G_OBJECT (self),
-                                                (GAsyncReadyCallback)
-                                                on_sign_in_handled,
-                                                g_object_ref (invocation),
-                                                g_strdup (identifier));
   cancellable = g_cancellable_new ();
-  g_object_set_data (G_OBJECT (operation_result),
-                     "cancellable",
-                     cancellable);
+  operation_result = g_task_new (self,
+                                 cancellable,
+                                 (GAsyncReadyCallback) on_sign_in_handled,
+                                 g_object_ref (invocation));
   g_object_set_data (G_OBJECT (operation_result),
                      "initial-password",
                      (gpointer)
@@ -397,12 +393,14 @@ goa_identity_service_handle_sign_in (GoaIdentityServiceManager *manager,
   sign_in (self,
            identifier,
            initial_password,
+           preauth_source,
            flags,
            cancellable,
            (GAsyncReadyCallback)
            on_sign_in_done,
            operation_result);
 
+  g_free (preauth_source);
   g_object_unref (cancellable);
 
   return TRUE;
@@ -421,6 +419,8 @@ on_sign_out_handled (GoaIdentityService    *self,
   else
     goa_identity_service_manager_complete_sign_out (GOA_IDENTITY_SERVICE_MANAGER (self),
                                                     invocation);
+
+  g_object_unref (invocation);
 }
 
 static void
@@ -432,7 +432,7 @@ on_identity_signed_out (GoaIdentityManager *manager,
   GError             *error;
   GoaIdentity        *identity;
   const char         *identifier;
-  GoaObject          *object;
+  GoaObject          *object = NULL;
 
   error = NULL;
   goa_identity_manager_sign_identity_out_finish (manager, result, &error);
@@ -454,6 +454,8 @@ on_identity_signed_out (GoaIdentityManager *manager,
     ensure_account_credentials (self, object);
 
   g_simple_async_result_complete_in_idle (operation_result);
+
+  g_clear_object (&object);
   g_object_unref (operation_result);
 }
 
@@ -463,7 +465,7 @@ on_got_identity_for_sign_out (GoaIdentityManager *manager,
                               GSimpleAsyncResult *operation_result)
 {
   GError *error;
-  GoaIdentity *identity;
+  GoaIdentity *identity = NULL;
 
   error = NULL;
   identity = goa_identity_manager_get_identity_finish (manager, result, &error);
@@ -472,7 +474,9 @@ on_got_identity_for_sign_out (GoaIdentityManager *manager,
     {
       g_debug ("GoaIdentityService: Identity could not be signed out: %s",
                error->message);
-      return;
+      g_simple_async_result_take_error (operation_result, error);
+      g_simple_async_result_complete_in_idle (operation_result);
+      goto out;
     }
 
   g_object_set_data_full (G_OBJECT (operation_result),
@@ -486,7 +490,11 @@ on_got_identity_for_sign_out (GoaIdentityManager *manager,
                                           NULL,
                                           (GAsyncReadyCallback)
                                           on_identity_signed_out,
-                                          operation_result);
+                                          g_object_ref (operation_result));
+
+ out:
+  g_clear_object (&identity);
+  g_object_unref (operation_result);
 }
 
 static gboolean
@@ -535,6 +543,8 @@ on_secret_keys_exchanged (GoaIdentityService *self,
                                                                   invocation,
                                                                   output_key);
     }
+
+  g_object_unref (invocation);
 }
 
 static void
@@ -545,10 +555,12 @@ on_caller_watched (GDBusConnection    *connection,
 {
   GoaIdentityService    *self;
   GcrSecretExchange     *secret_exchange;
+  const char            *identifier;
   const char            *input_key;
   char                  *output_key;
 
   self = GOA_IDENTITY_SERVICE (g_async_result_get_source_object (G_ASYNC_RESULT (operation_result)));
+  identifier = g_object_get_data (G_OBJECT (operation_result), "identifier");
   input_key = g_object_get_data (G_OBJECT (operation_result), "input-key");
 
   secret_exchange = gcr_secret_exchange_new (NULL);
@@ -561,12 +573,11 @@ on_caller_watched (GDBusConnection    *connection,
                                        GCR_ERROR_UNRECOGNIZED,
                                        _("Initial secret key is invalid"));
       g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
       return;
     }
 
   g_hash_table_insert (self->priv->key_holders,
-                       g_strdup (name_owner),
+                       g_strdup_printf ("%s %s", name_owner, identifier),
                        secret_exchange);
 
   output_key = gcr_secret_exchange_send (secret_exchange, NULL, 0);
@@ -599,6 +610,7 @@ on_caller_vanished (GDBusConnection    *connection,
 static gboolean
 goa_identity_service_handle_exchange_secret_keys (GoaIdentityServiceManager *manager,
                                                   GDBusMethodInvocation     *invocation,
+                                                  const char                *identifier,
                                                   const char                *input_key)
 {
   GoaIdentityService     *self = GOA_IDENTITY_SERVICE (manager);
@@ -616,6 +628,11 @@ goa_identity_service_handle_exchange_secret_keys (GoaIdentityServiceManager *man
   g_simple_async_result_set_check_cancellable (operation_result, cancellable);
   g_object_set_data (G_OBJECT (operation_result), "cancellable", cancellable);
 
+  g_object_set_data_full (G_OBJECT (operation_result),
+                          "identifier",
+                          g_strdup (identifier),
+                          (GDestroyNotify)
+                          g_free);
   g_object_set_data_full (G_OBJECT (operation_result),
                           "input-key",
                           g_strdup (input_key),
@@ -636,6 +653,7 @@ goa_identity_service_handle_exchange_secret_keys (GoaIdentityServiceManager *man
                        g_strdup (sender),
                        GUINT_TO_POINTER (watch_id));
 
+  g_object_unref (operation_result);
   return TRUE;
 }
 
@@ -729,19 +747,19 @@ on_identity_needs_renewal (GoaIdentityManager *identity_manager,
                            GoaIdentityService *self)
 {
   const char *principal;
-  GoaObject  *object;
+  GoaObject  *object = NULL;
 
   principal = goa_identity_get_identifier (identity);
 
-  g_debug ("GoaIdentityService: identity %s needs renewal", principal);
-
   object = find_object_with_principal (self, principal, TRUE);
 
-  if (object != NULL)
+  if (object != NULL && should_ignore_object (self, object))
     {
-      should_ignore_object (self, object);
-      return;
+      g_debug ("GoaIdentityService: ignoring identity %s that says it needs renewal", principal);
+      goto out;
     }
+
+  g_debug ("GoaIdentityService: identity %s needs renewal", principal);
 
   goa_identity_manager_renew_identity (GOA_IDENTITY_MANAGER
                                        (self->priv->identity_manager),
@@ -750,6 +768,9 @@ on_identity_needs_renewal (GoaIdentityManager *identity_manager,
                                        (GAsyncReadyCallback)
                                        on_identity_renewed,
                                        self);
+
+ out:
+  g_clear_object (&object);
 }
 
 static void
@@ -771,6 +792,7 @@ on_identity_signed_in (GoaIdentityManager *manager,
     }
   else
     {
+      g_debug ("GoaIdentityService: identity signed in");
       g_simple_async_result_set_op_res_gpointer (operation_result,
                                                  g_object_ref (identity),
                                                  (GDestroyNotify)
@@ -778,8 +800,6 @@ on_identity_signed_in (GoaIdentityManager *manager,
     }
   g_simple_async_result_complete_in_idle (operation_result);
   g_object_unref (operation_result);
-
-  g_debug ("GoaIdentityService: identity signed in");
 }
 
 static void
@@ -868,11 +888,12 @@ add_temporary_account (GoaIdentityService *self,
                        GoaIdentity        *identity)
 {
   char               *realm;
+  char               *preauth_source;
   const char         *principal;
-  char               *principal_for_display;
   GSimpleAsyncResult *operation_result;
   GVariantBuilder     credentials;
   GVariantBuilder     details;
+  GoaManager         *manager;
   GoaObject *object;
 
   principal = goa_identity_get_identifier (identity);
@@ -890,16 +911,17 @@ add_temporary_account (GoaIdentityService *self,
 
   /* If there's no account for this identity then create a temporary one.
    */
-  principal_for_display = goa_identity_manager_name_identity (self->priv->identity_manager,
-                                                              identity);
 
   realm = goa_kerberos_identity_get_realm_name (GOA_KERBEROS_IDENTITY (identity));
+  preauth_source = goa_kerberos_identity_get_preauthentication_source (GOA_KERBEROS_IDENTITY (identity));
 
   g_variant_builder_init (&credentials, G_VARIANT_TYPE_VARDICT);
 
   g_variant_builder_init (&details, G_VARIANT_TYPE ("a{ss}"));
   g_variant_builder_add (&details, "{ss}", "Realm", realm);
   g_variant_builder_add (&details, "{ss}", "IsTemporary", "true");
+  if (preauth_source != NULL)
+    g_variant_builder_add (&details, "{ss}", "PreauthenticationSource", preauth_source);
   g_variant_builder_add (&details, "{ss}", "TicketingEnabled", "true");
 
 
@@ -914,10 +936,11 @@ add_temporary_account (GoaIdentityService *self,
                        g_strdup (principal),
                        g_object_ref (operation_result));
 
-  goa_manager_call_add_account (self->priv->accounts_manager,
+  manager = goa_client_get_manager (self->priv->client);
+  goa_manager_call_add_account (manager,
                                 "kerberos",
                                 principal,
-                                principal_for_display,
+                                principal,
                                 g_variant_builder_end (&credentials),
                                 g_variant_builder_end (&details),
                                 NULL,
@@ -925,7 +948,7 @@ add_temporary_account (GoaIdentityService *self,
                                 on_account_added,
                                 operation_result);
   g_free (realm);
-  g_free (principal_for_display);
+  g_free (preauth_source);
 }
 
 static void
@@ -944,6 +967,8 @@ on_identity_added (GoaIdentityManager *identity_manager,
 
   if (object == NULL)
     add_temporary_account (self, identity);
+
+  g_clear_object (&object);
 }
 
 static void
@@ -961,6 +986,7 @@ on_identity_removed (GoaIdentityManager *identity_manager,
     ensure_account_credentials (self, object);
 
   unexport_identity (self, identity);
+  g_clear_object (&object);
 }
 
 static void
@@ -978,6 +1004,8 @@ on_identity_refreshed (GoaIdentityManager *identity_manager,
     add_temporary_account (self, identity);
   else
     ensure_account_credentials (self, object);
+
+  g_clear_object (&object);
 }
 
 typedef struct
@@ -1261,6 +1289,7 @@ static void
 sign_in (GoaIdentityService     *self,
          const char             *identifier,
          gconstpointer           initial_password,
+         const char             *preauth_source,
          GoaIdentitySignInFlags  flags,
          GCancellable           *cancellable,
          GAsyncReadyCallback     callback,
@@ -1288,6 +1317,7 @@ sign_in (GoaIdentityService     *self,
   goa_identity_manager_sign_identity_in (self->priv->identity_manager,
                                          identifier,
                                          initial_password,
+                                         preauth_source,
                                          flags,
                                          (GoaIdentityInquiryFunc)
                                          on_identity_inquiry,
@@ -1316,6 +1346,7 @@ on_identity_expiring (GoaIdentityManager *identity_manager,
     return;
 
   ensure_account_credentials (self, object);
+  g_clear_object (&object);
 }
 
 static void
@@ -1336,6 +1367,7 @@ on_identity_expired (GoaIdentityManager *identity_manager,
     return;
 
   ensure_account_credentials (self, object);
+  g_clear_object (&object);
 }
 
 static void
@@ -1509,44 +1541,6 @@ on_account_interface_removed (GDBusObjectManager *manager,
 }
 
 static void
-on_account_removed (GoaClient          *client,
-                    GoaObject          *object,
-                    GoaIdentityService *self)
-{
-  GSimpleAsyncResult *result;
-  GoaAccount         *account;
-  const char         *provider_type;
-  const char         *account_identity;
-
-  account = goa_object_peek_account (object);
-
-  if (account == NULL)
-    return;
-
-  provider_type = goa_account_get_provider_type (account);
-
-  if (g_strcmp0 (provider_type, "kerberos") != 0)
-    return;
-
-  account_identity = goa_account_get_identity (account);
-
-  g_debug ("Kerberos account %s removed and should now be signed out", account_identity);
-
-  result = g_simple_async_result_new (G_OBJECT (self),
-                                      (GAsyncReadyCallback)
-                                      on_sign_out_for_account_change_done,
-                                      NULL,
-                                      on_account_removed);
-
-  goa_identity_manager_get_identity (self->priv->identity_manager,
-                                     account_identity,
-                                     NULL,
-                                     (GAsyncReadyCallback)
-                                     on_got_identity_for_sign_out,
-                                     result);
-}
-
-static void
 on_identities_listed (GoaIdentityManager *manager,
                       GAsyncResult       *result,
                       GoaIdentityService *self)
@@ -1577,11 +1571,6 @@ on_identities_listed (GoaIdentityManager *manager,
   g_signal_connect (G_OBJECT (self->priv->identity_manager),
                     "identity-expired",
                     G_CALLBACK (on_identity_expired),
-                    self);
-
-  g_signal_connect (G_OBJECT (self->priv->client),
-                    "account-removed",
-                    G_CALLBACK (on_account_removed),
                     self);
 
   identities = goa_identity_manager_list_identities_finish (manager, result, &error);
@@ -1665,6 +1654,8 @@ ensure_credentials_for_accounts (GoaIdentityService *self)
 
       ensure_account_credentials (self, object);
     }
+
+  g_list_free_full (accounts, g_object_unref);
 }
 
 static void
@@ -1683,8 +1674,6 @@ on_got_client (GoaClient          *client,
       g_warning ("Could not create client: %s", error->message);
       goto out;
     }
-
-  self->priv->accounts_manager = goa_client_get_manager (client);
 
   self->priv->identity_manager = goa_kerberos_identity_manager_new (NULL, &error);
 
@@ -1742,7 +1731,7 @@ on_name_lost (GDBusConnection    *connection,
               GoaIdentityService *self)
 {
   if (g_strcmp0 (name, "org.gnome.Identity") == 0)
-    g_debug ("GoaIdentityService: Lost name org.gnome.Identity");
+    raise (SIGTERM);
 }
 
 gboolean

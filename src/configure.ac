@@ -1,5 +1,5 @@
 m4_define([goa_major_version], [3])
-m4_define([goa_minor_version], [14])
+m4_define([goa_minor_version], [22])
 m4_define([goa_micro_version], [5])
 m4_define([goa_nano_version], [0])
 
@@ -21,10 +21,14 @@ AC_CONFIG_HEADERS([config.h])
 
 AM_MAINTAINER_MODE([enable])
 
+GNOME_DEBUG_CHECK
+
 AC_PROG_CC
 AC_ISC_POSIX
 AC_HEADER_STDC
 AC_PROG_LIBTOOL
+
+PKG_PROG_PKG_CONFIG(0.16)
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
@@ -62,7 +66,6 @@ AC_DEFINE(GOA_MICRO_VERSION,
 #
 
 GLIB_GSETTINGS
-GNOME_DEBUG_CHECK
 GNOME_COMPILE_WARNINGS([maximum])
 GNOME_MAINTAINER_MODE_DEFINES
 
@@ -82,60 +85,90 @@ GTK_DOC_CHECK([1.3])
 # Libraries
 #
 
-PKG_CHECK_MODULES(GLIB, [glib-2.0 gio-2.0 gio-unix-2.0 >= 2.35])
+PKG_CHECK_MODULES(GLIB, [glib-2.0 gio-2.0 gio-unix-2.0 >= 2.40])
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
-PKG_CHECK_MODULES(GTK, [gtk+-3.0 >= 3.11.1])
-AC_SUBST(GTK_CFLAGS)
-AC_SUBST(GTK_LIBS)
-
-PKG_CHECK_MODULES(WEBKIT_GTK, [webkitgtk-3.0 >= 2.1.90])
-AC_SUBST(WEBKIT_GTK_CFLAGS)
-AC_SUBST(WEBKIT_GTK_LIBS)
-
-PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4 >= 2.41])
-AC_SUBST(LIBSOUP_CFLAGS)
-AC_SUBST(LIBSOUP_LIBS)
-
-PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0])
-AC_SUBST(JSON_GLIB_CFLAGS)
-AC_SUBST(JSON_GLIB_LIBS)
-
-PKG_CHECK_MODULES(REST, [rest-0.7])
-AC_SUBST(REST_CFLAGS)
-AC_SUBST(REST_LIBS)
-
-PKG_CHECK_MODULES(SECRET, [libsecret-1])
-AC_SUBST(SECRET_CFLAGS)
-AC_SUBST(SECRET_LIBS)
-
-PKG_CHECK_MODULES(LIBXML, [libxml-2.0])
-AC_SUBST(LIBXML_CFLAGS)
-AC_SUBST(LIBXML_LIBS)
-
 GOBJECT_INTROSPECTION_CHECK([0.6.2])
+VAPIGEN_CHECK()
 
-# telepathy-account-widgets
-prev_top_build_prefix=$ac_top_build_prefix
-prev_ac_configure_args=$ac_configure_args
-ac_configure_args="$ac_configure_args --with-cheese=no --disable-gudev"
-# install the data together with the rest of GOA's data
-ac_configure_args="$ac_configure_args --with-pkgdatadir=${datadir}/gnome-online-accounts"
-# GOA ships its icons directly in ${datadir}/icons (usually /usr/share/icons/) and not
-# in its own data directory
-ac_configure_args="$ac_configure_args --with-icondir=${datadir}/icons"
-# Change the name of tpaw's .mo files to avoid conflicts with other packages using tp-aw
-ac_configure_args="$ac_configure_args --with-gettext-package=gnome-online-accounts-tpaw"
-# Disable the installation of the GSettings schema to avoid multiple components shipping
-# the same file. See https://bugzilla.gnome.org/show_bug.cgi?id=706803
-ac_configure_args="$ac_configure_args --disable-schemas-compile --disable-settings"
-AX_CONFIG_DIR([telepathy-account-widgets])
-ac_top_build_prefix=$prev_top_build_prefix
-ac_configure_args=$prev_ac_configure_args
+# Telepathy
+AC_DEFINE(GOA_TELEPATHY_NAME, ["telepathy"], [ProviderType and extension point name])
+AC_ARG_ENABLE([telepathy],
+              [AS_HELP_STRING([--enable-telepathy],
+              [Enable Telepathy IM provider])],
+              [],
+              [enable_telepathy=yes])
+if test "$enable_telepathy" != "no"; then
+  AC_DEFINE(GOA_TELEPATHY_ENABLED, 1, [Enable Telepathy data provider])
+fi
+AM_CONDITIONAL(BUILD_TELEPATHY, [test x$enable_telepathy != xno])
 
-export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:"$ac_top_build_prefix"telepathy-account-widgets/
-PKG_CHECK_MODULES(TPAW, telepathy-account-widgets)
+AC_ARG_ENABLE([backend],
+              [AS_HELP_STRING([--enable-backend],
+              [Enable goabackend library])],
+	      [],
+	      [enable_backend=yes])
+AM_CONDITIONAL(BUILD_BACKEND, [test x$enable_backend != xno])
+
+if test "$enable_backend" != "no"; then
+  AC_DEFINE(GOA_BACKEND_ENABLED, 1, [Enable goabackend library])
+
+  PKG_CHECK_MODULES(GTK, [gtk+-3.0 >= 3.19.12])
+  AC_SUBST(GTK_CFLAGS)
+  AC_SUBST(GTK_LIBS)
+
+  PKG_CHECK_MODULES(WEBKIT_GTK, [webkit2gtk-4.0 >= 2.7.2])
+  AC_SUBST(WEBKIT_GTK_CFLAGS)
+  AC_SUBST(WEBKIT_GTK_LIBS)
+
+  PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4 >= 2.42])
+  AC_SUBST(LIBSOUP_CFLAGS)
+  AC_SUBST(LIBSOUP_LIBS)
+
+  PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0])
+  AC_SUBST(JSON_GLIB_CFLAGS)
+  AC_SUBST(JSON_GLIB_LIBS)
+
+  PKG_CHECK_MODULES(REST, [rest-0.7])
+  AC_SUBST(REST_CFLAGS)
+  AC_SUBST(REST_LIBS)
+
+  PKG_CHECK_MODULES(SECRET, [libsecret-1])
+  AC_SUBST(SECRET_CFLAGS)
+  AC_SUBST(SECRET_LIBS)
+
+  PKG_CHECK_MODULES(LIBXML, [libxml-2.0])
+  AC_SUBST(LIBXML_CFLAGS)
+  AC_SUBST(LIBXML_LIBS)
+
+  if test "$enable_telepathy" != "no"; then
+    PKG_CHECK_MODULES(TP, [telepathy-glib])
+    AC_SUBST(TP_CFLAGS)
+    AC_SUBST(TP_LIBS)
+
+    # telepathy-account-widgets
+    prev_top_build_prefix=$ac_top_build_prefix
+    prev_ac_configure_args=$ac_configure_args
+    ac_configure_args="$ac_configure_args --with-cheese=no --disable-gudev"
+    # install the data together with the rest of GOA's data
+    ac_configure_args="$ac_configure_args --with-pkgdatadir=${datadir}/gnome-online-accounts"
+    # GOA ships its icons directly in ${datadir}/icons (usually /usr/share/icons/) and not
+    # in its own data directory
+    ac_configure_args="$ac_configure_args --with-icondir=${datadir}/icons"
+    # Change the name of tpaw's .mo files to avoid conflicts with other packages using tp-aw
+    ac_configure_args="$ac_configure_args --with-gettext-package=gnome-online-accounts-tpaw"
+    # Disable the installation of the GSettings schema to avoid multiple components shipping
+    # the same file. See https://bugzilla.gnome.org/show_bug.cgi?id=706803
+    ac_configure_args="$ac_configure_args --disable-schemas-compile --disable-settings"
+    AX_CONFIG_DIR([telepathy-account-widgets])
+    ac_top_build_prefix=$prev_top_build_prefix
+    ac_configure_args=$prev_ac_configure_args
+
+    export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:"$ac_top_build_prefix"telepathy-account-widgets/
+    PKG_CHECK_MODULES(TPAW, telepathy-account-widgets)
+  fi
+fi
 
 AC_ARG_ENABLE([inspector],
               [AS_HELP_STRING([--enable-inspector],
@@ -145,6 +178,13 @@ AC_ARG_ENABLE([inspector],
 if test "$enable_inspector" != "no"; then
   AC_DEFINE(GOA_INSPECTOR_ENABLED, 1, [Enable a WebKitWebInspector for the embedded web view])
 fi
+
+AC_ARG_WITH(template-file,
+            [AS_HELP_STRING([--with-template-file],
+                            [Path to the template file])],
+                            [],
+                            [])
+AC_DEFINE_UNQUOTED(GOA_TEMPLATE_FILE, ["$with_template_file"], [Path to the template file])
 
 # service providers
 #
@@ -185,6 +225,28 @@ if test "$enable_flickr" != "no"; then
   AC_DEFINE(GOA_FLICKR_ENABLED, 1, [Enable Flickr data provider])
 fi
 
+# Foursquare
+AC_DEFINE(GOA_FOURSQUARE_NAME, ["foursquare"], [ProviderType and extension point name])
+AC_ARG_ENABLE([foursquare],
+              [AS_HELP_STRING([--enable-foursquare],
+                              [Enable Foursquare provider])],
+                              [],
+                              [enable_foursquare=yes])
+AC_ARG_WITH(foursquare-client-id,
+            [AS_HELP_STRING([--with-foursquare-client-id],
+                            [Foursquare OAuth 2.0 client id])],
+                            [],
+                            [])
+if test "$with_foursquare_client_id" = ""; then
+  with_foursquare_client_id="MBNU2NES5HASNDQJ25YPFGG2UGRZHPI3IYTNJGE0KIWT2HCF"
+fi
+AC_DEFINE_UNQUOTED(GOA_FOURSQUARE_CLIENT_ID,
+                   ["$with_foursquare_client_id"],
+                   [Foursquare OAuth 2.0 client id])
+if test "$enable_foursquare" != "no"; then
+  AC_DEFINE(GOA_FOURSQUARE_ENABLED, 1, [Enable Foursquare data provider])
+fi
+
 # Google
 AC_DEFINE(GOA_GOOGLE_NAME, ["google"], [ProviderType and extension point name])
 AC_ARG_ENABLE([google], [AS_HELP_STRING([--enable-google], [Enable Google provider])], [], [enable_google=yes])
@@ -199,10 +261,10 @@ AC_ARG_WITH(google-client-secret,
                             [],
                             [])
 if test "$with_google_client_id" = ""; then
-  with_google_client_id=923794261470.apps.googleusercontent.com
+  with_google_client_id=44438659992-7kgjeitenc16ssihbtdjbgguch7ju55s.apps.googleusercontent.com
 fi
 if test "$with_google_client_secret" = ""; then
-  with_google_client_secret=SlVBAcxamM0TBPlvX2c1zbEY
+  with_google_client_secret=-gMLuQyDiI0XrQS_vx_mhuYF
 fi
 AC_DEFINE_UNQUOTED(GOA_GOOGLE_CLIENT_ID,
                    ["$with_google_client_id"],
@@ -247,31 +309,6 @@ if test "$enable_owncloud" != "no"; then
   AC_DEFINE(GOA_OWNCLOUD_ENABLED, 1, [Enable ownCloud data provider])
 fi
 
-# Yahoo
-AC_DEFINE(GOA_YAHOO_NAME, ["yahoo"], [ProviderType and extension point name])
-AC_ARG_ENABLE([yahoo], [AS_HELP_STRING([--enable-yahoo], [Enable Yahoo provider])], [], [enable_yahoo=no])
-AC_ARG_WITH(yahoo-consumer-key,
-            [AS_HELP_STRING([--with-yahoo-consumer-key],
-                            [Yahoo OAuth 1.0 consumer key])],
-                            [],
-                            [])
-AC_ARG_WITH(yahoo-consumer-secret,
-            [AS_HELP_STRING([--with-yahoo-consumer-secret],
-                            [Yahoo OAuth 1.0 consumer secret])],
-                            [],
-                            [])
-if test "$with_yahoo_consumer_key" = ""; then
-  with_yahoo_consumer_key=not_set
-fi
-if test "$with_yahoo_consumer_secret" = ""; then
-  with_yahoo_consumer_secret=not_set
-fi
-AC_DEFINE_UNQUOTED(GOA_YAHOO_CONSUMER_KEY, ["$with_yahoo_consumer_key"], [Yahoo OAuth 1.0 consumer key])
-AC_DEFINE_UNQUOTED(GOA_YAHOO_CONSUMER_SECRET, ["$with_yahoo_consumer_secret"], [Yahoo OAuth 1.0 consumer secret])
-if test "$enable_yahoo" != "no"; then
-  AC_DEFINE(GOA_YAHOO_ENABLED, 1, [Enable Yahoo data provider])
-fi
-
 # Facebook
 AC_DEFINE(GOA_FACEBOOK_NAME, ["facebook"], [ProviderType and extension point name])
 AC_ARG_ENABLE([facebook], [AS_HELP_STRING([--enable-facebook],
@@ -314,19 +351,6 @@ AC_DEFINE_UNQUOTED(GOA_WINDOWS_LIVE_CLIENT_ID,
 if test "$enable_windows_live" != "no"; then
   AC_DEFINE(GOA_WINDOWS_LIVE_ENABLED, 1, [Enable Windows Live data provider])
 fi
-
-# Telepathy
-AC_DEFINE(GOA_TELEPATHY_NAME, ["telepathy"], [ProviderType and extension point name])
-AC_ARG_ENABLE([telepathy],
-              [AS_HELP_STRING([--enable-telepathy],
-              [Enable Telepathy IM provider])],
-              [],
-              [enable_telepathy=yes])
-if test "$enable_telepathy" != "no"; then
-  AC_DEFINE(GOA_TELEPATHY_ENABLED, 1, [Enable Telepathy data provider])
-fi
-
-PKG_CHECK_MODULES(TP, telepathy-glib)
 
 # Pocket
 AC_DEFINE(GOA_POCKET_NAME, ["pocket"], [ProviderType and extension point name])
@@ -380,6 +404,38 @@ if test "$enable_kerberos" != "no"; then
   AC_DEFINE(GOA_KERBEROS_ENABLED, 1, [Enable Enterprise Identity data provider])
 fi
 AM_CONDITIONAL(BUILD_KERBEROS, [test x$enable_kerberos != xno])
+
+# Last.fm
+AC_DEFINE(GOA_LASTFM_NAME, ["lastfm"], [ProviderType and extension point name])
+AC_ARG_ENABLE([lastfm], [AS_HELP_STRING([--enable-lastfm],
+                                        [Enable Last.fm provider])],
+                                        [],
+                                        [enable_lastfm=no])
+AC_ARG_WITH(lastfm-client-id,
+            [AS_HELP_STRING([--with-lastfm-client-id],
+                            [Last.fm client id])],
+                            [],
+                            [])
+AC_ARG_WITH(lastfm-client-secret,
+            [AS_HELP_STRING([--with-lastfm-client-secret],
+                            [Last.fm client secret])],
+                            [],
+                            [])
+if test "$with_lastfm_client_id" = ""; then
+  with_lastfm_client_id="7a2461fe34c9c8124fb28ac750ba12fa"
+fi
+if test "$with_lastfm_client_secret" = ""; then
+  with_lastfm_client_secret="49ec391644459c417f3afe57ca246c5a"
+fi
+AC_DEFINE_UNQUOTED(GOA_LASTFM_CLIENT_ID,
+                   ["$with_lastfm_client_id"],
+                   [LastFM client id])
+AC_DEFINE_UNQUOTED(GOA_LASTFM_CLIENT_SECRET,
+                   ["$with_lastfm_client_secret"],
+                   [LastFM client secret])
+if test "$enable_lastfm" != "no"; then
+  AC_DEFINE(GOA_LASTFM_ENABLED, 1, [Enable LastFM data provider])
+fi
 
 # Optional timerfd support
 AC_MSG_CHECKING([for timerfd support])
@@ -527,21 +583,25 @@ echo "
 	compiler:                       ${CC}
 	cflags:                         ${CFLAGS}
 	cppflags:                       ${CPPFLAGS}
+
+	backend:                        ${enable_backend}
 	inspector:		        ${enable_inspector}
 	introspection:		        ${found_introspection}
+	template file:		        ${with_template_file}
 
 	Flickr provider:                ${enable_flickr} (OAuth 1.0, key:${with_flickr_consumer_key} secret:${with_flickr_consumer_secret})
+	Foursquare provider:            ${enable_foursquare} (id:${with_foursquare_client_id})
 	Google provider:                ${enable_google} (OAuth 2.0, id:${with_google_client_id} secret:${with_google_client_secret})
 	IMAP/SMTP provider:             ${enable_imap_smtp}
 	Media Server provider:          ${enable_media_server}
 	Microsoft Exchange provider:    ${enable_exchange}
 	ownCloud provider:              ${enable_owncloud}
 	Kerberos provider:              ${enable_kerberos}
-	Yahoo provider:                 ${enable_yahoo} (OAuth 1.0, key:${with_yahoo_consumer_key} secret:${with_yahoo_consumer_secret})
 	Facebook provider:              ${enable_facebook} (OAuth 2.0, id:${with_facebook_client_id})
 	Windows Live provider:          ${enable_windows_live} (OAuth 2.0, id:${with_windows_live_client_id})
         Telepathy provider:             ${enable_telepathy}
         Pocket provider:                ${enable_pocket} (id:${with_pocket_client_id})
+	Last.fm provider:               ${enable_lastfm} (id:${with_lastfm_client_id} secret:${with_lastfm_client_secret})
 
 	Maintainer mode:                ${USE_MAINTAINER_MODE}
 	Building api docs:              ${enable_gtk_doc}

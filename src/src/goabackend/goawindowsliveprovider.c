@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2013, 2014 Red Hat, Inc.
+ * Copyright (C) 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
  * Copyright (C) 2011 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -22,12 +22,13 @@
 
 #include <rest/rest-proxy.h>
 #include <json-glib/json-glib.h>
-#include <webkit/webkit.h>
 
 #include "goaprovider.h"
 #include "goaprovider-priv.h"
 #include "goaoauth2provider.h"
+#include "goaoauth2provider-priv.h"
 #include "goawindowsliveprovider.h"
+#include "goaobjectskeletonutils.h"
 
 /**
  * GoaWindowsLiveProvider:
@@ -66,26 +67,33 @@ G_DEFINE_TYPE_WITH_CODE (GoaWindowsLiveProvider, goa_windows_live_provider, GOA_
 /* ---------------------------------------------------------------------------------------------------- */
 
 static const gchar *
-get_provider_type (GoaProvider *_provider)
+get_provider_type (GoaProvider *provider)
 {
   return GOA_WINDOWS_LIVE_NAME;
 }
 
 static gchar *
-get_provider_name (GoaProvider *_provider,
+get_provider_name (GoaProvider *provider,
                    GoaObject   *object)
 {
-  return g_strdup (_("Windows Live"));
+  return g_strdup (_("Microsoft Account"));
+}
+
+static GIcon *
+get_provider_icon (GoaProvider *provider,
+                   GoaObject   *object)
+{
+  return g_themed_icon_new_with_default_fallbacks ("goa-account-msn");
 }
 
 static GoaProviderGroup
-get_provider_group (GoaProvider *_provider)
+get_provider_group (GoaProvider *provider)
 {
   return GOA_PROVIDER_GROUP_BRANDED;
 }
 
 static GoaProviderFeatures
-get_provider_features (GoaProvider *_provider)
+get_provider_features (GoaProvider *provider)
 {
   return GOA_PROVIDER_FEATURE_BRANDED |
          GOA_PROVIDER_FEATURE_MAIL |
@@ -93,27 +101,27 @@ get_provider_features (GoaProvider *_provider)
 }
 
 static const gchar *
-get_authorization_uri (GoaOAuth2Provider *provider)
+get_authorization_uri (GoaOAuth2Provider *oauth2_provider)
 {
   return "https://login.live.com/oauth20_authorize.srf";
 }
 
 
 static const gchar *
-get_token_uri (GoaOAuth2Provider *provider)
+get_token_uri (GoaOAuth2Provider *oauth2_provider)
 {
   return "https://login.live.com/oauth20_token.srf";
 }
 
 
 static const gchar *
-get_redirect_uri (GoaOAuth2Provider *provider)
+get_redirect_uri (GoaOAuth2Provider *oauth2_provider)
 {
   return "https://login.live.com/oauth20_desktop.srf";
 }
 
 static const gchar *
-get_scope (GoaOAuth2Provider *provider)
+get_scope (GoaOAuth2Provider *oauth2_provider)
 {
   return "wl.imap,"
          "wl.offline_access,"
@@ -128,19 +136,19 @@ get_credentials_generation (GoaProvider *provider)
 }
 
 static const gchar *
-get_client_id (GoaOAuth2Provider *provider)
+get_client_id (GoaOAuth2Provider *oauth2_provider)
 {
   return GOA_WINDOWS_LIVE_CLIENT_ID;
 }
 
 static const gchar *
-get_client_secret (GoaOAuth2Provider *provider)
+get_client_secret (GoaOAuth2Provider *oauth2_provider)
 {
   return NULL;
 }
 
 static const gchar *
-get_authentication_cookie (GoaOAuth2Provider *provider)
+get_authentication_cookie (GoaOAuth2Provider *oauth2_provider)
 {
   return "PPAuth";
 }
@@ -148,29 +156,20 @@ get_authentication_cookie (GoaOAuth2Provider *provider)
 /* ---------------------------------------------------------------------------------------------------- */
 
 static gchar *
-get_identity_sync (GoaOAuth2Provider  *provider,
+get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
                    const gchar        *access_token,
                    gchar             **out_presentation_identity,
                    GCancellable       *cancellable,
                    GError            **error)
 {
-  GError *identity_error;
-  RestProxy *proxy;
-  RestProxyCall *call;
-  JsonParser *parser;
+  GError *identity_error = NULL;
+  RestProxy *proxy = NULL;
+  RestProxyCall *call = NULL;
+  JsonParser *parser = NULL;
   JsonObject *json_object;
-  gchar *ret;
-  gchar *id;
-  gchar *presentation_identity;
-
-  ret = NULL;
-
-  identity_error = NULL;
-  proxy = NULL;
-  call = NULL;
-  parser = NULL;
-  id = NULL;
-  presentation_identity = NULL;
+  gchar *ret = NULL;
+  gchar *id = NULL;
+  gchar *presentation_identity = NULL;
 
   /* TODO: cancellable */
 
@@ -254,22 +253,11 @@ get_identity_sync (GoaOAuth2Provider  *provider,
 /* ---------------------------------------------------------------------------------------------------- */
 
 static gboolean
-is_deny_node (GoaOAuth2Provider *provider, WebKitDOMNode *node)
+is_identity_node (GoaOAuth2Provider *oauth2_provider, WebKitDOMHTMLInputElement *element)
 {
-  return FALSE;
-}
-
-static gboolean
-is_identity_node (GoaOAuth2Provider *provider, WebKitDOMHTMLInputElement *element)
-{
-  gboolean ret;
-  gchar *element_type;
-  gchar *name;
-
-  element_type = NULL;
-  name = NULL;
-
-  ret = FALSE;
+  gboolean ret = FALSE;
+  gchar *element_type = NULL;
+  gchar *name = NULL;
 
   /* FIXME: This does not show up in
    *        webkit_dom_document_get_elements_by_tag_name, but can be
@@ -303,17 +291,12 @@ build_object (GoaProvider         *provider,
               gboolean             just_added,
               GError             **error)
 {
-  GoaAccount *account;
-  GoaMail *mail;
-  GoaDocuments *documents;
+  GoaAccount *account = NULL;
+  GoaMail *mail = NULL;
   gboolean mail_enabled;
   gboolean documents_enabled;
   gboolean ret = FALSE;
   const gchar *email_address;
-
-  account = NULL;
-  mail = NULL;
-  documents = NULL;
 
   /* Chain up */
   if (!GOA_PROVIDER_CLASS (goa_windows_live_provider_parent_class)->build_object (provider,
@@ -359,22 +342,8 @@ build_object (GoaProvider         *provider,
     }
 
   /* Documents */
-  documents = goa_object_get_documents (GOA_OBJECT (object));
   documents_enabled = g_key_file_get_boolean (key_file, group, "DocumentsEnabled", NULL);
-
-  if (documents_enabled)
-    {
-      if (documents == NULL)
-        {
-          documents = goa_documents_skeleton_new ();
-          goa_object_skeleton_set_documents (object, documents);
-        }
-    }
-  else
-    {
-      if (documents != NULL)
-        goa_object_skeleton_set_documents (object, NULL);
-    }
+  goa_object_skeleton_attach_documents (object, documents_enabled);
 
   if (just_added)
     {
@@ -394,7 +363,6 @@ build_object (GoaProvider         *provider,
   ret = TRUE;
 
  out:
-  g_clear_object (&documents);
   g_clear_object (&mail);
   g_clear_object (&account);
   return ret;
@@ -403,36 +371,7 @@ build_object (GoaProvider         *provider,
 /* ---------------------------------------------------------------------------------------------------- */
 
 static void
-show_account (GoaProvider         *provider,
-              GoaClient           *client,
-              GoaObject           *object,
-              GtkBox              *vbox,
-              GtkGrid             *grid,
-              G_GNUC_UNUSED GtkGrid *dummy)
-{
-  gint row;
-
-  row = 0;
-
-  goa_util_add_account_info (grid, row++, object);
-
-  goa_util_add_row_switch_from_keyfile_with_blurb (grid, row++, object,
-                                                   /* Translators: This is a label for a series of
-                                                    * options switches. For example: “Use for Mail”. */
-                                                   _("Use for"),
-                                                   "mail-disabled",
-                                                   _("_Mail"));
-
-  goa_util_add_row_switch_from_keyfile_with_blurb (grid, row++, object,
-                                                   NULL,
-                                                   "documents-disabled",
-                                                   _("_Documents"));
-}
-
-/* ---------------------------------------------------------------------------------------------------- */
-
-static void
-add_account_key_values (GoaOAuth2Provider *provider,
+add_account_key_values (GoaOAuth2Provider *oauth2_provider,
                         GVariantBuilder   *builder)
 {
   g_variant_builder_add (builder, "{ss}", "MailEnabled", "true");
@@ -442,7 +381,7 @@ add_account_key_values (GoaOAuth2Provider *provider,
 /* ---------------------------------------------------------------------------------------------------- */
 
 static void
-goa_windows_live_provider_init (GoaWindowsLiveProvider *client)
+goa_windows_live_provider_init (GoaWindowsLiveProvider *self)
 {
 }
 
@@ -455,10 +394,10 @@ goa_windows_live_provider_class_init (GoaWindowsLiveProviderClass *klass)
   provider_class = GOA_PROVIDER_CLASS (klass);
   provider_class->get_provider_type          = get_provider_type;
   provider_class->get_provider_name          = get_provider_name;
+  provider_class->get_provider_icon          = get_provider_icon;
   provider_class->get_provider_group         = get_provider_group;
   provider_class->get_provider_features      = get_provider_features;
   provider_class->build_object               = build_object;
-  provider_class->show_account               = show_account;
   provider_class->get_credentials_generation = get_credentials_generation;
 
   oauth2_class = GOA_OAUTH2_PROVIDER_CLASS (klass);
@@ -470,7 +409,6 @@ goa_windows_live_provider_class_init (GoaWindowsLiveProviderClass *klass)
   oauth2_class->get_client_secret        = get_client_secret;
   oauth2_class->get_authentication_cookie = get_authentication_cookie;
   oauth2_class->get_identity_sync        = get_identity_sync;
-  oauth2_class->is_deny_node             = is_deny_node;
   oauth2_class->is_identity_node         = is_identity_node;
   oauth2_class->add_account_key_values   = add_account_key_values;
 }

@@ -81,6 +81,7 @@ typedef struct
     {
       const char *identifier;
       gconstpointer initial_password;
+      char *preauth_source;
       GoaIdentitySignInFlags sign_in_flags;
       GoaIdentityInquiry *inquiry;
       GoaIdentityInquiryFunc inquiry_func;
@@ -151,10 +152,14 @@ operation_free (Operation *operation)
 
   if (operation->type != OPERATION_TYPE_SIGN_IN &&
       operation->type != OPERATION_TYPE_GET_IDENTITY)
-    g_clear_object (&operation->identity);
+    {
+      g_clear_object (&operation->identity);
+    }
   else
-    g_clear_pointer (&operation->identifier, g_free);
-
+    {
+      g_clear_pointer (&operation->identifier, g_free);
+      g_clear_pointer (&operation->preauth_source, g_free);
+    }
   g_clear_object (&operation->result);
 
   g_slice_free (Operation, operation);
@@ -589,8 +594,7 @@ identity_sort_func (GoaIdentity *a,
 static void
 free_identity_list (GList *list)
 {
-  g_list_foreach (list, (GFunc) g_object_unref, NULL);
-  g_list_free (list);
+  g_list_free_full (list, g_object_unref);
 }
 
 static void
@@ -809,6 +813,7 @@ sign_in_identity (GoaKerberosIdentityManager *self,
   GoaIdentity *identity;
   GError *error;
   krb5_error_code error_code;
+  gboolean is_new_identity = FALSE;
 
   g_debug ("GoaKerberosIdentityManager: signing in identity %s",
            operation->identifier);
@@ -841,28 +846,27 @@ sign_in_identity (GoaKerberosIdentityManager *self,
       identity = goa_kerberos_identity_new (self->priv->kerberos_context,
                                             credentials_cache,
                                             &error);
-      krb5_cc_close (self->priv->kerberos_context, credentials_cache);
       if (identity == NULL)
         {
+          krb5_cc_destroy (self->priv->kerberos_context, credentials_cache);
           g_simple_async_result_take_error (operation->result, error);
           g_simple_async_result_set_op_res_gpointer (operation->result,
                                                      NULL,
                                                      NULL);
           return;
         }
+      krb5_cc_close (self->priv->kerberos_context, credentials_cache);
+      is_new_identity = TRUE;
     }
   else
     {
       g_object_ref (identity);
     }
 
-  g_hash_table_replace (self->priv->identities,
-                        g_strdup (operation->identifier),
-                        g_object_ref (identity));
-
   if (!goa_kerberos_identity_sign_in (GOA_KERBEROS_IDENTITY (identity),
                                       operation->identifier,
                                       operation->initial_password,
+                                      operation->preauth_source,
                                       operation->sign_in_flags,
                                       (GoaIdentityInquiryFunc)
                                       on_kerberos_identity_inquiry,
@@ -871,6 +875,9 @@ sign_in_identity (GoaKerberosIdentityManager *self,
                                       operation->cancellable,
                                       &error))
     {
+      if (is_new_identity)
+        goa_kerberos_identity_erase (GOA_KERBEROS_IDENTITY (identity), NULL);
+
       g_simple_async_result_set_from_error (operation->result, error);
       g_simple_async_result_set_op_res_gpointer (operation->result,
                                                  NULL,
@@ -883,6 +890,10 @@ sign_in_identity (GoaKerberosIdentityManager *self,
                                                  g_object_ref (identity),
                                                  (GDestroyNotify)
                                                  g_object_unref);
+
+      g_hash_table_replace (self->priv->identities,
+                            g_strdup (operation->identifier),
+                            g_object_ref (identity));
     }
 
   g_object_unref (identity);
@@ -983,8 +994,7 @@ on_job_scheduled (GIOSchedulerJob            *job,
         {
           g_simple_async_result_take_error (operation->result, error);
           g_simple_async_result_complete_in_idle (operation->result);
-          g_object_unref (operation->result);
-          operation->result = NULL;
+          g_clear_object (&operation->result);
           continue;
         }
 
@@ -1043,8 +1053,7 @@ on_job_scheduled (GIOSchedulerJob            *job,
       if (operation->result != NULL)
         {
           g_simple_async_result_complete_in_idle (operation->result);
-          g_object_unref (operation->result);
-          operation->result = NULL;
+          g_clear_object (&operation->result);
         }
       operation_free (operation);
 
@@ -1099,7 +1108,7 @@ goa_kerberos_identity_manager_get_identity_finish (GoaIdentityManager  *self,
   identity =
     g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (result));
 
-  return identity;
+  return g_object_ref (identity);
 }
 
 static void
@@ -1178,6 +1187,7 @@ static void
 goa_kerberos_identity_manager_sign_identity_in (GoaIdentityManager     *manager,
                                                 const char             *identifier,
                                                 gconstpointer           initial_password,
+                                                const char             *preauth_source,
                                                 GoaIdentitySignInFlags  flags,
                                                 GoaIdentityInquiryFunc  inquiry_func,
                                                 gpointer                inquiry_data,
@@ -1201,6 +1211,7 @@ goa_kerberos_identity_manager_sign_identity_in (GoaIdentityManager     *manager,
    * for duration of operation
    */
   operation->initial_password = initial_password;
+  operation->preauth_source = g_strdup (preauth_source);
   operation->sign_in_flags = flags;
   operation->inquiry_func = inquiry_func;
   operation->inquiry_data = inquiry_data;

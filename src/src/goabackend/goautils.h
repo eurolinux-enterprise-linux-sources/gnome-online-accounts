@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2014, 2015 Red Hat, Inc.
+ * Copyright (C) 2012, 2013, 2014, 2015, 2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -38,6 +38,13 @@ G_BEGIN_DECLS
 
 typedef gpointer (*GoaPeekInterfaceFunc)   (GoaObject *);
 
+void             goa_utils_account_add_attention_needed (GoaClient    *client,
+                                                         GoaObject    *object,
+                                                         GoaProvider  *provider,
+                                                         GtkBox       *vbox);
+
+void             goa_utils_account_add_header (GoaObject *object, GtkGrid *grid, gint row);
+
 void             goa_utils_initialize_client_factory (void);
 
 gboolean         goa_utils_check_duplicate (GoaClient              *client,
@@ -54,10 +61,15 @@ gchar           *goa_utils_data_input_stream_read_line (GDataInputStream  *strea
 
 void             goa_utils_set_dialog_title (GoaProvider *provider, GtkDialog *dialog, gboolean add_account);
 
-gboolean         goa_utils_delete_credentials_sync (GoaProvider    *provider,
-                                                    GoaAccount     *account,
-                                                    GCancellable   *cancellable,
-                                                    GError        **error);
+gboolean         goa_utils_delete_credentials_for_account_sync (GoaProvider    *provider,
+                                                                GoaAccount     *account,
+                                                                GCancellable   *cancellable,
+                                                                GError        **error);
+
+gboolean         goa_utils_delete_credentials_for_id_sync (GoaProvider    *provider,
+                                                           const gchar    *id,
+                                                           GCancellable   *cancellable,
+                                                           GError        **error);
 
 GVariant        *goa_utils_lookup_credentials_sync (GoaProvider    *provider,
                                                     GoaObject      *object,
@@ -76,6 +88,13 @@ gboolean         goa_utils_store_credentials_for_object_sync (GoaProvider    *pr
                                                               GCancellable   *cancellable,
                                                               GError        **error);
 
+gboolean         goa_utils_keyfile_copy_group (GKeyFile     *src_key_file,
+                                               const gchar  *src_group_name,
+                                               GKeyFile     *dest_key_file,
+                                               const gchar  *dest_group_name);
+
+gboolean         goa_utils_keyfile_get_boolean (GKeyFile *key_file, const gchar *group_name, const gchar *key);
+
 void             goa_utils_keyfile_remove_key (GoaAccount *account, const gchar *key);
 
 void             goa_utils_keyfile_set_boolean (GoaAccount *account, const gchar *key, gboolean value);
@@ -87,6 +106,14 @@ gboolean         goa_utils_parse_email_address (const gchar *email, gchar **out_
 void             goa_utils_set_error_soup (GError **err, SoupMessage *msg);
 
 void             goa_utils_set_error_ssl (GError **err, GTlsCertificateFlags flags);
+
+gboolean         goa_utils_get_credentials (GoaProvider    *provider,
+                                            GoaObject      *object,
+                                            const gchar    *id,
+                                            gchar         **username,
+                                            gchar         **password,
+                                            GCancellable   *cancellable,
+                                            GError        **error);
 
 G_END_DECLS
 

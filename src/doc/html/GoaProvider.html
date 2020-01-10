@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>GNOME Online Accounts Reference Manual: GoaProvider</title>
-<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<title>GoaProvider: GNOME Online Accounts Reference Manual</title>
+<meta name="generator" content="DocBook XSL Stylesheets V1.79.1">
 <link rel="home" href="index.html" title="GNOME Online Accounts Reference Manual">
 <link rel="up" href="ch07.html" title="Core">
-<link rel="prev" href="goa-Utilities.html" title="Utilities">
-<link rel="next" href="GoaProviderFactory.html" title="GoaProviderFactory">
-<meta name="generator" content="GTK-Doc V1.21 (XML mode)">
+<link rel="prev" href="goa-goautil.html" title="goautil">
+<link rel="next" href="GoaOAuthProvider.html" title="GoaOAuthProvider">
+<meta name="generator" content="GTK-Doc V1.25 (XML mode)">
 <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
@@ -21,8 +21,8 @@
 </td>
 <td><a accesskey="h" href="index.html"><img src="home.png" width="16" height="16" border="0" alt="Home"></a></td>
 <td><a accesskey="u" href="ch07.html"><img src="up.png" width="16" height="16" border="0" alt="Up"></a></td>
-<td><a accesskey="p" href="goa-Utilities.html"><img src="left.png" width="16" height="16" border="0" alt="Prev"></a></td>
-<td><a accesskey="n" href="GoaProviderFactory.html"><img src="right.png" width="16" height="16" border="0" alt="Next"></a></td>
+<td><a accesskey="p" href="goa-goautil.html"><img src="left.png" width="16" height="16" border="0" alt="Prev"></a></td>
+<td><a accesskey="n" href="GoaOAuthProvider.html"><img src="right.png" width="16" height="16" border="0" alt="Next"></a></td>
 </tr></table>
 <div class="refentry">
 <a name="GoaProvider"></a><div class="titlepage"></div>
@@ -35,14 +35,14 @@
 </tr></table></div>
 <div class="refsect1">
 <a name="GoaProvider.functions"></a><h2>Functions</h2>
-<div class="informaltable"><table width="100%" border="0">
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="functions_return">
 <col class="functions_name">
 </colgroup>
 <tbody>
 <tr>
-<td class="function_type">const <span class="returnvalue">gchar</span> *
+<td class="function_type">const <a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gchar"><span class="returnvalue">gchar</span></a> *
 </td>
 <td class="function_name">
 <a class="link" href="GoaProvider.html#goa-provider-get-provider-type" title="goa_provider_get_provider_type ()">goa_provider_get_provider_type</a> <span class="c_punctuation">()</span>
@@ -50,7 +50,7 @@
 </tr>
 <tr>
 <td class="function_type">
-<span class="returnvalue">gchar</span> *
+<a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gchar"><span class="returnvalue">gchar</span></a> *
 </td>
 <td class="function_name">
 <a class="link" href="GoaProvider.html#goa-provider-get-provider-name" title="goa_provider_get_provider_name ()">goa_provider_get_provider_name</a> <span class="c_punctuation">()</span>
@@ -58,7 +58,7 @@
 </tr>
 <tr>
 <td class="function_type">
-<span class="returnvalue">GIcon</span> *
+<a href="/usr/share/gtk-doc/html/gioGIcon.html#GIcon-struct"><span class="returnvalue">GIcon</span></a> *
 </td>
 <td class="function_name">
 <a class="link" href="GoaProvider.html#goa-provider-get-provider-icon" title="goa_provider_get_provider_icon ()">goa_provider_get_provider_icon</a> <span class="c_punctuation">()</span>
@@ -82,7 +82,7 @@
 </tr>
 <tr>
 <td class="function_type">
-<span class="returnvalue">gboolean</span>
+<a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
 </td>
 <td class="function_name">
 <a class="link" href="GoaProvider.html#goa-provider-build-object" title="goa_provider_build_object ()">goa_provider_build_object</a> <span class="c_punctuation">()</span>
@@ -106,7 +106,7 @@
 </tr>
 <tr>
 <td class="function_type">
-<span class="returnvalue">GVariant</span> *
+<a href="/usr/share/gtk-doc/html/glibglib-GVariant.html#GVariant"><span class="returnvalue">GVariant</span></a> *
 </td>
 <td class="function_name">
 <a class="link" href="GoaProvider.html#goa-provider-get-preseed-data" title="goa_provider_get_preseed_data ()">goa_provider_get_preseed_data</a> <span class="c_punctuation">()</span>
@@ -114,7 +114,7 @@
 </tr>
 <tr>
 <td class="function_type">
-<span class="returnvalue">gboolean</span>
+<a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
 </td>
 <td class="function_name">
 <a class="link" href="GoaProvider.html#goa-provider-refresh-account" title="goa_provider_refresh_account ()">goa_provider_refresh_account</a> <span class="c_punctuation">()</span>
@@ -138,7 +138,7 @@
 </tr>
 <tr>
 <td class="function_type">
-<span class="returnvalue">gboolean</span>
+<a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
 </td>
 <td class="function_name">
 <a class="link" href="GoaProvider.html#goa-provider-ensure-credentials-finish" title="goa_provider_ensure_credentials_finish ()">goa_provider_ensure_credentials_finish</a> <span class="c_punctuation">()</span>
@@ -146,7 +146,7 @@
 </tr>
 <tr>
 <td class="function_type">
-<span class="returnvalue">gboolean</span>
+<a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
 </td>
 <td class="function_name">
 <a class="link" href="GoaProvider.html#goa-provider-ensure-credentials-sync" title="goa_provider_ensure_credentials_sync ()">goa_provider_ensure_credentials_sync</a> <span class="c_punctuation">()</span>
@@ -154,7 +154,7 @@
 </tr>
 <tr>
 <td class="function_type">
-<span class="returnvalue">guint</span>
+<a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#guint"><span class="returnvalue">guint</span></a>
 </td>
 <td class="function_name">
 <a class="link" href="GoaProvider.html#goa-provider-get-credentials-generation" title="goa_provider_get_credentials_generation ()">goa_provider_get_credentials_generation</a> <span class="c_punctuation">()</span>
@@ -181,7 +181,7 @@
 </div>
 <div class="refsect1">
 <a name="GoaProvider.properties"></a><h2>Properties</h2>
-<div class="informaltable"><table border="0">
+<div class="informaltable"><table class="informaltable" border="0">
 <colgroup>
 <col width="150px" class="properties_type">
 <col width="300px" class="properties_name">
@@ -189,7 +189,7 @@
 </colgroup>
 <tbody><tr>
 <td class="property_type">
-<span class="type">GVariant</span> *</td>
+<a href="/usr/share/gtk-doc/html/glibglib-GVariant.html#GVariant"><span class="type">GVariant</span></a> *</td>
 <td class="property_name"><a class="link" href="GoaProvider.html#GoaProvider--preseed-data" title="The “preseed-data” property">preseed-data</a></td>
 <td class="property_flags">Read / Write</td>
 </tr></tbody>
@@ -197,7 +197,7 @@
 </div>
 <div class="refsect1">
 <a name="GoaProvider.other"></a><h2>Types and Values</h2>
-<div class="informaltable"><table width="100%" border="0">
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="name">
 <col class="description">
@@ -228,7 +228,7 @@
 </div>
 <div class="refsect1">
 <a name="GoaProvider.object-hierarchy"></a><h2>Object Hierarchy</h2>
-<pre class="screen">    GObject
+<pre class="screen">    <a href="/usr/share/gtk-doc/html/gobjectgobject-The-Base-Object-Type.html#GObject-struct">GObject</a>
     <span class="lineart">╰──</span> GoaProvider
         <span class="lineart">├──</span> <a class="link" href="GoaOAuthProvider.html" title="GoaOAuthProvider">GoaOAuthProvider</a>
         <span class="lineart">├──</span> <a class="link" href="GoaOAuth2Provider.html" title="GoaOAuth2Provider">GoaOAuth2Provider</a>
@@ -243,30 +243,30 @@
 <a name="GoaProvider.functions_details"></a><h2>Functions</h2>
 <div class="refsect2">
 <a name="goa-provider-get-provider-type"></a><h3>goa_provider_get_provider_type ()</h3>
-<pre class="programlisting">const <span class="returnvalue">gchar</span> *
-goa_provider_get_provider_type (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>);</pre>
-<p>Gets the type of <em class="parameter"><code>provider</code></em>
+<pre class="programlisting">const <a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gchar"><span class="returnvalue">gchar</span></a> *
+goa_provider_get_provider_type (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>);</pre>
+<p>Gets the type of <em class="parameter"><code>self</code></em>
 .</p>
 <p>This is a pure virtual method - a subclass must provide an
 implementation.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.2.6"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-get-provider-type.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
 <col width="200px" class="parameters_annotations">
 </colgroup>
 <tbody><tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr></tbody>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.2.7"></a><h4>Returns</h4>
-<p> A string owned by <em class="parameter"><code>provider</code></em>
+<a name="goa-provider-get-provider-type.returns"></a><h4>Returns</h4>
+<p> A string owned by <em class="parameter"><code>self</code></em>
 , do not free. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
@@ -274,21 +274,21 @@ implementation.</p>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-get-provider-name"></a><h3>goa_provider_get_provider_name ()</h3>
-<pre class="programlisting"><span class="returnvalue">gchar</span> *
-goa_provider_get_provider_name (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>,
+<pre class="programlisting"><a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gchar"><span class="returnvalue">gchar</span></a> *
+goa_provider_get_provider_name (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>,
                                 <em class="parameter"><code><a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> *object</code></em>);</pre>
-<p>Gets a name for <em class="parameter"><code>provider</code></em>
+<p>Gets a name for <em class="parameter"><code>self</code></em>
  and <em class="parameter"><code>object</code></em>
  that is suitable for display
 in an user interface. The returned value may depend on <em class="parameter"><code>object</code></em>
  (if
-it's not <code class="literal">NULL</code>) - for example, hosted accounts might return a
+it's not <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>) - for example, hosted accounts might return a
 different name.</p>
 <p>This is a pure virtual method - a subclass must provide an
 implementation.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.3.6"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-get-provider-name.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
@@ -296,7 +296,7 @@ implementation.</p>
 </colgroup>
 <tbody>
 <tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
@@ -309,30 +309,30 @@ implementation.</p>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.3.7"></a><h4>Returns</h4>
-<p> A string that should be freed with <code class="function">g_free()</code>. </p>
+<a name="goa-provider-get-provider-name.returns"></a><h4>Returns</h4>
+<p> A string that should be freed with <a href="/usr/share/gtk-doc/html/glibglib-Memory-Allocation.html#g-free"><code class="function">g_free()</code></a>. </p>
 <p><span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>]</span></p>
 </div>
 </div>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-get-provider-icon"></a><h3>goa_provider_get_provider_icon ()</h3>
-<pre class="programlisting"><span class="returnvalue">GIcon</span> *
-goa_provider_get_provider_icon (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>,
+<pre class="programlisting"><a href="/usr/share/gtk-doc/html/gioGIcon.html#GIcon-struct"><span class="returnvalue">GIcon</span></a> *
+goa_provider_get_provider_icon (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>,
                                 <em class="parameter"><code><a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> *object</code></em>);</pre>
-<p>Gets an icon for <em class="parameter"><code>provider</code></em>
+<p>Gets an icon for <em class="parameter"><code>self</code></em>
  and <em class="parameter"><code>object</code></em>
  that is suitable for display
 in an user interface. The returned value may depend on <em class="parameter"><code>object</code></em>
  -
 for example, hosted accounts might return a different icon.</p>
 <p>This is a virtual method with a default implementation that returns
-a <span class="type">GThemedIcon</span> with fallbacks constructed from the name
+a <a href="/usr/share/gtk-doc/html/gioGThemedIcon.html#GThemedIcon-struct"><span class="type">GThemedIcon</span></a> with fallbacks constructed from the name
 <code class="literal">goa-account-TYPE</code> where <code class="literal">TYPE</code>
 is the return value of <a class="link" href="GoaProvider.html#goa-provider-get-provider-type" title="goa_provider_get_provider_type ()"><code class="function">goa_provider_get_provider_type()</code></a>.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.4.6"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-get-provider-icon.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
@@ -340,7 +340,7 @@ is the return value of <a class="link" href="GoaProvider.html#goa-provider-get-p
 </colgroup>
 <tbody>
 <tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
@@ -353,8 +353,8 @@ is the return value of <a class="link" href="GoaProvider.html#goa-provider-get-p
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.4.7"></a><h4>Returns</h4>
-<p> An icon that should be freed with <code class="function">g_object_unref()</code>. </p>
+<a name="goa-provider-get-provider-icon.returns"></a><h4>Returns</h4>
+<p> An icon that should be freed with <a href="/usr/share/gtk-doc/html/gobjectgobject-The-Base-Object-Type.html#g-object-unref"><code class="function">g_object_unref()</code></a>. </p>
 <p><span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>]</span></p>
 </div>
 </div>
@@ -362,79 +362,77 @@ is the return value of <a class="link" href="GoaProvider.html#goa-provider-get-p
 <div class="refsect2">
 <a name="goa-provider-get-provider-group"></a><h3>goa_provider_get_provider_group ()</h3>
 <pre class="programlisting"><a class="link" href="GoaProvider.html#GoaProviderGroup" title="enum GoaProviderGroup"><span class="returnvalue">GoaProviderGroup</span></a>
-goa_provider_get_provider_group (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>);</pre>
+goa_provider_get_provider_group (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>);</pre>
 <div class="warning">
 <p><code class="literal">goa_provider_get_provider_group</code> has been deprecated since version 3.10 and should not be used in newly-written code.</p>
 <p>Use <a class="link" href="GoaProvider.html#goa-provider-get-provider-features" title="goa_provider_get_provider_features ()"><code class="function">goa_provider_get_provider_features()</code></a> instead.</p>
 </div>
-<p>Gets the group to which <em class="parameter"><code>provider</code></em>
+<p>Gets the group to which <em class="parameter"><code>self</code></em>
  belongs that is suitable for
 organizing the providers while displaying them in an user
 interface.</p>
 <p>This is a pure virtual method - a subclass must provide an
 implementation.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.5.8"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-get-provider-group.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
 <col width="200px" class="parameters_annotations">
 </colgroup>
 <tbody><tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr></tbody>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.5.9"></a><h4>Returns</h4>
+<a name="goa-provider-get-provider-group.returns"></a><h4>Returns</h4>
 <p> A <a class="link" href="GoaProvider.html#GoaProviderGroup" title="enum GoaProviderGroup"><span class="type">GoaProviderGroup</span></a>.</p>
-<p></p>
 </div>
-<p class="since">Since 3.8</p>
+<p class="since">Since: 3.8</p>
 </div>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-get-provider-features"></a><h3>goa_provider_get_provider_features ()</h3>
 <pre class="programlisting"><a class="link" href="GoaProvider.html#GoaProviderFeatures" title="enum GoaProviderFeatures"><span class="returnvalue">GoaProviderFeatures</span></a>
-goa_provider_get_provider_features (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>);</pre>
+goa_provider_get_provider_features (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>);</pre>
 <p>Get the features bitmask (eg. <a class="link" href="GoaProvider.html#GOA-PROVIDER-FEATURE-CHAT:CAPS"><code class="literal">GOA_PROVIDER_FEATURE_CHAT</code></a>|<a class="link" href="GoaProvider.html#GOA-PROVIDER-FEATURE-CONTACTS:CAPS"><code class="literal">GOA_PROVIDER_FEATURE_CONTACTS</code></a>)
 supported by the provider.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.6.5"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-get-provider-features.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
 <col width="200px" class="parameters_annotations">
 </colgroup>
 <tbody><tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr></tbody>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.6.6"></a><h4>Returns</h4>
+<a name="goa-provider-get-provider-features.returns"></a><h4>Returns</h4>
 <p> The <a class="link" href="GoaProvider.html#GoaProviderFeatures" title="enum GoaProviderFeatures"><span class="type">GoaProviderFeatures</span></a> bitmask with the provided features.</p>
-<p></p>
 </div>
-<p class="since">Since 3.10</p>
+<p class="since">Since: 3.10</p>
 </div>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-build-object"></a><h3>goa_provider_build_object ()</h3>
-<pre class="programlisting"><span class="returnvalue">gboolean</span>
-goa_provider_build_object (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>,
+<pre class="programlisting"><a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+goa_provider_build_object (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>,
                            <em class="parameter"><code><a class="link" href="GoaObject.html#GoaObjectSkeleton"><span class="type">GoaObjectSkeleton</span></a> *object</code></em>,
-                           <em class="parameter"><code><span class="type">GKeyFile</span> *key_file</code></em>,
-                           <em class="parameter"><code>const <span class="type">gchar</span> *group</code></em>,
-                           <em class="parameter"><code><span class="type">GDBusConnection</span> *connection</code></em>,
-                           <em class="parameter"><code><span class="type">gboolean</span> just_added</code></em>,
-                           <em class="parameter"><code><span class="type">GError</span> **error</code></em>);</pre>
+                           <em class="parameter"><code><a href="/usr/share/gtk-doc/html/glibglib-Key-value-file-parser.html#GKeyFile"><span class="type">GKeyFile</span></a> *key_file</code></em>,
+                           <em class="parameter"><code>const <a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *group</code></em>,
+                           <em class="parameter"><code><a href="/usr/share/gtk-doc/html/gioGDBusConnection.html#GDBusConnection-struct"><span class="type">GDBusConnection</span></a> *connection</code></em>,
+                           <em class="parameter"><code><a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gboolean"><span class="type">gboolean</span></a> just_added</code></em>,
+                           <em class="parameter"><code><a href="/usr/share/gtk-doc/html/glibglib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
 <p>This method is called when construction account <a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a>
 from configuration data - it basically provides a way to add
 provider-specific information.</p>
@@ -449,8 +447,8 @@ example on configuration files reload.</p>
 <p>This is a pure virtual method - a subclass must provide an
 implementation.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.7.8"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-build-object.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
@@ -458,7 +456,7 @@ implementation.</p>
 </colgroup>
 <tbody>
 <tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
@@ -469,7 +467,7 @@ implementation.</p>
 </tr>
 <tr>
 <td class="parameter_name"><p>key_file</p></td>
-<td class="parameter_description"><p>The <span class="type">GKeyFile</span> with configuation data.</p></td>
+<td class="parameter_description"><p>The <a href="/usr/share/gtk-doc/html/glibglib-Key-value-file-parser.html#GKeyFile"><span class="type">GKeyFile</span></a> with configuation data.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 <tr>
@@ -480,7 +478,7 @@ to get data from.</p></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>connection</p></td>
-<td class="parameter_description"><p>The <span class="type">GDBusConnection</span> used by the daemon to connect to the message bus.</p></td>
+<td class="parameter_description"><p>The <a href="/usr/share/gtk-doc/html/gioGDBusConnection.html#GDBusConnection-struct"><span class="type">GDBusConnection</span></a> used by the daemon to connect to the message bus.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 <tr>
@@ -490,31 +488,30 @@ to get data from.</p></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>error</p></td>
-<td class="parameter_description"><p>Return location for error or <code class="literal">NULL</code>.</p></td>
+<td class="parameter_description"><p>Return location for error or <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 </tbody>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.7.9"></a><h4>Returns</h4>
-<p> <code class="literal">TRUE</code> if data was valid, <code class="literal">FALSE</code> if <em class="parameter"><code>error</code></em>
+<a name="goa-provider-build-object.returns"></a><h4>Returns</h4>
+<p> <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#TRUE:CAPS"><code class="literal">TRUE</code></a> if data was valid, <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#FALSE:CAPS"><code class="literal">FALSE</code></a> if <em class="parameter"><code>error</code></em>
 is set.</p>
-<p></p>
 </div>
 </div>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-add-account"></a><h3>goa_provider_add_account ()</h3>
 <pre class="programlisting"><a class="link" href="GoaObject.html" title="GoaObject"><span class="returnvalue">GoaObject</span></a> *
-goa_provider_add_account (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>,
+goa_provider_add_account (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>,
                           <em class="parameter"><code><a class="link" href="GoaClient.html" title="GoaClient"><span class="type">GoaClient</span></a> *client</code></em>,
-                          <em class="parameter"><code><span class="type">GtkDialog</span> *dialog</code></em>,
-                          <em class="parameter"><code><span class="type">GtkBox</span> *vbox</code></em>,
-                          <em class="parameter"><code><span class="type">GError</span> **error</code></em>);</pre>
+                          <em class="parameter"><code><a href="/usr/share/gtk-doc/html/gtk3GtkDialog.html#GtkDialog-struct"><span class="type">GtkDialog</span></a> *dialog</code></em>,
+                          <em class="parameter"><code><a href="/usr/share/gtk-doc/html/gtk3GtkBox.html#GtkBox-struct"><span class="type">GtkBox</span></a> *vbox</code></em>,
+                          <em class="parameter"><code><a href="/usr/share/gtk-doc/html/glibglib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
 <p>This method brings up the user interface necessary to create a new
 account on <em class="parameter"><code>client</code></em>
- of the type for <em class="parameter"><code>provider</code></em>
+ of the type for <em class="parameter"><code>self</code></em>
 , interacts with the
 user to get all information needed and creates the account.</p>
 <p>The passed in <em class="parameter"><code>dialog</code></em>
@@ -527,7 +524,7 @@ with response id GTK_RESPONSE_CANCEL. Implementations are free to
 add additional action widgets, as needed.</p>
 <p>If an account was successfully created, a <a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> for the
 created account is returned. If <em class="parameter"><code>dialog</code></em>
- is dismissed, <code class="literal">NULL</code> is
+ is dismissed, <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a> is
 returned and <em class="parameter"><code>error</code></em>
  is set to <a class="link" href="goa-GoaError.html#GOA-ERROR-DIALOG-DISMISSED:CAPS"><code class="literal">GOA_ERROR_DIALOG_DISMISSED</code></a>. If an
 account couldn't be created then <em class="parameter"><code>error</code></em>
@@ -539,14 +536,14 @@ keyring, a <a class="link" href="GoaObject.html" title="GoaObject"><span class="
  is set unless
 the error is <a class="link" href="goa-GoaError.html#GOA-ERROR-DIALOG-DISMISSED:CAPS"><code class="literal">GOA_ERROR_DIALOG_DISMISSED</code></a>.</p>
 <p>Implementations should run the default main loop while
-interacting with the user and may do so using e.g. <code class="function">gtk_dialog_run()</code>
+interacting with the user and may do so using e.g. <a href="/usr/share/gtk-doc/html/gtk3GtkDialog.html#gtk-dialog-run"><code class="function">gtk_dialog_run()</code></a>
 on <em class="parameter"><code>dialog</code></em>
 .</p>
 <p>This is a pure virtual method - a subclass must provide an
 implementation.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.8.10"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-add-account.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
@@ -554,7 +551,7 @@ implementation.</p>
 </colgroup>
 <tbody>
 <tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
@@ -565,44 +562,43 @@ implementation.</p>
 </tr>
 <tr>
 <td class="parameter_name"><p>dialog</p></td>
-<td class="parameter_description"><p>A <span class="type">GtkDialog</span>.</p></td>
+<td class="parameter_description"><p>A <a href="/usr/share/gtk-doc/html/gtk3GtkDialog.html#GtkDialog-struct"><span class="type">GtkDialog</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 <tr>
 <td class="parameter_name"><p>vbox</p></td>
-<td class="parameter_description"><p>A vertically oriented <span class="type">GtkBox</span> to put content in.</p></td>
+<td class="parameter_description"><p>A vertically oriented <a href="/usr/share/gtk-doc/html/gtk3GtkBox.html#GtkBox-struct"><span class="type">GtkBox</span></a> to put content in.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 <tr>
 <td class="parameter_name"><p>error</p></td>
-<td class="parameter_description"><p>Return location for error or <code class="literal">NULL</code>.</p></td>
+<td class="parameter_description"><p>Return location for error or <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 </tbody>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.8.11"></a><h4>Returns</h4>
+<a name="goa-provider-add-account.returns"></a><h4>Returns</h4>
 <p> The <a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> for the created account (must be relased
-with <code class="function">g_object_unref()</code>) or <code class="literal">NULL</code> if <em class="parameter"><code>error</code></em>
+with <a href="/usr/share/gtk-doc/html/gobjectgobject-The-Base-Object-Type.html#g-object-unref"><code class="function">g_object_unref()</code></a>) or <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a> if <em class="parameter"><code>error</code></em>
 is set.</p>
-<p></p>
 </div>
 </div>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-set-preseed-data"></a><h3>goa_provider_set_preseed_data ()</h3>
 <pre class="programlisting"><span class="returnvalue">void</span>
-goa_provider_set_preseed_data (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>,
-                               <em class="parameter"><code><span class="type">GVariant</span> *preseed_data</code></em>);</pre>
+goa_provider_set_preseed_data (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>,
+                               <em class="parameter"><code><a href="/usr/share/gtk-doc/html/glibglib-GVariant.html#GVariant"><span class="type">GVariant</span></a> *preseed_data</code></em>);</pre>
 <p>Sets the <a class="link" href="GoaProvider.html#GoaProvider--preseed-data" title="The “preseed-data” property"><span class="type">“preseed-data”</span></a> property to feed any information already
 collected that can be useful when creating a new account.</p>
 <p>If the <em class="parameter"><code>preseed_data</code></em>
- <span class="type">GVariant</span> is floating, it is consumed to allow
-'inline' use of the <code class="function">g_variant_new()</code> family of functions.</p>
+ <a href="/usr/share/gtk-doc/html/glibglib-GVariant.html#GVariant"><span class="type">GVariant</span></a> is floating, it is consumed to allow
+'inline' use of the <a href="/usr/share/gtk-doc/html/glibglib-GVariant.html#g-variant-new"><code class="function">g_variant_new()</code></a> family of functions.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.9.6"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-set-preseed-data.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
@@ -610,13 +606,13 @@ collected that can be useful when creating a new account.</p>
 </colgroup>
 <tbody>
 <tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>The <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a></p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 <tr>
 <td class="parameter_name"><p>preseed_data</p></td>
-<td class="parameter_description"><p>A <span class="type">GVariant</span> of type a{sv}</p></td>
+<td class="parameter_description"><p>A <a href="/usr/share/gtk-doc/html/glibglib-GVariant.html#GVariant"><span class="type">GVariant</span></a> of type a{sv}</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 </tbody>
@@ -626,27 +622,27 @@ collected that can be useful when creating a new account.</p>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-get-preseed-data"></a><h3>goa_provider_get_preseed_data ()</h3>
-<pre class="programlisting"><span class="returnvalue">GVariant</span> *
-goa_provider_get_preseed_data (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>);</pre>
-<p>Gets the <span class="type">GVariant</span> set through the <a class="link" href="GoaProvider.html#GoaProvider--preseed-data" title="The “preseed-data” property"><span class="type">“preseed-data”</span></a> property.</p>
+<pre class="programlisting"><a href="/usr/share/gtk-doc/html/glibglib-GVariant.html#GVariant"><span class="returnvalue">GVariant</span></a> *
+goa_provider_get_preseed_data (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>);</pre>
+<p>Gets the <a href="/usr/share/gtk-doc/html/glibglib-GVariant.html#GVariant"><span class="type">GVariant</span></a> set through the <a class="link" href="GoaProvider.html#GoaProvider--preseed-data" title="The “preseed-data” property"><span class="type">“preseed-data”</span></a> property.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.10.5"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-get-preseed-data.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
 <col width="200px" class="parameters_annotations">
 </colgroup>
 <tbody><tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>The <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a></p></td>
 <td class="parameter_annotations"> </td>
 </tr></tbody>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.10.6"></a><h4>Returns</h4>
-<p> A <span class="type">GVariant</span> that is known to be valid until
+<a name="goa-provider-get-preseed-data.returns"></a><h4>Returns</h4>
+<p> A <a href="/usr/share/gtk-doc/html/glibglib-GVariant.html#GVariant"><span class="type">GVariant</span></a> that is known to be valid until
 the property is overridden or the provider freed. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
@@ -654,26 +650,26 @@ the property is overridden or the provider freed. </p>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-refresh-account"></a><h3>goa_provider_refresh_account ()</h3>
-<pre class="programlisting"><span class="returnvalue">gboolean</span>
-goa_provider_refresh_account (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>,
+<pre class="programlisting"><a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+goa_provider_refresh_account (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>,
                               <em class="parameter"><code><a class="link" href="GoaClient.html" title="GoaClient"><span class="type">GoaClient</span></a> *client</code></em>,
                               <em class="parameter"><code><a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> *object</code></em>,
-                              <em class="parameter"><code><span class="type">GtkWindow</span> *parent</code></em>,
-                              <em class="parameter"><code><span class="type">GError</span> **error</code></em>);</pre>
+                              <em class="parameter"><code><a href="/usr/share/gtk-doc/html/gtk3GtkWindow.html#GtkWindow-struct"><span class="type">GtkWindow</span></a> *parent</code></em>,
+                              <em class="parameter"><code><a href="/usr/share/gtk-doc/html/glibglib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
 <p>This method brings up the user interface necessary for refreshing
 the credentials for the account specified by <em class="parameter"><code>object</code></em>
 . This
 typically involves having the user log in to the account again.</p>
 <p>Implementations should use <em class="parameter"><code>parent</code></em>
- (unless <code class="literal">NULL</code>) as the transient
+ (unless <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>) as the transient
 parent of any created windows/dialogs.</p>
 <p>Implementations should run the default main loop while
 interacting with the user.</p>
 <p>This is a pure virtual method - a subclass must provide an
 implementation.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.11.8"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-refresh-account.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
@@ -681,7 +677,7 @@ implementation.</p>
 </colgroup>
 <tbody>
 <tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
@@ -697,42 +693,42 @@ implementation.</p>
 </tr>
 <tr>
 <td class="parameter_name"><p>parent</p></td>
-<td class="parameter_description"><p> Transient parent of dialogs or <code class="literal">NULL</code>. </p></td>
+<td class="parameter_description"><p> Transient parent of dialogs or <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p></td>
 <td class="parameter_annotations"><span class="annotation">[<acronym title="NULL is OK, both for passing and for returning."><span class="acronym">allow-none</span></acronym>]</span></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>error</p></td>
-<td class="parameter_description"><p>Return location for error or <code class="literal">NULL</code>.</p></td>
+<td class="parameter_description"><p>Return location for error or <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 </tbody>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.11.9"></a><h4>Returns</h4>
-<p> <code class="literal">TRUE</code> if the account has been refreshed, <code class="literal">FALSE</code> if <em class="parameter"><code>error</code></em>
+<a name="goa-provider-refresh-account.returns"></a><h4>Returns</h4>
+<p> <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#TRUE:CAPS"><code class="literal">TRUE</code></a> if the account has been refreshed, <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#FALSE:CAPS"><code class="literal">FALSE</code></a> if <em class="parameter"><code>error</code></em>
 is set.</p>
-<p></p>
 </div>
 </div>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-show-account"></a><h3>goa_provider_show_account ()</h3>
 <pre class="programlisting"><span class="returnvalue">void</span>
-goa_provider_show_account (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>,
+goa_provider_show_account (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>,
                            <em class="parameter"><code><a class="link" href="GoaClient.html" title="GoaClient"><span class="type">GoaClient</span></a> *client</code></em>,
                            <em class="parameter"><code><a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> *object</code></em>,
-                           <em class="parameter"><code><span class="type">GtkBox</span> *vbox</code></em>,
-                           <em class="parameter"><code><span class="type">GtkGrid</span> *grid</code></em>,
-                           <em class="parameter"><code><span class="type">GtkGrid</span> *dummy</code></em>);</pre>
+                           <em class="parameter"><code><a href="/usr/share/gtk-doc/html/gtk3GtkBox.html#GtkBox-struct"><span class="type">GtkBox</span></a> *vbox</code></em>,
+                           <em class="parameter"><code><a href="/usr/share/gtk-doc/html/gtk3GtkGrid.html#GtkGrid-struct"><span class="type">GtkGrid</span></a> *dummy1</code></em>,
+                           <em class="parameter"><code><a href="/usr/share/gtk-doc/html/gtk3GtkGrid.html#GtkGrid-struct"><span class="type">GtkGrid</span></a> *dummy2</code></em>);</pre>
 <p>Method used to add widgets in the control panel for the account
 represented by <em class="parameter"><code>object</code></em>
 .</p>
-<p>This is a pure virtual method - a subclass must provide an
-implementation.</p>
+<p>This is a virtual method where the default implementation adds
+one GtkSwitch per service supported by the provider (as reported
+by <a class="link" href="GoaProvider.html#goa-provider-get-provider-features" title="goa_provider_get_provider_features ()"><code class="function">goa_provider_get_provider_features()</code></a>).</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.12.6"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-show-account.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
@@ -740,7 +736,7 @@ implementation.</p>
 </colgroup>
 <tbody>
 <tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
@@ -756,12 +752,12 @@ implementation.</p>
 </tr>
 <tr>
 <td class="parameter_name"><p>vbox</p></td>
-<td class="parameter_description"><p>A vertically oriented <span class="type">GtkBox</span> to put content in.</p></td>
+<td class="parameter_description"><p>A vertically oriented <a href="/usr/share/gtk-doc/html/gtk3GtkBox.html#GtkBox-struct"><span class="type">GtkBox</span></a> to put content in.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 <tr>
 <td class="parameter_name"><p>grid</p></td>
-<td class="parameter_description"><p>A <span class="type">GtkGrid</span> to put content in.</p></td>
+<td class="parameter_description"><p>A <a href="/usr/share/gtk-doc/html/gtk3GtkGrid.html#GtkGrid-struct"><span class="type">GtkGrid</span></a> to put content in.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 <tr>
@@ -777,11 +773,11 @@ implementation.</p>
 <div class="refsect2">
 <a name="goa-provider-ensure-credentials"></a><h3>goa_provider_ensure_credentials ()</h3>
 <pre class="programlisting"><span class="returnvalue">void</span>
-goa_provider_ensure_credentials (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>,
+goa_provider_ensure_credentials (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>,
                                  <em class="parameter"><code><a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> *object</code></em>,
-                                 <em class="parameter"><code><span class="type">GCancellable</span> *cancellable</code></em>,
-                                 <em class="parameter"><code><span class="type">GAsyncReadyCallback</span> callback</code></em>,
-                                 <em class="parameter"><code><span class="type">gpointer</span> user_data</code></em>);</pre>
+                                 <em class="parameter"><code><a href="/usr/share/gtk-doc/html/gioGCancellable.html#GCancellable-struct"><span class="type">GCancellable</span></a> *cancellable</code></em>,
+                                 <em class="parameter"><code><a href="/usr/share/gtk-doc/html/gioGAsyncResult.html#GAsyncReadyCallback"><span class="type">GAsyncReadyCallback</span></a> callback</code></em>,
+                                 <em class="parameter"><code><a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gpointer"><span class="type">gpointer</span></a> user_data</code></em>);</pre>
 <p>Ensures that credentials for <em class="parameter"><code>object</code></em>
  are still valid.</p>
 <p>When the result is ready, <em class="parameter"><code>callback</code></em>
@@ -793,8 +789,8 @@ of the operation.</p>
 throws the <a class="link" href="goa-GoaError.html#GOA-ERROR-NOT-SUPPORTED:CAPS"><code class="literal">GOA_ERROR_NOT_SUPPORTED</code></a> error. A subclass may provide
 another implementation.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.13.7"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-ensure-credentials.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
@@ -802,7 +798,7 @@ another implementation.</p>
 </colgroup>
 <tbody>
 <tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
@@ -813,7 +809,7 @@ another implementation.</p>
 </tr>
 <tr>
 <td class="parameter_name"><p>cancellable</p></td>
-<td class="parameter_description"><p> A <span class="type">GCancellable</span> or <code class="literal">NULL</code>. </p></td>
+<td class="parameter_description"><p> A <a href="/usr/share/gtk-doc/html/gioGCancellable.html#GCancellable-struct"><span class="type">GCancellable</span></a> or <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p></td>
 <td class="parameter_annotations"><span class="annotation">[<acronym title="NULL is OK, both for passing and for returning."><span class="acronym">allow-none</span></acronym>]</span></td>
 </tr>
 <tr>
@@ -834,16 +830,16 @@ another implementation.</p>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-ensure-credentials-finish"></a><h3>goa_provider_ensure_credentials_finish ()</h3>
-<pre class="programlisting"><span class="returnvalue">gboolean</span>
+<pre class="programlisting"><a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
 goa_provider_ensure_credentials_finish
-                               (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>,
-                                <em class="parameter"><code><span class="type">gint</span> *out_expires_in</code></em>,
-                                <em class="parameter"><code><span class="type">GAsyncResult</span> *res</code></em>,
-                                <em class="parameter"><code><span class="type">GError</span> **error</code></em>);</pre>
+                               (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>,
+                                <em class="parameter"><code><a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gint"><span class="type">gint</span></a> *out_expires_in</code></em>,
+                                <em class="parameter"><code><a href="/usr/share/gtk-doc/html/gioGAsyncResult.html#GAsyncResult-struct"><span class="type">GAsyncResult</span></a> *res</code></em>,
+                                <em class="parameter"><code><a href="/usr/share/gtk-doc/html/glibglib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
 <p>Finishes an operation started with <a class="link" href="GoaProvider.html#goa-provider-ensure-credentials" title="goa_provider_ensure_credentials ()"><code class="function">goa_provider_ensure_credentials()</code></a>.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.14.5"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-ensure-credentials-finish.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
@@ -851,49 +847,48 @@ goa_provider_ensure_credentials_finish
 </colgroup>
 <tbody>
 <tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 <tr>
 <td class="parameter_name"><p>out_expires_in</p></td>
-<td class="parameter_description"><p> Return location for how long the expired credentials are good for (0 if unknown) or <code class="literal">NULL</code>. </p></td>
+<td class="parameter_description"><p> Return location for how long the expired credentials are good for (0 if unknown) or <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p></td>
 <td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter for returning results. Default is transfer full."><span class="acronym">out</span></acronym>]</span></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>res</p></td>
-<td class="parameter_description"><p>A <span class="type">GAsyncResult</span> obtained from the <span class="type">GAsyncReadyCallback</span> passed to <a class="link" href="GoaProvider.html#goa-provider-ensure-credentials" title="goa_provider_ensure_credentials ()"><code class="function">goa_provider_ensure_credentials()</code></a>.</p></td>
+<td class="parameter_description"><p>A <a href="/usr/share/gtk-doc/html/gioGAsyncResult.html#GAsyncResult-struct"><span class="type">GAsyncResult</span></a> obtained from the <a href="/usr/share/gtk-doc/html/gioGAsyncResult.html#GAsyncReadyCallback"><span class="type">GAsyncReadyCallback</span></a> passed to <a class="link" href="GoaProvider.html#goa-provider-ensure-credentials" title="goa_provider_ensure_credentials ()"><code class="function">goa_provider_ensure_credentials()</code></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 <tr>
 <td class="parameter_name"><p>error</p></td>
-<td class="parameter_description"><p>Return location for error or <code class="literal">NULL</code>.</p></td>
+<td class="parameter_description"><p>Return location for error or <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 </tbody>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.14.6"></a><h4>Returns</h4>
-<p> <code class="literal">TRUE</code> if the credentials for the passed <a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> are valid, <code class="literal">FALSE</code> if <em class="parameter"><code>error</code></em>
+<a name="goa-provider-ensure-credentials-finish.returns"></a><h4>Returns</h4>
+<p> <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#TRUE:CAPS"><code class="literal">TRUE</code></a> if the credentials for the passed <a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> are valid, <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#FALSE:CAPS"><code class="literal">FALSE</code></a> if <em class="parameter"><code>error</code></em>
 is set.</p>
-<p></p>
 </div>
 </div>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-ensure-credentials-sync"></a><h3>goa_provider_ensure_credentials_sync ()</h3>
-<pre class="programlisting"><span class="returnvalue">gboolean</span>
-goa_provider_ensure_credentials_sync (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>,
+<pre class="programlisting"><a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+goa_provider_ensure_credentials_sync (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>,
                                       <em class="parameter"><code><a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> *object</code></em>,
-                                      <em class="parameter"><code><span class="type">gint</span> *out_expires_in</code></em>,
-                                      <em class="parameter"><code><span class="type">GCancellable</span> *cancellable</code></em>,
-                                      <em class="parameter"><code><span class="type">GError</span> **error</code></em>);</pre>
+                                      <em class="parameter"><code><a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gint"><span class="type">gint</span></a> *out_expires_in</code></em>,
+                                      <em class="parameter"><code><a href="/usr/share/gtk-doc/html/gioGCancellable.html#GCancellable-struct"><span class="type">GCancellable</span></a> *cancellable</code></em>,
+                                      <em class="parameter"><code><a href="/usr/share/gtk-doc/html/glibglib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
 <p>Like <a class="link" href="GoaProvider.html#goa-provider-ensure-credentials" title="goa_provider_ensure_credentials ()"><code class="function">goa_provider_ensure_credentials()</code></a> but blocks the
 calling thread until an answer is received.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.15.5"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-ensure-credentials-sync.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
@@ -901,7 +896,7 @@ calling thread until an answer is received.</p>
 </colgroup>
 <tbody>
 <tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
@@ -912,35 +907,34 @@ calling thread until an answer is received.</p>
 </tr>
 <tr>
 <td class="parameter_name"><p>out_expires_in</p></td>
-<td class="parameter_description"><p> Return location for how long the expired credentials are good for (0 if unknown) or <code class="literal">NULL</code>. </p></td>
+<td class="parameter_description"><p> Return location for how long the expired credentials are good for (0 if unknown) or <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p></td>
 <td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter for returning results. Default is transfer full."><span class="acronym">out</span></acronym>]</span></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>cancellable</p></td>
-<td class="parameter_description"><p> A <span class="type">GCancellable</span> or <code class="literal">NULL</code>. </p></td>
+<td class="parameter_description"><p> A <a href="/usr/share/gtk-doc/html/gioGCancellable.html#GCancellable-struct"><span class="type">GCancellable</span></a> or <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p></td>
 <td class="parameter_annotations"><span class="annotation">[<acronym title="NULL is OK, both for passing and for returning."><span class="acronym">allow-none</span></acronym>]</span></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>error</p></td>
-<td class="parameter_description"><p>Return location for error or <code class="literal">NULL</code>.</p></td>
+<td class="parameter_description"><p>Return location for error or <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 </tbody>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.15.6"></a><h4>Returns</h4>
-<p> <code class="literal">TRUE</code> if the credentials for the passed <a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> are valid, <code class="literal">FALSE</code> if <em class="parameter"><code>error</code></em>
+<a name="goa-provider-ensure-credentials-sync.returns"></a><h4>Returns</h4>
+<p> <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#TRUE:CAPS"><code class="literal">TRUE</code></a> if the credentials for the passed <a class="link" href="GoaObject.html" title="GoaObject"><span class="type">GoaObject</span></a> are valid, <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#FALSE:CAPS"><code class="literal">FALSE</code></a> if <em class="parameter"><code>error</code></em>
 is set.</p>
-<p></p>
 </div>
 </div>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-get-credentials-generation"></a><h3>goa_provider_get_credentials_generation ()</h3>
-<pre class="programlisting"><span class="returnvalue">guint</span>
+<pre class="programlisting"><a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#guint"><span class="returnvalue">guint</span></a>
 goa_provider_get_credentials_generation
-                               (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *provider</code></em>);</pre>
+                               (<em class="parameter"><code><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> *self</code></em>);</pre>
 <p>Gets the generation of credentials being used for the provider.</p>
 <p>Implementations should bump this number when changes are introduced
 that may render existing credentials unusable.</p>
@@ -951,32 +945,31 @@ scope.</p>
 <p>This is a virtual method where the default implementation returns
 0.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.16.8"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-get-credentials-generation.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
 <col width="200px" class="parameters_annotations">
 </colgroup>
 <tbody><tr>
-<td class="parameter_name"><p>provider</p></td>
+<td class="parameter_name"><p>self</p></td>
 <td class="parameter_description"><p>A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p></td>
 <td class="parameter_annotations"> </td>
 </tr></tbody>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.16.9"></a><h4>Returns</h4>
+<a name="goa-provider-get-credentials-generation.returns"></a><h4>Returns</h4>
 <p> The current generation of credentials.</p>
-<p></p>
 </div>
 </div>
 <hr>
 <div class="refsect2">
 <a name="goa-provider-get-all"></a><h3>goa_provider_get_all ()</h3>
 <pre class="programlisting"><span class="returnvalue">void</span>
-goa_provider_get_all (<em class="parameter"><code><span class="type">GAsyncReadyCallback</span> callback</code></em>,
-                      <em class="parameter"><code><span class="type">gpointer</span> user_data</code></em>);</pre>
+goa_provider_get_all (<em class="parameter"><code><a href="/usr/share/gtk-doc/html/gioGAsyncResult.html#GAsyncReadyCallback"><span class="type">GAsyncReadyCallback</span></a> callback</code></em>,
+                      <em class="parameter"><code><a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gpointer"><span class="type">gpointer</span></a> user_data</code></em>);</pre>
 <p>Creates a list of all the available <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> instances.</p>
 <p>When the result is ready, <em class="parameter"><code>callback</code></em>
  will be called in the the <GTKDOCLINK HREF="g-main-context-push-thread-default">thread-default main
@@ -985,8 +978,8 @@ loop</GTKDOCLINK> this function was called from. You can then call
 <p>See <a class="link" href="GoaProvider.html#goa-provider-get-for-provider-type" title="goa_provider_get_for_provider_type ()"><code class="function">goa_provider_get_for_provider_type()</code></a> for details on how the providers
 are found.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.17.7"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-get-all.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
@@ -1012,7 +1005,7 @@ are found.</p>
 <div class="refsect2">
 <a name="goa-provider-get-for-provider-type"></a><h3>goa_provider_get_for_provider_type ()</h3>
 <pre class="programlisting"><a class="link" href="GoaProvider.html" title="GoaProvider"><span class="returnvalue">GoaProvider</span></a> *
-goa_provider_get_for_provider_type (<em class="parameter"><code>const <span class="type">gchar</span> *provider_type</code></em>);</pre>
+goa_provider_get_for_provider_type (<em class="parameter"><code>const <a href="/usr/share/gtk-doc/html/glibglib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *provider_type</code></em>);</pre>
 <p>Returns a <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> for <em class="parameter"><code>provider_type</code></em>
  (if available).</p>
 <p>If <em class="parameter"><code>provider_type</code></em>
@@ -1022,14 +1015,14 @@ goa_provider_get_for_provider_type (<em class="parameter"><code>const <span clas
 and the newly created <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>, if any, is returned.</p>
 <p>If <em class="parameter"><code>provider_type</code></em>
  contains a "/", a
-<a class="link" href="GoaProviderFactory.html#GOA-PROVIDER-FACTORY-EXTENSION-POINT-NAME:CAPS" title="GOA_PROVIDER_FACTORY_EXTENSION_POINT_NAME"><code class="literal">GOA_PROVIDER_FACTORY_EXTENSION_POINT_NAME</code></a> extension for the first part of
+<code class="literal">GOA_PROVIDER_FACTORY_EXTENSION_POINT_NAME</code> extension for the first part of
 <em class="parameter"><code>provider_type</code></em>
- is looked up. If found, the <a class="link" href="GoaProviderFactory.html" title="GoaProviderFactory"><span class="type">GoaProviderFactory</span></a> is used
+ is looked up. If found, the <span class="type">GoaProviderFactory</span> is used
 to create a dynamic <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> matching the second part of <em class="parameter"><code>provider_type</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.18.7"></a><h4>Parameters</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="goa-provider-get-for-provider-type.parameters"></a><h4>Parameters</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
 <col class="parameters_description">
@@ -1043,9 +1036,9 @@ to create a dynamic <a class="link" href="GoaProvider.html" title="GoaProvider">
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.3.8.18.8"></a><h4>Returns</h4>
+<a name="goa-provider-get-for-provider-type.returns"></a><h4>Returns</h4>
 <p> A <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a> (that must be freed
-with <code class="function">g_object_unref()</code>) or <code class="literal">NULL</code> if not found. </p>
+with <a href="/usr/share/gtk-doc/html/gobjectgobject-The-Base-Object-Type.html#g-object-unref"><code class="function">g_object_unref()</code></a>) or <a href="/usr/share/gtk-doc/html/glibglib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a> if not found. </p>
 <p><span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>]</span></p>
 </div>
 </div>
@@ -1065,51 +1058,59 @@ only be accessed using the provided API.</p>
   GObjectClass parent_class;
 
   /* pure virtual */
-  const gchar *(*get_provider_type) (GoaProvider        *provider);
-  gchar       *(*get_provider_name) (GoaProvider        *provider,
-                                     GoaObject          *object);
-  GIcon       *(*get_provider_icon) (GoaProvider        *provider,
-                                     GoaObject          *object);
-  GoaObject   *(*add_account)       (GoaProvider        *provider,
-                                     GoaClient          *client,
-                                     GtkDialog          *dialog,
-                                     GtkBox             *vbox,
-                                     GError            **error);
-  gboolean     (*refresh_account)   (GoaProvider        *provider,
-                                     GoaClient          *client,
-                                     GoaObject          *object,
-                                     GtkWindow          *parent,
-                                     GError            **error);
-  void         (*show_account)      (GoaProvider         *provider,
-                                     GoaClient           *client,
-                                     GoaObject           *object,
-                                     GtkBox              *vbox,
-                                     GtkGrid             *grid,
-                                     GtkGrid             *dummy);
-  gboolean     (*build_object)      (GoaProvider        *provider,
-                                     GoaObjectSkeleton  *object,
-                                     GKeyFile           *key_file,
-                                     const gchar        *group,
-                                     GDBusConnection    *connection,
-                                     gboolean            just_added,
-                                     GError            **error);
-  /* virtual but with default implementation */
-  gboolean (*ensure_credentials_sync) (GoaProvider         *provider,
-                                       GoaObject           *object,
-                                       gint                *out_expires_in,
-                                       GCancellable        *cancellable,
-                                       GError             **error);
-  guint    (*get_credentials_generation) (GoaProvider   *provider);
+  GoaObject              *(*add_account)                  (GoaProvider            *self,
+                                                           GoaClient              *client,
+                                                           GtkDialog              *dialog,
+                                                           GtkBox                 *vbox,
+                                                           GError                **error);
+  GoaProviderFeatures     (*get_provider_features)        (GoaProvider            *self);
+  GoaProviderGroup        (*get_provider_group)           (GoaProvider            *self);
+  gchar                  *(*get_provider_name)            (GoaProvider            *self,
+                                                           GoaObject              *object);
+  const gchar            *(*get_provider_type)            (GoaProvider            *self);
+  gboolean                (*refresh_account)              (GoaProvider            *self,
+                                                           GoaClient              *client,
+                                                           GoaObject              *object,
+                                                           GtkWindow              *parent,
+                                                           GError                **error);
 
-  /* pure virtual */
-  GoaProviderGroup (*get_provider_group) (GoaProvider   *provider);
-  GoaProviderFeatures  (*get_provider_features)     (GoaProvider   *provider);
+  /* virtual but with default implementation */
+  gboolean                (*build_object)                 (GoaProvider            *self,
+                                                           GoaObjectSkeleton      *object,
+                                                           GKeyFile               *key_file,
+                                                           const gchar            *group,
+                                                           GDBusConnection        *connection,
+                                                           gboolean                just_added,
+                                                           GError                **error);
+  gboolean                (*ensure_credentials_sync)      (GoaProvider            *self,
+                                                           GoaObject              *object,
+                                                           gint                   *out_expires_in,
+                                                           GCancellable           *cancellable,
+                                                           GError                **error);
+  guint                   (*get_credentials_generation)   (GoaProvider            *self);
+  GIcon                  *(*get_provider_icon)            (GoaProvider            *self,
+                                                           GoaObject              *object);
+  void                    (*initialize)                   (GoaProvider            *self);
+  void                    (*remove_account)               (GoaProvider            *self,
+                                                           GoaObject              *object,
+                                                           GCancellable           *cancellable,
+                                                           GAsyncReadyCallback     callback,
+                                                           gpointer                user_data);
+  gboolean                (*remove_account_finish)        (GoaProvider            *self,
+                                                           GAsyncResult           *res,
+                                                           GError                **error);
+  void                    (*show_account)                 (GoaProvider            *self,
+                                                           GoaClient              *client,
+                                                           GoaObject              *object,
+                                                           GtkBox                 *vbox,
+                                                           GtkGrid                *dummy1,
+                                                           GtkGrid                *dummy2);
 } GoaProviderClass;
 </pre>
 <p>Class structure for <a class="link" href="GoaProvider.html" title="GoaProvider"><span class="type">GoaProvider</span></a>.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.9.3.5"></a><h4>Members</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="GoaProviderClass.members"></a><h4>Members</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="300px" class="struct_members_name">
 <col class="struct_members_description">
@@ -1117,13 +1118,18 @@ only be accessed using the provided API.</p>
 </colgroup>
 <tbody>
 <tr>
-<td class="struct_member_name"><p><span class="type">GObjectClass</span> <em class="structfield"><code><a name="GoaProviderClass.parent-class"></a>parent_class</code></em>;</p></td>
-<td class="struct_member_description"><p>The parent class.</p></td>
+<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.add-account"></a>add_account</code></em> ()</p></td>
+<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-add-account" title="goa_provider_add_account ()"><code class="function">goa_provider_add_account()</code></a>.</p></td>
 <td class="struct_member_annotations"> </td>
 </tr>
 <tr>
-<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.get-provider-type"></a>get_provider_type</code></em> ()</p></td>
-<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-get-provider-type" title="goa_provider_get_provider_type ()"><code class="function">goa_provider_get_provider_type()</code></a>.</p></td>
+<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.get-provider-features"></a>get_provider_features</code></em> ()</p></td>
+<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-get-provider-features" title="goa_provider_get_provider_features ()"><code class="function">goa_provider_get_provider_features()</code></a>.</p></td>
+<td class="struct_member_annotations"> </td>
+</tr>
+<tr>
+<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.get-provider-group"></a>get_provider_group</code></em> ()</p></td>
+<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-get-provider-group" title="goa_provider_get_provider_group ()"><code class="function">goa_provider_get_provider_group()</code></a>.</p></td>
 <td class="struct_member_annotations"> </td>
 </tr>
 <tr>
@@ -1132,23 +1138,13 @@ only be accessed using the provided API.</p>
 <td class="struct_member_annotations"> </td>
 </tr>
 <tr>
-<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.get-provider-icon"></a>get_provider_icon</code></em> ()</p></td>
-<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-get-provider-icon" title="goa_provider_get_provider_icon ()"><code class="function">goa_provider_get_provider_icon()</code></a>.</p></td>
-<td class="struct_member_annotations"> </td>
-</tr>
-<tr>
-<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.add-account"></a>add_account</code></em> ()</p></td>
-<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-add-account" title="goa_provider_add_account ()"><code class="function">goa_provider_add_account()</code></a>.</p></td>
+<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.get-provider-type"></a>get_provider_type</code></em> ()</p></td>
+<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-get-provider-type" title="goa_provider_get_provider_type ()"><code class="function">goa_provider_get_provider_type()</code></a>.</p></td>
 <td class="struct_member_annotations"> </td>
 </tr>
 <tr>
 <td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.refresh-account"></a>refresh_account</code></em> ()</p></td>
 <td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-refresh-account" title="goa_provider_refresh_account ()"><code class="function">goa_provider_refresh_account()</code></a>.</p></td>
-<td class="struct_member_annotations"> </td>
-</tr>
-<tr>
-<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.show-account"></a>show_account</code></em> ()</p></td>
-<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-show-account" title="goa_provider_show_account ()"><code class="function">goa_provider_show_account()</code></a>.</p></td>
 <td class="struct_member_annotations"> </td>
 </tr>
 <tr>
@@ -1167,13 +1163,28 @@ only be accessed using the provided API.</p>
 <td class="struct_member_annotations"> </td>
 </tr>
 <tr>
-<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.get-provider-group"></a>get_provider_group</code></em> ()</p></td>
-<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-get-provider-group" title="goa_provider_get_provider_group ()"><code class="function">goa_provider_get_provider_group()</code></a>.</p></td>
+<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.get-provider-icon"></a>get_provider_icon</code></em> ()</p></td>
+<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-get-provider-icon" title="goa_provider_get_provider_icon ()"><code class="function">goa_provider_get_provider_icon()</code></a>.</p></td>
 <td class="struct_member_annotations"> </td>
 </tr>
 <tr>
-<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.get-provider-features"></a>get_provider_features</code></em> ()</p></td>
-<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-get-provider-features" title="goa_provider_get_provider_features ()"><code class="function">goa_provider_get_provider_features()</code></a>.</p></td>
+<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.initialize"></a>initialize</code></em> ()</p></td>
+<td class="struct_member_description"><p>Virtual function for <code class="function">goa_provider_initialize()</code>.</p></td>
+<td class="struct_member_annotations"> </td>
+</tr>
+<tr>
+<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.remove-account"></a>remove_account</code></em> ()</p></td>
+<td> </td>
+<td> </td>
+</tr>
+<tr>
+<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.remove-account-finish"></a>remove_account_finish</code></em> ()</p></td>
+<td> </td>
+<td> </td>
+</tr>
+<tr>
+<td class="struct_member_name"><p><em class="structfield"><code><a name="GoaProviderClass.show-account"></a>show_account</code></em> ()</p></td>
+<td class="struct_member_description"><p>Virtual function for <a class="link" href="GoaProvider.html#goa-provider-show-account" title="goa_provider_show_account ()"><code class="function">goa_provider_show_account()</code></a>.</p></td>
 <td class="struct_member_annotations"> </td>
 </tr>
 </tbody>
@@ -1187,8 +1198,8 @@ only be accessed using the provided API.</p>
 can be used to organize the providers while displaying them in an
 user interface.</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.9.4.4"></a><h4>Members</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="GoaProviderGroup.members"></a><h4>Members</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="300px" class="enum_members_name">
 <col class="enum_members_description">
@@ -1255,8 +1266,8 @@ expecially useful to restrict the list of available providers when
 requesting the creation of an account for a specific purpose (eg. from a
 chat program).</p>
 <div class="refsect3">
-<a name="id-1.5.2.3.9.5.4"></a><h4>Members</h4>
-<div class="informaltable"><table width="100%" border="0">
+<a name="GoaProviderFeatures.members"></a><h4>Members</h4>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
 <colgroup>
 <col width="300px" class="enum_members_name">
 <col class="enum_members_description">
@@ -1348,6 +1359,13 @@ chat program).</p>
 <td class="enum_member_annotations"> </td>
 </tr>
 <tr>
+<td class="enum_member_name"><p><a name="GOA-PROVIDER-FEATURE-MUSIC:CAPS"></a>GOA_PROVIDER_FEATURE_MUSIC</p></td>
+<td class="enum_member_description">
+<p>Music related services (e.g. Vkontakte).</p>
+</td>
+<td class="enum_member_annotations"> </td>
+</tr>
+<tr>
 <td class="enum_member_name"><p><a name="GOA-PROVIDER-FEATURE-INVALID:CAPS"></a>GOA_PROVIDER_FEATURE_INVALID</p></td>
 <td class="enum_member_description">
 <p>Used for error handling. No provider
@@ -1358,7 +1376,7 @@ chat program).</p>
 </tbody>
 </table></div>
 </div>
-<p class="since">Since 3.10</p>
+<p class="since">Since: 3.10</p>
 </div>
 <hr>
 <div class="refsect2">
@@ -1372,12 +1390,12 @@ chat program).</p>
 <a name="GoaProvider.property-details"></a><h2>Property Details</h2>
 <div class="refsect2">
 <a name="GoaProvider--preseed-data"></a><h3>The <code class="literal">“preseed-data”</code> property</h3>
-<pre class="programlisting">  “preseed-data”             <span class="type">GVariant</span> *</pre>
-<p>An <span class="type">GVariant</span> of type a{sv} storing any information already collected that
+<pre class="programlisting">  “preseed-data”             <a href="/usr/share/gtk-doc/html/glibglib-GVariant.html#GVariant"><span class="type">GVariant</span></a> *</pre>
+<p>An <a href="/usr/share/gtk-doc/html/glibglib-GVariant.html#GVariant"><span class="type">GVariant</span></a> of type a{sv} storing any information already collected that
 can be useful when creating a new account. For instance, this can be useful
 to reuse the HTTP cookies from an existing browser session to skip the
 prompt for username and password in the OAuth2-based providers by passing
-a <span class="type">GVariant</span> with the following contents:</p>
+a <a href="/usr/share/gtk-doc/html/glibglib-GVariant.html#GVariant"><span class="type">GVariant</span></a> with the following contents:</p>
 <div class="informalexample">
   <table class="listing_frame" border="0" cellpadding="0" cellspacing="0">
     <tbody>
@@ -1423,7 +1441,6 @@ a <span class="type">GVariant</span> with the following contents:</p>
 </div>
 </div>
 <div class="footer">
-<hr>
-          Generated by GTK-Doc V1.21</div>
+<hr>Generated by GTK-Doc V1.25</div>
 </body>
 </html>

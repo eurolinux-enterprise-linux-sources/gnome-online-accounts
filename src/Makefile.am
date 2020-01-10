@@ -1,12 +1,25 @@
 
 NULL =
 
-SUBDIRS = data telepathy-account-widgets src doc po
+SUBDIRS = data
+
+if BUILD_BACKEND
+if BUILD_TELEPATHY
+SUBDIRS += telepathy-account-widgets
+endif
+endif
+
+SUBDIRS += src
+
+if BUILD_BACKEND
+SUBDIRS += doc
+endif
+
+SUBDIRS += po
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
-# introspection and docs doesn't work with src != build
-DISTCHECK_CONFIGURE_FLAGS=--disable-introspection --disable-gtk-doc
+DISTCHECK_CONFIGURE_FLAGS=--enable-introspection --enable-gtk-doc
 
 MAINTAINERCLEANFILES = \
 	$(srcdir)/INSTALL \

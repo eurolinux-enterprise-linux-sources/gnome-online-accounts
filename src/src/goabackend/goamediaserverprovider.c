@@ -20,6 +20,7 @@
 #include <glib/gi18n-lib.h>
 
 #include "goaprovider.h"
+#include "goaobjectskeletonutils.h"
 #include "goautils.h"
 #include "goaprovider-priv.h"
 #include "goamediaserverprovider.h"
@@ -109,12 +110,10 @@ build_object (GoaProvider        *provider,
   gboolean ret;
   GoaAccount *account;
   GoaMediaServer *mediaserver;
-  GoaPhotos *photos;
   const gchar *udn;
   gboolean photos_enabled;
 
   mediaserver = NULL;
-  photos = NULL;
 
   account = NULL;
   ret = FALSE;
@@ -133,21 +132,8 @@ build_object (GoaProvider        *provider,
   udn = goa_account_get_identity (account);
 
   /* Photos */
-  photos = goa_object_get_photos (GOA_OBJECT (object));
   photos_enabled = g_key_file_get_boolean (key_file, group, "PhotosEnabled", NULL);
-  if (photos_enabled)
-    {
-      if (photos == NULL)
-        {
-          photos = goa_photos_skeleton_new ();
-          goa_object_skeleton_set_photos (object, photos);
-        }
-    }
-  else
-    {
-      if (photos == NULL)
-        goa_object_skeleton_set_photos (object, NULL);
-    }
+  goa_object_skeleton_attach_photos (object, photos_enabled);
 
   /* Media Server */
   mediaserver = goa_object_get_media_server (GOA_OBJECT (object));
@@ -176,7 +162,6 @@ build_object (GoaProvider        *provider,
 out:
   g_clear_object (&account);
   g_clear_object (&mediaserver);
-  g_clear_object (&photos);
   return ret;
 }
 
@@ -189,36 +174,10 @@ ensure_credentials_sync (GoaProvider         *provider,
                          GCancellable        *cancellable,
                          GError             **error)
 {
-  GVariant *credentials;
-  gboolean ret;
-
-  credentials = NULL;
-  ret = FALSE;
-
-  credentials = goa_utils_lookup_credentials_sync (provider,
-                                                   object,
-                                                   cancellable,
-                                                   error);
-
-  if (credentials == NULL)
-    {
-      if (error != NULL)
-        {
-          (*error)->domain = GOA_ERROR;
-          (*error)->code = GOA_ERROR_NOT_AUTHORIZED;
-          goto out;
-        }
-    }
-
   if (out_expires_in != NULL)
     *out_expires_in = 0;
 
-  ret = TRUE;
-
- out:
-  if (credentials != NULL)
-    g_variant_unref (credentials);
-  return ret;
+  return TRUE;
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -241,7 +200,7 @@ add_list_box_row (GtkWidget *list_box,
   gtk_widget_set_margin_end (label, 20);
   gtk_widget_set_margin_top (label, 12);
   gtk_widget_set_margin_bottom (label, 12);
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0);
   gtk_container_add (GTK_CONTAINER (row), label);
 }
 
@@ -369,10 +328,10 @@ create_account_details_ui (GoaProvider    *provider,
   gtk_container_add (GTK_CONTAINER (vbox), grid0);
 
   label = gtk_label_new (_("Personal content can be added to your applications through a media server account."));
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_label_set_justify (GTK_LABEL (label), GTK_JUSTIFY_LEFT);
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
   gtk_label_set_max_width_chars (GTK_LABEL (label), 40);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0);
   gtk_container_add (GTK_CONTAINER (grid0), label);
 
   grid1 = gtk_grid_new ();
@@ -381,9 +340,9 @@ create_account_details_ui (GoaProvider    *provider,
   gtk_container_add (GTK_CONTAINER (grid0), grid1);
 
   label = gtk_label_new ("");
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   markup = g_strdup_printf ("<b>%s</b>", _("Available Media Servers"));
   gtk_label_set_markup (GTK_LABEL (label), markup);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0);
   g_free (markup);
   gtk_container_add (GTK_CONTAINER (grid1), label);
 
@@ -419,7 +378,7 @@ create_account_details_ui (GoaProvider    *provider,
   gtk_widget_show (label);
 
   gtk_window_get_size (GTK_WINDOW (data->dialog), NULL, &height);
-  gtk_widget_set_size_request (GTK_WIDGET (data->dialog), -1, height);
+  gtk_window_set_default_size (GTK_WINDOW (data->dialog), -1, height);
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -529,8 +488,7 @@ add_account (GoaProvider  *provider,
   g_free (data.account_object_path);
   g_free (data.friendly_name);
   g_free (data.udn);
-  if (data.loop != NULL)
-    g_main_loop_unref (data.loop);
+  g_clear_pointer (&data.loop, (GDestroyNotify) g_main_loop_unref);
   return ret;
 }
 
@@ -544,48 +502,13 @@ refresh_account (GoaProvider  *provider,
                  GError      **error)
 {
   GoaAccount *account;
-  GVariantBuilder credentials;
-  gboolean ret;
-
-  ret = FALSE;
-
-  g_variant_builder_init (&credentials, G_VARIANT_TYPE_VARDICT);
-
-  if (!goa_utils_store_credentials_for_object_sync (provider,
-                                                    object,
-                                                    g_variant_builder_end (&credentials),
-                                                    NULL, /* GCancellable */
-                                                    error))
-    goto out;
 
   account = goa_object_peek_account (object);
   goa_account_call_ensure_credentials (account,
                                        NULL, /* GCancellable */
                                        NULL, NULL); /* callback, user_data */
-  ret = TRUE;
 
- out:
-  return ret;
-}
-
-/* ---------------------------------------------------------------------------------------------------- */
-
-static void
-show_account (GoaProvider         *provider,
-              GoaClient           *client,
-              GoaObject           *object,
-              GtkBox              *vbox,
-              GtkGrid             *grid,
-              GtkGrid             *right)
-{
-  gint row = 0;
-
-  goa_util_add_account_info (grid, row++, object);
-
-  goa_util_add_row_switch_from_keyfile_with_blurb (grid, row++, object,
-                                                   _("Use for"),
-                                                   "photos-disabled",
-                                                   _("_Photos"));
+  return TRUE;
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -621,6 +544,5 @@ goa_media_server_provider_class_init (GoaMediaServerProviderClass *klass)
   provider_class->add_account             = add_account;
   provider_class->refresh_account         = refresh_account;
   provider_class->build_object            = build_object;
-  provider_class->show_account            = show_account;
   provider_class->ensure_credentials_sync = ensure_credentials_sync;
 }

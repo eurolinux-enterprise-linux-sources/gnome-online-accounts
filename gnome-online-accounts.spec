@@ -1,62 +1,52 @@
+%global glib2_version 2.40
+%global gtk3_version 3.19.12
+%global libsoup_version 2.42
+%global webkitgtk4_version 2.7.2
+
 Name:		gnome-online-accounts
-Version:	3.14.5
-Release:	5%{?dist}
+Version:	3.22.5
+Release:	1%{?dist}
 Summary:	Single sign-on framework for GNOME
 
-Group:		System Environment/Libraries
 License:	LGPLv2+
-URL:		https://live.gnome.org/GnomeOnlineAccounts
-Source0:	http://download.gnome.org/sources/gnome-online-accounts/3.14/%{name}-%{version}.tar.xz
+URL:		https://wiki.gnome.org/Projects/GnomeOnlineAccounts
+Source0:	https://download.gnome.org/sources/gnome-online-accounts/3.22/%{name}-%{version}.tar.xz
 
-Patch0:		translations.patch
-Patch1:		kerberos-smartcard.patch
-Patch2:		kerberos-separate-process.patch
-Patch3:		ensure-credentials-startup-and-network-change.patch
-Patch4:		kerberos-fix-renewal.patch
-
-# https://bugzilla.redhat.com/show_bug.cgi?id=1261940
-Patch5:		temporary-accounts-clean-up.patch
-
-# https://bugzilla.redhat.com/show_bug.cgi?id=1267534
-Patch6:		telepathy-account-widgets-update-submodule.patch
-Patch7:		kerberos-telepathy-stopping-goa-daemon-removes-account.patch
-
-# https://bugzilla.redhat.com/show_bug.cgi?id=1364705
-Patch8:		kerberos-fail-early-on-ticket-request-when-ticketing.patch
-
-BuildRequires:	autoconf
-BuildRequires:	automake
-BuildRequires:	gcr-devel
-BuildRequires:	glib2-devel >= 2.40
-BuildRequires:	gtk3-devel >= 3.11.1
-BuildRequires:	gnome-common
-BuildRequires:	gobject-introspection-devel
+BuildRequires:	pkgconfig(gcr-3)
+BuildRequires:	pkgconfig(gio-2.0) >= %{glib2_version}
+BuildRequires:	pkgconfig(glib-2.0) >= %{glib2_version}
+BuildRequires:	pkgconfig(gobject-2.0) >= %{glib2_version}
+BuildRequires:	pkgconfig(gtk+-3.0) >= %{gtk3_version}
+BuildRequires:	pkgconfig(gobject-introspection-1.0)
 BuildRequires:	gtk-doc
 BuildRequires:	intltool
 BuildRequires:	krb5-devel
-BuildRequires:	libtool
-BuildRequires:	pkgconfig
-BuildRequires:	webkitgtk3-devel
-BuildRequires:	json-glib-devel
-BuildRequires:	libsecret-devel >= 0.7
-BuildRequires:	libsoup-devel >= 2.41
-BuildRequires:	rest-devel
-BuildRequires:	telepathy-glib-devel
-BuildRequires:	libxml2-devel
+BuildRequires:	pkgconfig(webkit2gtk-4.0) >= %{webkitgtk4_version}
+BuildRequires:	pkgconfig(json-glib-1.0)
+BuildRequires:	pkgconfig(libsecret-1) >= 0.7
+BuildRequires:	pkgconfig(libsoup-2.4) >= %{libsoup_version}
+BuildRequires:	pkgconfig(rest-0.7)
+%if 0%{?rhel}
+BuildRequires:	pkgconfig(telepathy-glib)
+%endif
+BuildRequires:	pkgconfig(libxml-2.0)
+BuildRequires:	vala
 
+Requires:	glib2%{?_isa} >= %{glib2_version}
+Requires:	gtk3%{?_isa} >= %{gtk3_version}
+Requires:	libsoup%{?_isa} >= %{libsoup_version}
 Requires:	realmd
+Requires:	webkitgtk4%{?_isa} >= %{webkitgtk4_version}
 
 %description
 GNOME Online Accounts provides interfaces so that applications and libraries
 in GNOME can access the user's online accounts. It has providers for Google,
-ownCloud, Facebook, Flickr, Windows Live, Pocket, Microsoft Exchange,
-IMAP/SMTP, Jabber, SIP and Kerberos.
+ownCloud, Facebook, Flickr, Foursquare, Microsoft Account, Pocket, Microsoft
+Exchange, IMAP/SMTP and Kerberos.
 
 %package devel
 Summary:	Development files for %{name}
-Group:		Development/Libraries
 Requires:	%{name}%{?_isa} = %{version}-%{release}
-Requires:	gobject-introspection-devel
 
 %description devel
 The %{name}-devel package contains libraries and header files for
@@ -64,39 +54,40 @@ developing applications that use %{name}.
 
 %prep
 %setup -q
-%patch0 -p1 -b .translations
-%patch1 -p1 -b .kerberos-smartcard
-%patch2 -p1 -b .kerberos-separate-process
-%patch3 -p1 -b .ensure-credentials
-%patch4 -p1 -b .kerberos-fix-renewal
-%patch5 -p1 -b .temporary-accounts-clean-up
-%patch6 -p1 -b .tpaw-update
-%patch7 -p1 -b .stopping-goa-daemon-removes
-%patch8 -p1 -b .fail-early-on-ticket-request
 
 %build
-autoreconf --force --install
 %configure \
   --disable-static \
   --enable-gtk-doc \
-  --enable-exchange \
+%if 0%{?rhel}
   --disable-facebook \
+  --disable-foursquare \
+  --enable-telepathy \
+%else
+  --disable-telepathy \
+  --enable-facebook \
+  --enable-foursquare \
+%endif
+  --enable-exchange \
   --enable-flickr \
   --enable-google \
   --enable-imap-smtp \
   --enable-kerberos \
   --enable-owncloud \
   --enable-pocket \
-  --enable-telepathy \
+  --disable-silent-rules \
   --enable-windows-live
-make %{?_smp_mflags}
+%make_build
 
 %install
-make install DESTDIR=$RPM_BUILD_ROOT
-rm -f $RPM_BUILD_ROOT/%{_libdir}/*.la $RPM_BUILD_ROOT/%{_libdir}/control-center-1/panels/*.la
+%make_install
+find $RPM_BUILD_ROOT -name '*.la' -delete
 
 %find_lang %{name}
+
+%if 0%{?rhel}
 %find_lang %{name}-tpaw
+%endif
 
 %post
 /sbin/ldconfig
@@ -114,40 +105,64 @@ fi
 /usr/bin/glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 
+%if 0%{?rhel}
 %files -f %{name}.lang -f %{name}-tpaw.lang
-%doc NEWS COPYING
+%else
+%files -f %{name}.lang
+%endif
+
+%license COPYING
+%doc COPYING
+%dir %{_libdir}/girepository-1.0
 %{_libdir}/girepository-1.0/Goa-1.0.typelib
 %{_libdir}/libgoa-1.0.so.0
 %{_libdir}/libgoa-1.0.so.0.0.0
 %{_libdir}/libgoa-backend-1.0.so.1
 %{_libdir}/libgoa-backend-1.0.so.1.0.0
+%dir %{_libdir}/goa-1.0
+%dir %{_libdir}/goa-1.0/web-extensions
+%{_libdir}/goa-1.0/web-extensions/libgoawebextension.so
 %{_prefix}/libexec/goa-daemon
 %{_prefix}/libexec/goa-identity-service
 %{_datadir}/dbus-1/services/org.gnome.OnlineAccounts.service
 %{_datadir}/dbus-1/services/org.gnome.Identity.service
 %{_datadir}/icons/hicolor/*/apps/goa-*.png
-%{_datadir}/icons/hicolor/*/apps/im-*.png
-%{_datadir}/icons/hicolor/*/apps/im-*.svg
 %{_datadir}/man/man8/goa-daemon.8.gz
 %{_datadir}/glib-2.0/schemas/org.gnome.online-accounts.gschema.xml
 
+%if 0%{?rhel}
+%{_datadir}/icons/hicolor/*/apps/im-*.png
+%{_datadir}/icons/hicolor/*/apps/im-*.svg
+
 %dir %{_datadir}/%{name}
-%{_datadir}/%{name}/goawebview.css
 %{_datadir}/%{name}/irc-networks.xml
+%endif
 
 %files devel
 %{_includedir}/goa-1.0/
 %{_libdir}/libgoa-1.0.so
 %{_libdir}/libgoa-backend-1.0.so
+%dir %{_datadir}/gir-1.0
 %{_datadir}/gir-1.0/Goa-1.0.gir
 %{_libdir}/pkgconfig/goa-1.0.pc
 %{_libdir}/pkgconfig/goa-backend-1.0.pc
 %{_datadir}/gtk-doc/html/goa/
-
-%dir %{_libdir}/goa-1.0
 %{_libdir}/goa-1.0/include
+%{_datadir}/vala/
 
 %changelog
+* Fri Mar 10 2017 Debarshi Ray <rishi@fedoraproject.org> - 3.22.5-1
+- Update to 3.22.5
+Resolves: #1386953, #1430813
+
+* Wed Mar 08 2017 Debarshi Ray <rishi@fedoraproject.org> - 3.22.4-2
+- Don't change the list of enabled providers
+Resolves: #1386953
+
+* Thu Feb 16 2017 Kalev Lember <klember@redhat.com> - 3.22.4-1
+- Update to 3.22.4
+Resolves: #1386953
+
 * Tue Aug 23 2016 Debarshi Ray <rishi@fedoraproject.org> - 3.14.5-5
 - Ensure that temporary accounts are really removed from the keyring and
   avoid a WARNING

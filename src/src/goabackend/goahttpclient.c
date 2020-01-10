@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2014 Red Hat, Inc.
+ * Copyright (C) 2012, 2013, 2014, 2015, 2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,7 +40,7 @@ G_DEFINE_TYPE (GoaHttpClient, goa_http_client, G_TYPE_OBJECT);
 /* ---------------------------------------------------------------------------------------------------- */
 
 static void
-goa_http_client_init (GoaHttpClient *client)
+goa_http_client_init (GoaHttpClient *self)
 {
 }
 
@@ -55,6 +55,22 @@ GoaHttpClient *
 goa_http_client_new (void)
 {
   return GOA_HTTP_CLIENT (g_object_new (GOA_TYPE_HTTP_CLIENT, NULL));
+}
+
+/* ---------------------------------------------------------------------------------------------------- */
+
+static void
+http_client_log_printer (SoupLogger         *logger,
+                         SoupLoggerLogLevel  level,
+                         gchar               direction,
+                         const gchar        *data,
+                         gpointer            user_data)
+{
+  gchar *message;
+
+  message = g_strdup_printf ("%c %s", direction, data);
+  g_log_default_handler ("goa", G_LOG_LEVEL_DEBUG, message, NULL);
+  g_free (message);
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -191,22 +207,8 @@ http_client_check_response_cb (SoupSession *session, SoupMessage *msg, gpointer 
   g_source_unref (source);
 }
 
-static void
-http_client_log_printer (SoupLogger         *logger,
-                         SoupLoggerLogLevel  level,
-                         gchar               direction,
-                         const gchar        *data,
-                         gpointer            user_data)
-{
-  gchar *message;
-
-  message = g_strdup_printf ("%c %s", direction, data);
-  g_log_default_handler ("goa", G_LOG_LEVEL_DEBUG, message, NULL);
-  g_free (message);
-}
-
 void
-goa_http_client_check (GoaHttpClient       *client,
+goa_http_client_check (GoaHttpClient       *self,
                        const gchar         *uri,
                        const gchar         *username,
                        const gchar         *password,
@@ -219,20 +221,16 @@ goa_http_client_check (GoaHttpClient       *client,
   CheckAuthData *auth;
   SoupLogger *logger;
 
-  g_return_if_fail (GOA_IS_HTTP_CLIENT (client));
+  g_return_if_fail (GOA_IS_HTTP_CLIENT (self));
   g_return_if_fail (uri != NULL && uri[0] != '\0');
   g_return_if_fail (username != NULL && username[0] != '\0');
   g_return_if_fail (password != NULL && password[0] != '\0');
   g_return_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable));
 
   data = g_slice_new0 (CheckData);
-  data->res = g_simple_async_result_new (G_OBJECT (client), callback, user_data, goa_http_client_check);
-  data->session = soup_session_async_new_with_options (SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE, TRUE,
-                                                       SOUP_SESSION_SSL_STRICT, FALSE,
-                                                       SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-                                                       NULL);
-
-  soup_session_add_feature_by_type (data->session, SOUP_TYPE_PROXY_RESOLVER_DEFAULT);
+  data->res = g_simple_async_result_new (G_OBJECT (self), callback, user_data, goa_http_client_check);
+  data->session = soup_session_new_with_options (SOUP_SESSION_SSL_STRICT, FALSE,
+                                                 NULL);
 
   logger = soup_logger_new (SOUP_LOGGER_LOG_BODY, -1);
   soup_logger_set_printer (logger, http_client_log_printer, NULL, NULL);
@@ -240,9 +238,7 @@ goa_http_client_check (GoaHttpClient       *client,
   g_object_unref (logger);
 
   data->accept_ssl_errors = accept_ssl_errors;
-
   data->msg = soup_message_new (SOUP_METHOD_GET, uri);
-  soup_message_headers_append (data->msg->request_headers, "Connection", "close");
 
   if (cancellable != NULL)
     {
@@ -269,11 +265,11 @@ goa_http_client_check (GoaHttpClient       *client,
 }
 
 gboolean
-goa_http_client_check_finish (GoaHttpClient *client, GAsyncResult *res, GError **error)
+goa_http_client_check_finish (GoaHttpClient *self, GAsyncResult *res, GError **error)
 {
   GSimpleAsyncResult *simple;
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (client), goa_http_client_check), FALSE);
+  g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self), goa_http_client_check), FALSE);
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
   simple = G_SIMPLE_ASYNC_RESULT (res);
@@ -303,7 +299,7 @@ http_client_check_sync_cb (GObject *source_object, GAsyncResult *res, gpointer u
 }
 
 gboolean
-goa_http_client_check_sync (GoaHttpClient       *client,
+goa_http_client_check_sync (GoaHttpClient       *self,
                             const gchar         *uri,
                             const gchar         *username,
                             const gchar         *password,
@@ -320,7 +316,7 @@ goa_http_client_check_sync (GoaHttpClient       *client,
   g_main_context_push_thread_default (context);
   data.loop = g_main_loop_new (context, FALSE);
 
-  goa_http_client_check (client,
+  goa_http_client_check (self,
                          uri,
                          username,
                          password,

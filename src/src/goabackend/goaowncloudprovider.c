@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2014 Red Hat, Inc.
+ * Copyright (C) 2012, 2013, 2014, 2015, 2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,17 +28,11 @@
 #include "goaprovider.h"
 #include "goaprovider-priv.h"
 #include "goaowncloudprovider.h"
+#include "goaobjectskeletonutils.h"
 #include "goautils.h"
 
-/**
- * GoaOwncloudProvider:
- *
- * The #GoaOwncloudProvider structure contains only private data and should
- * only be accessed using the provided API.
- */
 struct _GoaOwncloudProvider
 {
-  /*< private >*/
   GoaProvider parent_instance;
 };
 
@@ -48,14 +42,6 @@ struct _GoaOwncloudProviderClass
 {
   GoaProviderClass parent_class;
 };
-
-/**
- * SECTION:goaowncloudprovider
- * @title: GoaOwncloudProvider
- * @short_description: A provider for ownCloud servers
- *
- * #GoaOwncloudProvider is used to access ownCloud servers.
- */
 
 G_DEFINE_TYPE_WITH_CODE (GoaOwncloudProvider, goa_owncloud_provider, GOA_TYPE_PROVIDER,
                          goa_provider_ensure_extension_points_registered ();
@@ -83,13 +69,13 @@ get_provider_name (GoaProvider *provider, GoaObject *object)
 }
 
 static GoaProviderGroup
-get_provider_group (GoaProvider *_provider)
+get_provider_group (GoaProvider *provider)
 {
   return GOA_PROVIDER_GROUP_BRANDED;
 }
 
 static GoaProviderFeatures
-get_provider_features (GoaProvider *_provider)
+get_provider_features (GoaProvider *provider)
 {
   return GOA_PROVIDER_FEATURE_BRANDED |
          GOA_PROVIDER_FEATURE_CALENDAR |
@@ -159,10 +145,9 @@ build_object (GoaProvider         *provider,
               GError             **error)
 {
   GoaAccount *account;
-  GoaCalendar *calendar;
-  GoaContacts *contacts;
-  GoaDocuments *documents;
-  GoaFiles *files;
+  gchar *uri_caldav;
+  gchar *uri_carddav;
+  gchar *uri_webdav;
   GoaPasswordBased *password_based;
   SoupURI *uri;
   gboolean accept_ssl_errors;
@@ -175,10 +160,6 @@ build_object (GoaProvider         *provider,
   gchar *uri_string;
 
   account = NULL;
-  calendar = NULL;
-  contacts = NULL;
-  documents = NULL;
-  files = NULL;
   password_based = NULL;
   uri = NULL;
   uri_string = NULL;
@@ -219,97 +200,26 @@ build_object (GoaProvider         *provider,
   accept_ssl_errors = g_key_file_get_boolean (key_file, group, "AcceptSslErrors", NULL);
 
   /* Calendar */
-  calendar = goa_object_get_calendar (GOA_OBJECT (object));
   calendar_enabled = g_key_file_get_boolean (key_file, group, "CalendarEnabled", NULL);
-  if (calendar_enabled)
-    {
-      if (calendar == NULL)
-        {
-          gchar *uri_caldav;
-
-          uri_caldav = uri_to_string_with_path (uri, CALDAV_ENDPOINT);
-          calendar = goa_calendar_skeleton_new ();
-          g_object_set (G_OBJECT (calendar),
-                        "accept-ssl-errors", accept_ssl_errors,
-                        "uri", uri_caldav,
-                        NULL);
-          goa_object_skeleton_set_calendar (object, calendar);
-          g_free (uri_caldav);
-        }
-    }
-  else
-    {
-      if (calendar != NULL)
-        goa_object_skeleton_set_calendar (object, NULL);
-    }
+  uri_caldav = uri_to_string_with_path (uri, CALDAV_ENDPOINT);
+  goa_object_skeleton_attach_calendar (object, uri_caldav, calendar_enabled, accept_ssl_errors);
+  g_free (uri_caldav);
 
   /* Contacts */
-  contacts = goa_object_get_contacts (GOA_OBJECT (object));
   contacts_enabled = g_key_file_get_boolean (key_file, group, "ContactsEnabled", NULL);
-  if (contacts_enabled)
-    {
-      if (contacts == NULL)
-        {
-          gchar *uri_carddav;
-
-          uri_carddav = uri_to_string_with_path (uri, CARDDAV_ENDPOINT);
-          contacts = goa_contacts_skeleton_new ();
-          g_object_set (G_OBJECT (contacts),
-                        "accept-ssl-errors", accept_ssl_errors,
-                        "uri", uri_carddav,
-                        NULL);
-          goa_object_skeleton_set_contacts (object, contacts);
-          g_free (uri_carddav);
-        }
-    }
-  else
-    {
-      if (contacts != NULL)
-        goa_object_skeleton_set_contacts (object, NULL);
-    }
+  uri_carddav = uri_to_string_with_path (uri, CARDDAV_ENDPOINT);
+  goa_object_skeleton_attach_contacts (object, uri_carddav, contacts_enabled, accept_ssl_errors);
+  g_free (uri_carddav);
 
   /* Documents */
-  documents = goa_object_get_documents (GOA_OBJECT (object));
   documents_enabled = g_key_file_get_boolean (key_file, group, "DocumentsEnabled", NULL);
-
-  if (documents_enabled)
-    {
-      if (documents == NULL)
-        {
-          documents = goa_documents_skeleton_new ();
-          goa_object_skeleton_set_documents (object, documents);
-        }
-    }
-  else
-    {
-      if (documents != NULL)
-        goa_object_skeleton_set_documents (object, NULL);
-    }
+  goa_object_skeleton_attach_documents (object, documents_enabled);
 
   /* Files */
-  files = goa_object_get_files (GOA_OBJECT (object));
   files_enabled = g_key_file_get_boolean (key_file, group, "FilesEnabled", NULL);
-  if (files_enabled)
-    {
-      if (files == NULL)
-        {
-          gchar *uri_webdav;
-
-          uri_webdav = get_webdav_uri (uri);
-          files = goa_files_skeleton_new ();
-          g_object_set (G_OBJECT (files),
-                        "accept-ssl-errors", accept_ssl_errors,
-                        "uri", uri_webdav,
-                        NULL);
-          goa_object_skeleton_set_files (object, files);
-          g_free (uri_webdav);
-        }
-    }
-  else
-    {
-      if (files != NULL)
-        goa_object_skeleton_set_files (object, NULL);
-    }
+  uri_webdav = get_webdav_uri (uri);
+  goa_object_skeleton_attach_files (object, uri_webdav, files_enabled, accept_ssl_errors);
+  g_free (uri_webdav);
 
   if (just_added)
     {
@@ -339,10 +249,6 @@ build_object (GoaProvider         *provider,
   ret = TRUE;
 
  out:
-  g_clear_object (&calendar);
-  g_clear_object (&contacts);
-  g_clear_object (&documents);
-  g_clear_object (&files);
   g_clear_object (&password_based);
   g_clear_pointer (&uri, (GDestroyNotify *) soup_uri_free);
   g_free (uri_string);
@@ -358,29 +264,23 @@ ensure_credentials_sync (GoaProvider         *provider,
                          GCancellable        *cancellable,
                          GError             **error)
 {
-  GVariant *credentials;
-  GoaAccount *account;
   GoaHttpClient *http_client;
   gboolean accept_ssl_errors;
   gboolean ret;
-  const gchar *username;
+  gchar *username;
   gchar *password;
   gchar *uri;
   gchar *uri_webdav;
 
-  credentials = NULL;
   http_client = NULL;
   password = NULL;
   uri = NULL;
   uri_webdav = NULL;
+  username = NULL;
 
   ret = FALSE;
 
-  credentials = goa_utils_lookup_credentials_sync (provider,
-                                                   object,
-                                                   cancellable,
-                                                   error);
-  if (credentials == NULL)
+  if (!goa_utils_get_credentials (provider, object, "password", &username, &password, cancellable, error))
     {
       if (error != NULL)
         {
@@ -393,21 +293,6 @@ ensure_credentials_sync (GoaProvider         *provider,
   accept_ssl_errors = goa_util_lookup_keyfile_boolean (object, "AcceptSslErrors");
   uri = goa_util_lookup_keyfile_string (object, "Uri");
   uri_webdav = g_strconcat (uri, WEBDAV_ENDPOINT, NULL);
-
-  account = goa_object_peek_account (object);
-  username = goa_account_get_identity (account);
-
-  if (!g_variant_lookup (credentials, "password", "s", &password))
-    {
-      if (error != NULL)
-        {
-          *error = g_error_new (GOA_ERROR,
-                                GOA_ERROR_NOT_AUTHORIZED,
-                                _("Did not find password with identity ‘%s’ in credentials"),
-                                username);
-        }
-      goto out;
-    }
 
   http_client = goa_http_client_new ();
   ret = goa_http_client_check_sync (http_client,
@@ -441,11 +326,10 @@ ensure_credentials_sync (GoaProvider         *provider,
 
  out:
   g_clear_object (&http_client);
+  g_free (username);
   g_free (password);
   g_free (uri);
   g_free (uri_webdav);
-  if (credentials != NULL)
-    g_variant_unref (credentials);
   return ret;
 }
 
@@ -613,10 +497,30 @@ on_uri_username_or_password_changed (GtkEditable *editable, gpointer user_data)
 }
 
 static void
+show_progress_ui (GtkContainer *container, gboolean progress)
+{
+  GList *children;
+  GList *l;
+
+  children = gtk_container_get_children (container);
+  for (l = children; l != NULL; l = l->next)
+    {
+      GtkWidget *widget = GTK_WIDGET (l->data);
+      gdouble opacity;
+
+      opacity = progress ? 1.0 : 0.0;
+      gtk_widget_set_opacity (widget, opacity);
+    }
+
+  g_list_free (children);
+}
+
+static void
 create_account_details_ui (GoaProvider    *provider,
                            GtkDialog      *dialog,
                            GtkBox         *vbox,
                            gboolean        new_account,
+                           gboolean        is_template,
                            AddAccountData *data)
 {
   GtkWidget *grid0;
@@ -657,7 +561,12 @@ create_account_details_ui (GoaProvider    *provider,
   add_entry (grid1, row++, _("_Password"), &data->password);
   gtk_entry_set_visibility (GTK_ENTRY (data->password), FALSE);
 
-  gtk_widget_grab_focus ((new_account) ? data->uri : data->password);
+  if (new_account)
+    gtk_widget_grab_focus (data->uri);
+  else if (is_template)
+    gtk_widget_grab_focus (data->username);
+  else
+    gtk_widget_grab_focus (data->password);
 
   g_signal_connect (data->uri, "changed", G_CALLBACK (on_uri_username_or_password_changed), data);
   g_signal_connect (data->username, "changed", G_CALLBACK (on_uri_username_or_password_changed), data);
@@ -669,25 +578,24 @@ create_account_details_ui (GoaProvider    *provider,
   gtk_dialog_set_response_sensitive (data->dialog, GTK_RESPONSE_OK, FALSE);
 
   data->progress_grid = gtk_grid_new ();
-  gtk_widget_set_no_show_all (data->progress_grid, TRUE);
   gtk_orientable_set_orientation (GTK_ORIENTABLE (data->progress_grid), GTK_ORIENTATION_HORIZONTAL);
   gtk_grid_set_column_spacing (GTK_GRID (data->progress_grid), 3);
   gtk_container_add (GTK_CONTAINER (grid0), data->progress_grid);
 
   spinner = gtk_spinner_new ();
+  gtk_widget_set_opacity (spinner, 0.0);
   gtk_widget_set_size_request (spinner, 20, 20);
-  gtk_widget_show (spinner);
   gtk_spinner_start (GTK_SPINNER (spinner));
   gtk_container_add (GTK_CONTAINER (data->progress_grid), spinner);
 
   label = gtk_label_new (_("Connecting…"));
-  gtk_widget_show (label);
+  gtk_widget_set_opacity (label, 0.0);
   gtk_container_add (GTK_CONTAINER (data->progress_grid), label);
 
   if (new_account)
     {
       gtk_window_get_size (GTK_WINDOW (data->dialog), &width, NULL);
-      gtk_widget_set_size_request (GTK_WIDGET (data->dialog), width, -1);
+      gtk_window_set_default_size (GTK_WINDOW (data->dialog), width, -1);
     }
   else
     {
@@ -700,7 +608,7 @@ create_account_details_ui (GoaProvider    *provider,
       if (parent != NULL)
         {
           gtk_window_get_size (parent, &width, NULL);
-          gtk_widget_set_size_request (GTK_WIDGET (data->dialog), (gint) (0.5 * width), -1);
+          gtk_window_set_default_size (GTK_WINDOW (data->dialog), (gint) (0.5 * width), -1);
         }
     }
 }
@@ -727,7 +635,7 @@ check_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
   goa_http_client_check_finish (client, res, &data->error);
   g_main_loop_quit (data->loop);
   gtk_widget_set_sensitive (data->connect_button, TRUE);
-  gtk_widget_hide (data->progress_grid);
+  show_progress_ui (GTK_CONTAINER (data->progress_grid), FALSE);
 }
 
 static void
@@ -778,7 +686,7 @@ add_account (GoaProvider    *provider,
   data.dialog = dialog;
   data.error = NULL;
 
-  create_account_details_ui (provider, dialog, vbox, TRUE, &data);
+  create_account_details_ui (provider, dialog, vbox, TRUE, FALSE, &data);
   gtk_widget_show_all (GTK_WIDGET (vbox));
   g_signal_connect (dialog, "response", G_CALLBACK (dialog_response_cb), &data);
 
@@ -827,7 +735,7 @@ add_account (GoaProvider    *provider,
   g_free (uri_webdav);
 
   gtk_widget_set_sensitive (data.connect_button, FALSE);
-  gtk_widget_show (data.progress_grid);
+  show_progress_ui (GTK_CONTAINER (data.progress_grid), TRUE);
   g_main_loop_run (data.loop);
 
   if (g_cancellable_is_cancelled (data.cancellable))
@@ -919,8 +827,7 @@ add_account (GoaProvider    *provider,
   g_free (server);
   g_free (uri);
   g_free (data.account_object_path);
-  if (data.loop != NULL)
-    g_main_loop_unref (data.loop);
+  g_clear_pointer (&data.loop, (GDestroyNotify) g_main_loop_unref);
   g_clear_object (&data.cancellable);
   g_clear_object (&http_client);
   return ret;
@@ -936,12 +843,13 @@ refresh_account (GoaProvider    *provider,
                  GError        **error)
 {
   AddAccountData data;
-  GVariantBuilder builder;
+  GVariantBuilder credentials;
   GoaAccount *account;
   GoaHttpClient *http_client;
   GtkWidget *dialog;
   GtkWidget *vbox;
   gboolean accept_ssl_errors;
+  gboolean is_template;
   gboolean ret;
   const gchar *password;
   const gchar *username;
@@ -956,6 +864,7 @@ refresh_account (GoaProvider    *provider,
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
   http_client = NULL;
+  is_template = FALSE;
   uri = NULL;
   uri_webdav = NULL;
 
@@ -981,17 +890,23 @@ refresh_account (GoaProvider    *provider,
   data.dialog = GTK_DIALOG (dialog);
   data.error = NULL;
 
-  create_account_details_ui (provider, GTK_DIALOG (dialog), GTK_BOX (vbox), FALSE, &data);
+  account = goa_object_peek_account (object);
+  username = goa_account_get_identity (account);
+  if (username == NULL || username[0] == '\0')
+    is_template = TRUE;
+
+  create_account_details_ui (provider, GTK_DIALOG (dialog), GTK_BOX (vbox), FALSE, is_template, &data);
 
   accept_ssl_errors = goa_util_lookup_keyfile_boolean (object, "AcceptSslErrors");
   uri = goa_util_lookup_keyfile_string (object, "Uri");
   gtk_entry_set_text (GTK_ENTRY (data.uri), uri);
   gtk_editable_set_editable (GTK_EDITABLE (data.uri), FALSE);
 
-  account = goa_object_peek_account (object);
-  username = goa_account_get_identity (account);
-  gtk_entry_set_text (GTK_ENTRY (data.username), username);
-  gtk_editable_set_editable (GTK_EDITABLE (data.username), FALSE);
+  if (!is_template)
+    {
+      gtk_entry_set_text (GTK_ENTRY (data.username), username);
+      gtk_editable_set_editable (GTK_EDITABLE (data.username), FALSE);
+    }
 
   gtk_widget_show_all (dialog);
   g_signal_connect (dialog, "response", G_CALLBACK (dialog_response_cb), &data);
@@ -1010,6 +925,9 @@ refresh_account (GoaProvider    *provider,
       goto out;
     }
 
+  if (is_template)
+    username = gtk_entry_get_text (GTK_ENTRY (data.username));
+
   password = gtk_entry_get_text (GTK_ENTRY (data.password));
   g_cancellable_reset (data.cancellable);
   goa_http_client_check (http_client,
@@ -1021,7 +939,7 @@ refresh_account (GoaProvider    *provider,
                          check_cb,
                          &data);
   gtk_widget_set_sensitive (data.connect_button, FALSE);
-  gtk_widget_show (data.progress_grid);
+  show_progress_ui (GTK_CONTAINER (data.progress_grid), TRUE);
   g_main_loop_run (data.loop);
 
   if (g_cancellable_is_cancelled (data.cancellable))
@@ -1053,15 +971,55 @@ refresh_account (GoaProvider    *provider,
     }
 
   /* TODO: run in worker thread */
-  g_variant_builder_init (&builder, G_VARIANT_TYPE_VARDICT);
-  g_variant_builder_add (&builder, "{sv}", "password", g_variant_new_string (password));
+  g_variant_builder_init (&credentials, G_VARIANT_TYPE_VARDICT);
+  g_variant_builder_add (&credentials, "{sv}", "password", g_variant_new_string (password));
 
-  if (!goa_utils_store_credentials_for_object_sync (provider,
-                                                    object,
-                                                    g_variant_builder_end (&builder),
-                                                    NULL, /* GCancellable */
-                                                    &data.error))
-    goto out;
+  if (is_template)
+    {
+      GVariantBuilder details;
+      GoaManager *manager;
+      const gchar *id;
+      const gchar *provider_type;
+      gchar *dummy = NULL;
+      gchar *presentation_identity = NULL;
+      gchar *server = NULL;
+
+      manager = goa_client_get_manager (client);
+      id = goa_account_get_id (account);
+      provider_type = goa_provider_get_provider_type (provider);
+
+      dummy = normalize_uri (uri, &server);
+      presentation_identity = g_strconcat (username, "@", server, NULL);
+      g_free (dummy);
+      g_free (server);
+
+      g_variant_builder_init (&details, G_VARIANT_TYPE ("a{ss}"));
+      g_variant_builder_add (&details, "{ss}", "Id", id);
+
+      goa_manager_call_add_account (manager,
+                                    provider_type,
+                                    username,
+                                    presentation_identity,
+                                    g_variant_builder_end (&credentials),
+                                    g_variant_builder_end (&details),
+                                    NULL, /* GCancellable* */
+                                    (GAsyncReadyCallback) add_account_cb,
+                                    &data);
+      g_free (presentation_identity);
+
+      g_main_loop_run (data.loop);
+      if (data.error != NULL)
+        goto out;
+    }
+  else
+    {
+      if (!goa_utils_store_credentials_for_object_sync (provider,
+                                                        object,
+                                                        g_variant_builder_end (&credentials),
+                                                        NULL, /* GCancellable */
+                                                        &data.error))
+        goto out;
+    }
 
   goa_account_call_ensure_credentials (account,
                                        NULL, /* GCancellable */
@@ -1076,8 +1034,8 @@ refresh_account (GoaProvider    *provider,
   gtk_widget_destroy (dialog);
   g_free (uri);
   g_free (uri_webdav);
-  if (data.loop != NULL)
-    g_main_loop_unref (data.loop);
+  g_free (data.account_object_path);
+  g_clear_pointer (&data.loop, (GDestroyNotify) g_main_loop_unref);
   g_clear_object (&data.cancellable);
   g_clear_object (&http_client);
   return ret;
@@ -1086,46 +1044,7 @@ refresh_account (GoaProvider    *provider,
 /* ---------------------------------------------------------------------------------------------------- */
 
 static void
-show_account (GoaProvider         *provider,
-              GoaClient           *client,
-              GoaObject           *object,
-              GtkBox              *vbox,
-              GtkGrid             *grid,
-              G_GNUC_UNUSED GtkGrid *dummy)
-{
-  gint row;
-
-  row = 0;
-
-  goa_util_add_account_info (grid, row++, object);
-
-  goa_util_add_row_switch_from_keyfile_with_blurb (grid, row++, object,
-                                                   /* Translators: This is a label for a series of
-                                                    * options switches. For example: “Use for Mail”. */
-                                                   _("Use for"),
-                                                   "calendar-disabled",
-                                                   _("Cale_ndar"));
-
-  goa_util_add_row_switch_from_keyfile_with_blurb (grid, row++, object,
-                                                   NULL,
-                                                   "contacts-disabled",
-                                                   _("_Contacts"));
-
-  goa_util_add_row_switch_from_keyfile_with_blurb (grid, row++, object,
-                                                   NULL,
-                                                   "documents-disabled",
-                                                   _("_Documents"));
-
-  goa_util_add_row_switch_from_keyfile_with_blurb (grid, row++, object,
-                                                   NULL,
-                                                   "files-disabled",
-                                                   _("_Files"));
-}
-
-/* ---------------------------------------------------------------------------------------------------- */
-
-static void
-goa_owncloud_provider_init (GoaOwncloudProvider *provider)
+goa_owncloud_provider_init (GoaOwncloudProvider *self)
 {
 }
 
@@ -1142,7 +1061,6 @@ goa_owncloud_provider_class_init (GoaOwncloudProviderClass *klass)
   provider_class->add_account                = add_account;
   provider_class->refresh_account            = refresh_account;
   provider_class->build_object               = build_object;
-  provider_class->show_account               = show_account;
   provider_class->ensure_credentials_sync    = ensure_credentials_sync;
 }
 
@@ -1158,38 +1076,28 @@ on_handle_get_password (GoaPasswordBased      *interface,
   GoaAccount *account;
   GoaProvider *provider;
   GError *error;
-  GVariant *credentials;
-  const gchar *identity;
+  const gchar *account_id;
+  const gchar *method_name;
+  const gchar *provider_type;
   gchar *password;
 
   /* TODO: maybe log what app is requesting access */
 
   password = NULL;
-  credentials = NULL;
 
   object = GOA_OBJECT (g_dbus_interface_get_object (G_DBUS_INTERFACE (interface)));
   account = goa_object_peek_account (object);
-  identity = goa_account_get_identity (account);
-  provider = goa_provider_get_for_provider_type (goa_account_get_provider_type (account));
+  account_id = goa_account_get_id (account);
+  provider_type = goa_account_get_provider_type (account);
+  method_name = g_dbus_method_invocation_get_method_name (invocation);
+  g_debug ("Handling %s for account (%s, %s)", method_name, provider_type, account_id);
+
+  provider = goa_provider_get_for_provider_type (provider_type);
 
   error = NULL;
-  credentials = goa_utils_lookup_credentials_sync (provider,
-                                                   object,
-                                                   NULL, /* GCancellable* */
-                                                   &error);
-  if (credentials == NULL)
+  if (!goa_utils_get_credentials (provider, object, "password", NULL, &password, NULL, &error))
     {
       g_dbus_method_invocation_take_error (invocation, error);
-      goto out;
-    }
-
-  if (!g_variant_lookup (credentials, "password", "s", &password))
-    {
-      g_dbus_method_invocation_return_error (invocation,
-                                             GOA_ERROR,
-                                             GOA_ERROR_FAILED, /* TODO: more specific */
-                                             _("Did not find password with identity ‘%s’ in credentials"),
-                                             identity);
       goto out;
     }
 
@@ -1197,8 +1105,6 @@ on_handle_get_password (GoaPasswordBased      *interface,
 
  out:
   g_free (password);
-  if (credentials != NULL)
-    g_variant_unref (credentials);
   g_object_unref (provider);
   return TRUE; /* invocation was handled */
 }

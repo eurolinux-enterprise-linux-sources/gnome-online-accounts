@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
  *
- * Copyright (C) 2012 Red Hat, Inc.
+ * Copyright (C) 2012, 2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,32 +21,20 @@
 
 #include <gtk/gtk.h>
 
+#include "goaprovider.h"
+
 G_BEGIN_DECLS
 
 #define GOA_TYPE_WEB_VIEW            (goa_web_view_get_type ())
 #define GOA_WEB_VIEW(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), GOA_TYPE_WEB_VIEW, GoaWebView))
-#define GOA_WEB_VIEW_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GOA_TYPE_WEB_VIEW, GoaWebViewClass))
 #define GOA_IS_WEB_VIEW(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), GOA_TYPE_WEB_VIEW))
-#define GOA_IS_WEB_VIEW_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GOA_TYPE_WEB_VIEW))
-#define GOA_WEB_VIEW_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GOA_TYPE_WEB_VIEW, GoaWebViewClass))
 
-typedef struct _GoaWebView        GoaWebView;
-typedef struct _GoaWebViewClass   GoaWebViewClass;
-typedef struct _GoaWebViewPrivate GoaWebViewPrivate;
-
-struct _GoaWebView
-{
-  GtkOverlay parent_instance;
-  GoaWebViewPrivate *priv;
-};
-
-struct _GoaWebViewClass
-{
-  GtkOverlayClass parent_class;
-};
+typedef struct _GoaWebView      GoaWebView;
+typedef struct _GoaWebViewClass GoaWebViewClass;
 
 GType                  goa_web_view_get_type               (void) G_GNUC_CONST;
-GtkWidget             *goa_web_view_new                    (void);
+GtkWidget             *goa_web_view_new                    (GoaProvider *provider,
+                                                            const gchar *existing_identity);
 GtkWidget             *goa_web_view_get_view               (GoaWebView *self);
 void                   goa_web_view_fake_mobile            (GoaWebView *self);
 void                   goa_web_view_add_cookies            (GoaWebView *self,

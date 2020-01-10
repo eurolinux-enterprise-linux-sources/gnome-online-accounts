@@ -66,6 +66,17 @@
       -->
     <property name="Id" type="s" access="read"/>
 
+    <!-- IsLocked:
+         @since: 3.16.0
+
+         Whether or not the user is discouraged from removing this account.
+
+         Locked accounts can be those that there added by the administrator to
+         pre-configure systems in an enterprise deployment. If %TRUE, the UI
+         should prevent, or atleast discourage, removal of these accounts.
+    -->
+    <property name="IsLocked" type="b" access="read"/>
+
     <!-- IsTemporary:
 
          Whether or not the account is remembered from session to session.
@@ -174,6 +185,18 @@
          removed from the account asynchronously.
     -->
     <property name="MapsDisabled" type="b" access="readwrite"/>
+
+    <!-- MusicDisabled:
+         @since: 3.18.0
+
+         If %TRUE, the account will not expose any
+         #org.gnome.OnlineAccounts.Music interface. If the account does not
+         provide music-like capabilities, this property does nothing.
+
+         Note that the #org.gnomeOnlineAccounts.Music interface is added or
+         removed from the account asynchronously.
+    -->
+    <property name="MusicDisabled" type="b" access="readwrite"/>
 
     <!-- PrintersDisabled:
          @since: 3.12.0
@@ -632,6 +655,16 @@
   </interface>
 
   <!--
+      org.gnome.OnlineAccounts.Music:
+      @since: 3.18.0
+
+      An account object implements this interface if it provides
+      music-like capabilities.
+  -->
+  <interface name="org.gnome.OnlineAccounts.Music">
+  </interface>
+
+  <!--
       org.gnome.OnlineAccounts.Photos:
       @since: 3.8.0
 
@@ -726,6 +759,17 @@
       ticketing capabilities.
   -->
   <interface name="org.gnome.OnlineAccounts.Ticketing">
+    <!--
+      Details:
+      @since: 3.18
+
+      Metadata about the tickets getting fetched.
+      For kerberos tickets, this may contain a
+      preauthentication source used by pkinit
+      (such as PKCS11:libcoolkeypk11.so)
+      -->
+    <property name="Details" type="a{ss}" access="read"/>
+
     <!--
       GetTicket:
 

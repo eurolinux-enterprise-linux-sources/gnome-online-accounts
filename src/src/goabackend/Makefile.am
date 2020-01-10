@@ -19,6 +19,7 @@ AM_CPPFLAGS = 							\
 	-DPACKAGE_LOCALSTATE_DIR=\""$(localstatedir)"\" 	\
 	-DPACKAGE_LOCALE_DIR=\""$(localedir)"\" 		\
 	-DPACKAGE_LIB_DIR=\""$(libdir)"\" 			\
+	-DPACKAGE_WEB_EXTENSIONS_DIR=\""$(libdir)/goa-1.0/web-extensions"\" \
 	-D_POSIX_PTHREAD_SEMANTICS -D_REENTRANT			\
 	$(WARN_CFLAGS)						\
 	$(NULL)
@@ -26,12 +27,12 @@ AM_CPPFLAGS = 							\
 # ----------------------------------------------------------------------------------------------------
 
 goabackendenumtypes.h: goabackendenums.h goabackendenumtypes.h.template
-	( top_builddir=`cd $(top_builddir) && pwd`; 							\
+	$(AM_V_GEN) ( top_builddir=`cd $(top_builddir) && pwd`; 					\
 	 cd $(srcdir) && glib-mkenums --template goabackendenumtypes.h.template goabackendenums.h ) > 	\
 	   goabackendenumtypes.h.tmp && mv goabackendenumtypes.h.tmp goabackendenumtypes.h
 
 goabackendenumtypes.c: goabackendenums.h goabackendenumtypes.c.template goabackendenumtypes.h
-	( top_builddir=`cd $(top_builddir) && pwd`; 							\
+	$(AM_V_GEN) ( top_builddir=`cd $(top_builddir) && pwd`; 					\
 	 cd $(srcdir) && glib-mkenums --template goabackendenumtypes.c.template goabackendenums.h ) > 	\
 	   goabackendenumtypes.c.tmp && mv goabackendenumtypes.c.tmp goabackendenumtypes.c
 
@@ -80,18 +81,21 @@ libgoa_backend_1_0_la_SOURCES =						\
 	goamailclient.h			goamailclient.c			\
 	goaexchangeprovider.h		goaexchangeprovider.c		\
 	goaoauthprovider.h		goaoauthprovider.c		\
-	goaoauth2provider.h		goaoauth2provider.c		\
+	goaoauth2provider.h		goaoauth2provider-priv.h	\
+	goaoauth2provider-web-extension.h				\
+	goaoauth2provider-web-view.h					\
+	goaoauth2provider.c						\
 	goagoogleprovider.h		goagoogleprovider.c		\
 	goafacebookprovider.h		goafacebookprovider.c		\
 	goaimapsmtpprovider.h		goaimapsmtpprovider.c		\
 	goamediaserverprovider.h	goamediaserverprovider.c	\
 	goaowncloudprovider.h		goaowncloudprovider.c		\
-	goayahooprovider.h		goayahooprovider.c		\
 	goaflickrprovider.h		goaflickrprovider.c		\
+	goafoursquareprovider.h		goafoursquareprovider.c		\
 	goawindowsliveprovider.h	goawindowsliveprovider.c	\
-	goatelepathyfactory.h		goatelepathyfactory.c		\
-	goatelepathyprovider.h		goatelepathyprovider.c		\
 	goapocketprovider.h		goapocketprovider.c		\
+	goalastfmprovider.h		goalastfmprovider.c		\
+	goaobjectskeletonutils.h	goaobjectskeletonutils.c	\
 	goautils.h			goautils.c			\
 	goawebview.h			goawebview.c			\
 	nautilus-floating-bar.h		nautilus-floating-bar.c		\
@@ -99,32 +103,17 @@ libgoa_backend_1_0_la_SOURCES =						\
 	$(top_builddir)/src/goaidentity/org.freedesktop.realmd.c	\
 	$(NULL)
 
-BUILT_SOURCES =								\
-	$(libgoa_backend_1_0_la_built_sources)				\
-	$(NULL)
-
-EXTRA_DIST +=								\
-	goadleynaservermanager.xml					\
-	goadleynaservermediadevice.xml					\
-	$(NULL)
-
-goadleynaservermanager.h goadleynaservermanager.c: goadleynaservermanager.xml
-	$(AM_V_GEN)gdbus-codegen						\
-		--c-namespace DleynaServer					\
-		--generate-c-code goadleynaservermanager			\
-		--interface-prefix com.intel.dLeynaServer.			\
-		$<
-
-goadleynaservermediadevice.h goadleynaservermediadevice.c: goadleynaservermediadevice.xml
-	$(AM_V_GEN)gdbus-codegen								\
-		--c-namespace DleynaServer							\
-		--generate-c-code goadleynaservermediadevice					\
-		--interface-prefix com.intel.dLeynaServer.					\
-		$<
-
 if BUILD_KERBEROS
 libgoa_backend_1_0_la_SOURCES +=					\
 	goakerberosprovider.h		goakerberosprovider.c
+endif
+
+if BUILD_TELEPATHY
+libgoa_backend_1_0_la_SOURCES +=					\
+	goatelepathyfactory.h		goatelepathyfactory.c		\
+	goatelepathyprovider.h		goatelepathyprovider.c		\
+	goatpaccountlinker.h		goatpaccountlinker.c		\
+	$(NULL)
 endif
 
 libgoa_backend_1_0_la_CFLAGS =					\
@@ -159,6 +148,66 @@ libgoa_backend_1_0_la_LIBADD = 					\
 libgoa_backend_1_0_la_LDFLAGS = 				\
 	-version-info $(GOA_BACKEND_LT_VERSION)			\
 	$(NULL)
+
+# ----------------------------------------------------------------------------------------------------
+
+webextension_LTLIBRARIES = libgoawebextension.la
+
+webextensiondir = $(libdir)/goa-1.0/web-extensions
+
+libgoawebextension_la_SOURCES =						\
+	goawebextension.h		goawebextension.c		\
+	goawebextensionmain.c						\
+	$(NULL)
+
+libgoawebextension_la_CFLAGS =						\
+	$(REST_CFLAGS)							\
+	$(WEBKIT_GTK_CFLAGS)						\
+	$(NULL)
+
+libgoawebextension_la_LIBADD =						\
+	libgoa-backend-1.0.la						\
+	$(REST_LIBS)							\
+	$(WEBKIT_GTK_LIBS)						\
+	$(NULL)
+
+libgoawebextension_la_LDFLAGS =						\
+	-avoid-version							\
+	-module								\
+	-no-undefined							\
+	$(NULL)
+
+# Force installation order: libgoa-backend-1.0 must be installed first, othwerwise
+# libtool will incorrectly relink libgoawebextension.la under parallel make install.
+# Requires ugly automake syntax - see http://debbugs.gnu.org/cgi/bugreport.cgi?bug=7328
+
+installwebextensionLTLIBRARIES = install-webextensionLTLIBRARIES
+$(installwebextensionLTLIBRARIES): install-libLTLIBRARIES
+
+# ----------------------------------------------------------------------------------------------------
+
+BUILT_SOURCES =								\
+	$(libgoa_backend_1_0_la_built_sources)				\
+	$(NULL)
+
+EXTRA_DIST +=								\
+	goadleynaservermanager.xml					\
+	goadleynaservermediadevice.xml					\
+	$(NULL)
+
+goadleynaservermanager.h goadleynaservermanager.c: goadleynaservermanager.xml
+	$(AM_V_GEN)gdbus-codegen						\
+		--c-namespace DleynaServer					\
+		--generate-c-code goadleynaservermanager			\
+		--interface-prefix com.intel.dLeynaServer.			\
+		$<
+
+goadleynaservermediadevice.h goadleynaservermediadevice.c: goadleynaservermediadevice.xml
+	$(AM_V_GEN)gdbus-codegen								\
+		--c-namespace DleynaServer							\
+		--generate-c-code goadleynaservermediadevice					\
+		--interface-prefix com.intel.dLeynaServer.					\
+		$<
 
 # ----------------------------------------------------------------------------------------------------
 

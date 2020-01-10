@@ -26,6 +26,12 @@ Flickr
 OAuth 1.0: http://www.flickr.com/services/api/auth.oauth.html
 
 
+Foursquare
+----------
+
+OAuth 2.0: https://developer.foursquare.com/overview/auth
+
+
 Google
 ------
 
@@ -37,7 +43,7 @@ Scopes:
 https://developers.google.com/accounts/docs/OAuth2Login
 https://developers.google.com/google-apps/calendar/auth
 https://developers.google.com/google-apps/contacts/v3/
-https://developers.google.com/google-apps/documents-list/
+https://developers.google.com/drive/web/scopes
 https://developers.google.com/google-apps/gmail/oauth_protocol
 https://developers.google.com/picasa-web/docs/2.0/developers_guide_protocol
 https://developers.google.com/talk/jep_extensions/oauth
@@ -51,6 +57,17 @@ https://discovery-check.appspot.com/
 Notes:
 We are allowed to embed the client_secret in the source code. See
 https://developers.google.com/accounts/docs/OAuth2InstalledApp#overview
+
+
+Pocket
+------
+
+OAuth 2.0 variant:
+https://getpocket.com/developer/docs/authentication
+
+Authenticating with a Firefox Account is not documented. These slides are
+useful:
+http://www.slideshare.net/KuoE0/pocket-authentication-with-oauth-on-firefox-os
 
 
 Windows Live

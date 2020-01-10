@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>GNOME Online Accounts Reference Manual: org.gnome.OnlineAccounts.Account</title>
-<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<title>org.gnome.OnlineAccounts.Account: GNOME Online Accounts Reference Manual</title>
+<meta name="generator" content="DocBook XSL Stylesheets V1.79.1">
 <link rel="home" href="index.html" title="GNOME Online Accounts Reference Manual">
 <link rel="up" href="ch03.html" title="Core Interfaces">
 <link rel="prev" href="ch03.html" title="Core Interfaces">
 <link rel="next" href="gdbus-org.gnome.OnlineAccounts.Manager.html" title="org.gnome.OnlineAccounts.Manager">
-<meta name="generator" content="GTK-Doc V1.21 (XML mode)">
+<meta name="generator" content="GTK-Doc V1.25 (XML mode)">
 <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
@@ -46,6 +46,7 @@
 <a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.ProviderName" title='The "ProviderName" property'>ProviderName</a>          readable   s
 <a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.ProviderIcon" title='The "ProviderIcon" property'>ProviderIcon</a>          readable   s
 <a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.Id" title='The "Id" property'>Id</a>                    readable   s
+<a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.IsLocked" title='The "IsLocked" property'>IsLocked</a>              readable   b
 <a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.IsTemporary" title='The "IsTemporary" property'>IsTemporary</a>           readwrite  b
 <a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.AttentionNeeded" title='The "AttentionNeeded" property'>AttentionNeeded</a>       readable   b
 <a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.Identity" title='The "Identity" property'>Identity</a>              readable   s
@@ -56,6 +57,7 @@
 <a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.ChatDisabled" title='The "ChatDisabled" property'>ChatDisabled</a>          readwrite  b
 <a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.DocumentsDisabled" title='The "DocumentsDisabled" property'>DocumentsDisabled</a>     readwrite  b
 <a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.MapsDisabled" title='The "MapsDisabled" property'>MapsDisabled</a>          readwrite  b
+<a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.MusicDisabled" title='The "MusicDisabled" property'>MusicDisabled</a>         readwrite  b
 <a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.PrintersDisabled" title='The "PrintersDisabled" property'>PrintersDisabled</a>      readwrite  b
 <a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.PhotosDisabled" title='The "PhotosDisabled" property'>PhotosDisabled</a>        readwrite  b
 <a class="link" href="gdbus-org.gnome.OnlineAccounts.Account.html#gdbus-property-org-gnome-OnlineAccounts-Account.FilesDisabled" title='The "FilesDisabled" property'>FilesDisabled</a>         readwrite  b
@@ -156,6 +158,20 @@ Id  readable   s
 <p>         This identifier cannot be changed and should never be
          displayed in any user interface.
 </p>
+</div>
+<hr>
+<div class="refsect2">
+<a name="gdbus-property-org-gnome-OnlineAccounts-Account.IsLocked"></a><h3>The "IsLocked" property</h3>
+<pre class="programlisting">
+IsLocked  readable   b
+</pre>
+<p>         Whether or not the user is discouraged from removing this account.
+</p>
+<p>         Locked accounts can be those that there added by the administrator to
+         pre-configure systems in an enterprise deployment. If <code class="constant">TRUE</code>, the UI
+         should prevent, or atleast discourage, removal of these accounts.
+</p>
+<p class="since">Since 3.16.0</p>
 </div>
 <hr>
 <div class="refsect2">
@@ -306,6 +322,21 @@ MapsDisabled  readwrite  b
 </div>
 <hr>
 <div class="refsect2">
+<a name="gdbus-property-org-gnome-OnlineAccounts-Account.MusicDisabled"></a><h3>The "MusicDisabled" property</h3>
+<pre class="programlisting">
+MusicDisabled  readwrite  b
+</pre>
+<p>         If <code class="constant">TRUE</code>, the account will not expose any
+         <a class="link" href="gdbus-org.gnome.OnlineAccounts.Music.html#gdbus-interface-org-gnome-OnlineAccounts-Music.top_of_page">org.gnome.OnlineAccounts.Music</a> interface. If the account does not
+         provide music-like capabilities, this property does nothing.
+</p>
+<p>         Note that the #org.gnomeOnlineAccounts.Music interface is added or
+         removed from the account asynchronously.
+</p>
+<p class="since">Since 3.18.0</p>
+</div>
+<hr>
+<div class="refsect2">
 <a name="gdbus-property-org-gnome-OnlineAccounts-Account.PrintersDisabled"></a><h3>The "PrintersDisabled" property</h3>
 <pre class="programlisting">
 PrintersDisabled  readwrite  b
@@ -382,7 +413,6 @@ ReadLaterDisabled  readwrite  b
 </div>
 </div>
 <div class="footer">
-<hr>
-          Generated by GTK-Doc V1.21</div>
+<hr>Generated by GTK-Doc V1.25</div>
 </body>
 </html>

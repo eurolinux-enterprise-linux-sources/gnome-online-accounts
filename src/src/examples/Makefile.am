@@ -15,19 +15,31 @@ AM_CPPFLAGS = 							\
 	$(WARN_CFLAGS)						\
 	$(NULL)
 
-noinst_PROGRAMS = list-providers list-accounts add-pocket
-
-list_providers_SOURCES = list-providers.c
-list_providers_CFLAGS = $(GLIB_CFLAGS) $(GTK_CFLAGS)
-list_providers_LDADD = $(GLIB_LIBS) $(GTK_LIBS) ../goabackend/libgoa-backend-1.0.la ../goa/libgoa-1.0.la
+noinst_PROGRAMS = list-accounts lastfm-shout
 
 list_accounts_SOURCES = list-accounts.c
 list_accounts_CFLAGS = $(GLIB_CFLAGS)
 list_accounts_LDADD = $(GLIB_LIBS) ../goa/libgoa-1.0.la
 
+lastfm_shout_SOURCES = lastfm-shout.c
+lastfm_shout_CFLAGS = $(GLIB_CFLAGS) $(REST_CFLAGS)
+lastfm_shout_LDADD = $(GLIB_LIBS) $(REST_LIBS) ../goa/libgoa-1.0.la
+
+if BUILD_BACKEND
+noinst_PROGRAMS += introspect-providers list-providers add-pocket
+
+introspect_providers_SOURCES = introspect-providers.c
+introspect_providers_CFLAGS = $(GLIB_CFLAGS) $(GTK_CFLAGS)
+introspect_providers_LDADD = $(GLIB_LIBS) $(GTK_LIBS) ../goabackend/libgoa-backend-1.0.la ../goa/libgoa-1.0.la
+
+list_providers_SOURCES = list-providers.c
+list_providers_CFLAGS = $(GLIB_CFLAGS) $(GTK_CFLAGS)
+list_providers_LDADD = $(GLIB_LIBS) $(GTK_LIBS) ../goabackend/libgoa-backend-1.0.la ../goa/libgoa-1.0.la
+
 add_pocket_SOURCES = add-pocket.c
 add_pocket_CFLAGS = $(GLIB_CFLAGS) $(REST_CFLAGS)
 add_pocket_LDADD = $(GLIB_LIBS) $(REST_LIBS) ../goa/libgoa-1.0.la
+endif
 
 clean-local :
 	rm -f *~

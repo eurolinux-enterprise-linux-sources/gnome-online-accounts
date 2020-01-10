@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2013, 2014 Red Hat, Inc.
+ * Copyright (C) 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,7 +25,9 @@
 #include "goaprovider.h"
 #include "goaprovider-priv.h"
 #include "goaoauth2provider.h"
+#include "goaoauth2provider-priv.h"
 #include "goafacebookprovider.h"
+#include "goaobjectskeletonutils.h"
 
 /**
  * GoaFacebookProvider:
@@ -64,26 +66,26 @@ G_DEFINE_TYPE_WITH_CODE (GoaFacebookProvider, goa_facebook_provider, GOA_TYPE_OA
 /* ---------------------------------------------------------------------------------------------------- */
 
 static const gchar *
-get_provider_type (GoaProvider *_provider)
+get_provider_type (GoaProvider *provider)
 {
   return GOA_FACEBOOK_NAME;
 }
 
 static gchar *
-get_provider_name (GoaProvider *_provider,
+get_provider_name (GoaProvider *provider,
                    GoaObject   *object)
 {
   return g_strdup (_("Facebook"));
 }
 
 static GoaProviderGroup
-get_provider_group (GoaProvider *_provider)
+get_provider_group (GoaProvider *provider)
 {
   return GOA_PROVIDER_GROUP_BRANDED;
 }
 
 static GoaProviderFeatures
-get_provider_features (GoaProvider *_provider)
+get_provider_features (GoaProvider *provider)
 {
   return GOA_PROVIDER_FEATURE_BRANDED |
          GOA_PROVIDER_FEATURE_PHOTOS |
@@ -93,7 +95,7 @@ get_provider_features (GoaProvider *_provider)
 /* facebook client flow sends a different auth query then the base
  * OAuth2Provider */
 static gchar *
-build_authorization_uri (GoaOAuth2Provider  *provider,
+build_authorization_uri (GoaOAuth2Provider  *oauth2_provider,
                          const gchar        *authorization_uri,
                          const gchar        *escaped_redirect_uri,
                          const gchar        *escaped_client_id,
@@ -115,19 +117,19 @@ build_authorization_uri (GoaOAuth2Provider  *provider,
 }
 
 static const gchar *
-get_authorization_uri (GoaOAuth2Provider *provider)
+get_authorization_uri (GoaOAuth2Provider *oauth2_provider)
 {
   return "https://www.facebook.com/dialog/oauth";
 }
 
 static const gchar *
-get_redirect_uri (GoaOAuth2Provider *provider)
+get_redirect_uri (GoaOAuth2Provider *oauth2_provider)
 {
   return "https://www.facebook.com/connect/login_success.html";
 }
 
 static const gchar *
-get_scope (GoaOAuth2Provider *provider)
+get_scope (GoaOAuth2Provider *oauth2_provider)
 {
   /* see https://developers.facebook.com/docs/authentication/permissions/ */
   /* Note: Email is requested to obtain a human understandable unique Id  */
@@ -146,13 +148,13 @@ get_credentials_generation (GoaProvider *provider)
 }
 
 static const gchar *
-get_client_id (GoaOAuth2Provider *provider)
+get_client_id (GoaOAuth2Provider *oauth2_provider)
 {
   return GOA_FACEBOOK_CLIENT_ID;
 }
 
 static const gchar *
-get_client_secret (GoaOAuth2Provider *provider)
+get_client_secret (GoaOAuth2Provider *oauth2_provider)
 {
   /* not used in Facebook's Client Flow Auth, we don't want to use anything
    * even if passed at configture time, since it would interfere with the URL
@@ -161,7 +163,7 @@ get_client_secret (GoaOAuth2Provider *provider)
 }
 
 static const gchar *
-get_authentication_cookie (GoaOAuth2Provider *provider)
+get_authentication_cookie (GoaOAuth2Provider *oauth2_provider)
 {
   return "c_user";
 }
@@ -169,29 +171,20 @@ get_authentication_cookie (GoaOAuth2Provider *provider)
 /* ---------------------------------------------------------------------------------------------------- */
 
 static gchar *
-get_identity_sync (GoaOAuth2Provider  *provider,
+get_identity_sync (GoaOAuth2Provider  *oauth2_provider,
                    const gchar        *access_token,
                    gchar             **out_presentation_identity,
                    GCancellable       *cancellable,
                    GError            **error)
 {
-  GError *identity_error;
-  RestProxy *proxy;
-  RestProxyCall *call;
-  JsonParser *parser;
+  GError *identity_error = NULL;
+  RestProxy *proxy = NULL;
+  RestProxyCall *call = NULL;
+  JsonParser *parser = NULL;
   JsonObject *json_object;
-  gchar *ret;
-  gchar *id;
-  gchar *presentation_identity;
-
-  ret = NULL;
-
-  identity_error = NULL;
-  proxy = NULL;
-  call = NULL;
-  parser = NULL;
-  id = NULL;
-  presentation_identity = NULL;
+  gchar *ret = NULL;
+  gchar *id = NULL;
+  gchar *presentation_identity = NULL;
 
   /* TODO: cancellable */
 
@@ -282,22 +275,11 @@ get_identity_sync (GoaOAuth2Provider  *provider,
 /* ---------------------------------------------------------------------------------------------------- */
 
 static gboolean
-is_deny_node (GoaOAuth2Provider *provider, WebKitDOMNode *node)
+is_identity_node (GoaOAuth2Provider *oauth2_provider, WebKitDOMHTMLInputElement *element)
 {
-  return FALSE;
-}
-
-static gboolean
-is_identity_node (GoaOAuth2Provider *provider, WebKitDOMHTMLInputElement *element)
-{
-  gboolean ret;
-  gchar *element_type;
-  gchar *name;
-
-  element_type = NULL;
-  name = NULL;
-
-  ret = FALSE;
+  gboolean ret = FALSE;
+  gchar *element_type = NULL;
+  gchar *name = NULL;
 
   g_object_get (element, "type", &element_type, NULL);
   if (g_strcmp0 (element_type, "text") != 0)
@@ -326,14 +308,10 @@ build_object (GoaProvider         *provider,
               gboolean             just_added,
               GError             **error)
 {
-  GoaAccount *account;
-  GoaPhotos *photos = NULL;
-  GoaMaps *maps = NULL;
+  GoaAccount *account = NULL;
   gboolean photos_enabled;
   gboolean maps_enabled;
   gboolean ret = FALSE;
-
-  account = NULL;
 
   /* Chain up */
   if (!GOA_PROVIDER_CLASS (goa_facebook_provider_parent_class)->build_object (provider,
@@ -348,22 +326,8 @@ build_object (GoaProvider         *provider,
   account = goa_object_get_account (GOA_OBJECT (object));
 
   /* Photos */
-  photos = goa_object_get_photos (GOA_OBJECT (object));
   photos_enabled = g_key_file_get_boolean (key_file, group, "PhotosEnabled", NULL);
-
-  if (photos_enabled)
-    {
-      if (photos == NULL)
-        {
-          photos = goa_photos_skeleton_new ();
-          goa_object_skeleton_set_photos (object, photos);
-        }
-    }
-  else
-    {
-      if (photos != NULL)
-        goa_object_skeleton_set_photos (object, NULL);
-    }
+  goa_object_skeleton_attach_photos (object, photos_enabled);
 
   if (just_added)
     {
@@ -376,22 +340,8 @@ build_object (GoaProvider         *provider,
     }
 
   /* Maps */
-  maps = goa_object_get_maps (GOA_OBJECT (object));
   maps_enabled = g_key_file_get_boolean (key_file, group, "MapsEnabled", NULL);
-
-  if (maps_enabled)
-    {
-      if (maps == NULL)
-        {
-          maps = goa_maps_skeleton_new ();
-          goa_object_skeleton_set_maps (object, maps);
-        }
-    }
-  else
-    {
-      if (maps != NULL)
-        goa_object_skeleton_set_maps (object, NULL);
-    }
+  goa_object_skeleton_attach_maps (object, maps_enabled);
 
   if (just_added)
     {
@@ -406,39 +356,13 @@ build_object (GoaProvider         *provider,
 
  out:
   g_clear_object (&account);
-  g_clear_object (&photos);
-  g_clear_object (&maps);
   return ret;
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
 
 static void
-show_account (GoaProvider         *provider,
-              GoaClient           *client,
-              GoaObject           *object,
-              GtkBox              *vbox,
-              GtkGrid             *grid,
-              G_GNUC_UNUSED GtkGrid *dummy)
-{
-  gint row;
-
-  row = 0;
-
-  goa_util_add_account_info (grid, row++, object);
-
-  goa_util_add_row_switch_from_keyfile_with_blurb (grid, row++, object,
-                                                   /* Translators: This is a label for a series of
-                                                    * options switches. For example: “Use for Mail”. */
-                                                   _("Use for"),
-                                                   "photos-disabled",
-                                                   _("_Photos"));
-}
-
-/* ---------------------------------------------------------------------------------------------------- */
-
-static void
-add_account_key_values (GoaOAuth2Provider *provider,
+add_account_key_values (GoaOAuth2Provider *oauth2_provider,
                         GVariantBuilder   *builder)
 {
   g_variant_builder_add (builder, "{ss}", "PhotosEnabled", "true");
@@ -448,7 +372,7 @@ add_account_key_values (GoaOAuth2Provider *provider,
 /* ---------------------------------------------------------------------------------------------------- */
 
 static void
-goa_facebook_provider_init (GoaFacebookProvider *client)
+goa_facebook_provider_init (GoaFacebookProvider *self)
 {
 }
 
@@ -464,7 +388,6 @@ goa_facebook_provider_class_init (GoaFacebookProviderClass *klass)
   provider_class->get_provider_group         = get_provider_group;
   provider_class->get_provider_features      = get_provider_features;
   provider_class->build_object               = build_object;
-  provider_class->show_account               = show_account;
   provider_class->get_credentials_generation = get_credentials_generation;
 
   oauth2_class = GOA_OAUTH2_PROVIDER_CLASS (klass);
@@ -476,7 +399,6 @@ goa_facebook_provider_class_init (GoaFacebookProviderClass *klass)
   oauth2_class->get_client_secret        = get_client_secret;
   oauth2_class->get_authentication_cookie = get_authentication_cookie;
   oauth2_class->get_identity_sync        = get_identity_sync;
-  oauth2_class->is_deny_node             = is_deny_node;
   oauth2_class->is_identity_node         = is_identity_node;
   oauth2_class->add_account_key_values   = add_account_key_values;
 }

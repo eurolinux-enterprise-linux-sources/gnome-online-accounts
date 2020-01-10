@@ -1,66 +1,563 @@
-Overview of changes in 3.14.5
+Overview of changes in 3.22.5
 =============================
 
 * Bugs fixed:
- 693578 daemon: Don't leak the GoaProvider
- 752736 owncloud: Doesn't work with non-standard ports
- 752939 Several leak fixes
- 754142 icons: Provide HiDpi variants
- 755168 owncloud, exchange: Sanitize HTTP error messages
- 755316 imap-smtp: Fix typo in error message
- 756494 identity: Don't ever nullify identifier
- 756759 provider, telepathy: Small leak fixes
- 758361 Crash in mail_client_check_auth_run_cb when goa_mail_auth_run fails
+ 779548: Don't leak the name_owner and result in
+         dbus_proxy_reload_properties_sync
 
 * Updated translations:
+ Icelandic
+
+
+Overview of changes in 3.22.4
+=============================
+
+* Bugs fixed:
+ 765121 Memory leak in goa-daemon
+ 776871 Broken error handling in on_got_identity_for_sign_out
+ 776897 The invocation is leaked when handling ExchangeSecretKeys and SignOut
+
+
+Overview of changes in 3.22.3
+=============================
+
+* New API key for Google
+
+* Updated translations:
+ Dutch
+ English (British)
+ Friulian
+ Polish
+
+
+Overview of changes in 3.22.2
+=============================
+
+* Updated translations:
+ Simplified Chinese
+ Norwegian bokmål
+
+
+Overview of changes in 3.22.1
+=============================
+
+* Updated translations:
+ Basque
+ Traditional Chinese (Taiwan)
+ Croatian
+ Italian
+
+
+Overview of changes in 3.22.0
+=============================
+
+* Updated translations:
+ Dutch
+ English (British)
+ Ukrainian
+
+
+Overview of changes in 3.21.92
+==============================
+
+* Experimental account templates support (771366)
+
+* Updated translations:
+ Bulgarian
+ Danish
+ Finnish
+ Galician
+ Gaelic (Scottish)
+ Greek
+ Hebrew
+ Kazakh
+ Korean
+ Latvian
+ Lithuanian
+ Persian
+ Russian
+ Swedish
+ Thai
+ Turkish
+ Vietnamese
+
+
+Overview of changes in 3.21.91
+==============================
+
+* Bugs fixed:
+ 770610 daemon: Clean-up the memory management of our GKeyFile instances
+
+* Updated translations:
+ French
+ Friulian
+ Hungarian
+ Polish
+ Serbian
+ Slovenian
+
+
+Overview of changes in 3.21.90
+==============================
+
+* Bugs fixed:
+ 688041 daemon: Ensure temporary accounts are really removed from the keyring
+ 755386 pocket: Support logging in with a Firefox account
+ 756431 identity: Don't leak the GoaObject from find_object_with_principal
+ 764157 Port to GTask from GSimpleAsyncResult
+ 768808 identity: Silence -Wincompatible-pointer-types
+ 769213 Let goa_provider_show_account have more control over the UI
+
+* Updated translations:
+ Czech
+ Friulian
+ German
+ Gujarati
+ Hebrew
+ Hungarian
+ Indonesian
+ Lithuanian
+ Portuguese (Brazilian)
+ Spanish
+ Slovak
+
+
+Overview of changes in 3.21.4
+=============================
+
+* Bugs fixed:
+ 756431 identity: Don't leak the invocation when handling SignIn
+ 764157 Port to GTask from GSimpleAsyncResult
+ 766733 kerberos, telepathy: Stopping goa-daemon removes account or expires
+        credentials
+ 767914 Offer a simple mechanism to introspect the available providers and
+        services
+ 768808 identity: Clean up the credential cache and don't keep trying to sign
+        in if we encounter a failure
+ 768845 kerberos: Don't leak the GSimpleAsyncResult and object_path when
+        signing in
+
+* Updated translations:
+ Indonesian
+ Polish
+ Slovak
+ Vietnamese
+
+
+Overview of changes in 3.21.3
+=============================
+
+* Bugs fixed:
+ 688041 Don't let temporary accounts accumulate in accounts.conf and the
+        keyring
+ 760991 lastfm: Don't forget to update the ret variable
+ 762155 Skip EnsureCredentials if the account is disabled
+ 764157 Port to GTask from GSimpleAsyncResult
+ 764283 Misc usability improvements to the imap-smtp provider
+ 765994 org.gnome.OnlineAccounts.Account:IsTemporary is not being set
+ 766733 kerberos, telepathy: Stopping goa-daemon removes account or expires
+        credentials
+ 767299 Adding a Telepathy account is racy due after adding a headerbar
+
+* Updated translations:
+ Catalan
+ German
+ Indonesian
+ Occitan
+ Portuguese
+ Portuguese (Brazilian)
+ Spanish
+ Turkish
+
+
+Overview of changes in 3.21.1
+=============================
+
+* Bugs fixed:
+ 756495 identity: fix renewal requests for kernel keyring based tickets
+ 764157 Port to GTask from GSimpleAsyncResult
+ 765455 goa-daemon --help shows translated characters as question marks on
+        some locales
+
+* Updated translations:
+ Basque
+ Bulgarian
+ Simplified Chinese
+ Friulian
+ Gaelic (Scottish)
+ Hungarian
+ Japanese
+ Persian
  Portuguese
 
 
-Overview of changes in 3.14.4
+Overview of changes in 3.20.0
 =============================
+
+* Updated translations:
+ Danish
+ Friulian
+ Italian
+ Serbian
+ Serbian Latin
+ Turkish
+
+
+Overview of changes in 3.19.92.1
+================================
+
+* Bugs fixed:
+ 763078 Documentation missing from tarball
+
+
+Overview of changes in 3.19.92
+==============================
+
+* Bugs fixed:
+ 756495 identity: don't ignore almost all renewal requests
+ 761262 alarm, daemon: Avoid using %m for errors
+ 761510 Factorize common code in GoaBackend::build_object()
+ 762097 httpclient: Don't hard-code "Connection: close" in the request headers
+ 762155 kerberos: Do not use goa_object_peek_* in threaded code
+ 762548 Fix the dialogs' dimensions with newer GTK+
+ 763078 build: Update autogen.sh from GNOME recommendation
+
+* Updated translations:
+ Catalan
+ Finnish
+ Galician
+ Greek
+ Hebrew
+ Korean
+ Latvian
+ Lithuanian
+ Occitan
+ Russian
+ Serbian
+ Slovenian
+ Swedish
+ Ukrainian
+
+
+Overview of changes in 3.19.90
+==============================
+
+* Bugs fixed:
+ 755316 backends: Factorize common code in credential handling
+ 756498 kerberos: Fail early on ticket request when ticketing disabled
+ 760991 imap-smtp: EnsureCredentials returns TRUE even when smtp-password
+        can't be found and an error is set
+ 761188 Use primary@REALM as the presentation identity for temporary accounts
+ 761510 Factorize common code in GoaBackend::build_object()
+
+* Updated translations:
+ Bulgarian
+ Traditional Chinese (Taiwan)
+ Czech
+ French
+ Friulian
+ German
+ Hungarian
+ Kazakh
+ Polish
+ Portuguese (Brazilian)
+ Slovak
+ Slovenian
+ Spanish
+ Vietnamese
+
+
+Overview of changes in 3.19.4
+=============================
+
+* Bugs fixed:
+ 758475 Examples fail if backend is disabled
+ 759571 build: Add Vala bindings
+ 759828 google: Do not support chat when telepathy is disabled
+ 760189 Don't require Telepathy when built with --disable-telepathy
+
+* Updated translations:
+ Aragonese
+ German
+ Portuguese (Brazilian)
+ Russian
+ Vietnamese
+
+
+Overview of changes in 3.19.3
+=============================
+
+* Bugs fixed:
+ 751524 Network changes cause authentication token timeouts
+ 758361 Crash in mail_client_check_auth_run_cb when goa_mail_auth_run fails
+
+* Updated translations:
+ Slovenian
+ Swedish
+
+
+Overview of changes in 3.19.2
+=============================
+
+* Bugs fixed:
+ 755316 imap-smtp: Fix typo in error message
+ 757952 org.gnome.Identity.service.in is missing from tarball
+ 758361 smtp-auth: Plug leaks in error handling
+
+* Updated translations:
+ Simplified Chinese
+ Gaelic (Scottish)
+ Hebrew
+ Hungarian
+ Lithuanian
+ Portuguese
+ Spanish
+ Turkish
+
+
+Overview of changes in 3.19.1
+=============================
+
+* Bugs fixed:
+ 752736 owncloud: Doesn't work with non-standard ports
+ 754142 icons: Shiny new Google icons
+ 755168 owncloud, exchange: Sanitize HTTP error messages
+ 755315 lastfm: Leak fixes
+ 756394 identity: Allow multiple simultaneous sign-in requests from one sender
+ 756494 identity: Don't ever nullify identifier
+ 756759 provider, telepathy: Small leak fixes
+
+* Updated translations:
+ Basque
+ Czech
+ Danish
+ Finnish
+ Galician
+ German
+ Greek
+ Hungarian
+ Indonesian
+ Italian
+ Japanese
+ Kazakh
+ Korean
+ Norwegian bokmål
+ Persian
+ Portuguese
+ Portuguese (Brazilian)
+ Russian
+ Serbian
+ Serbian Latin
+ Swedish
+ Turkish
+ Vietnamese
+
+
+Overview of changes in 3.17.92
+==============================
+
+* Support Last.fm (728621)
+
+* Bugs fixed:
+ 751128 build: Make it possible to disable the backend build
+ 754142 icons: Provide HiDpi variants
+ 754840 examples: Print out keys for all the accounts
+
+* Updated translations:
+ Traditional Chinese (Taiwan)
+ Finnish
+ French
+ Persian
+ Polish
+ Slovak
+ Spanish
+ Swedish
+
+
+Overview of changes in 3.17.91
+==============================
+
+* Add org.gnome.OnlineAccounts.Music D-Bus interface (705969)
+
+* Bugs fixed:
+ 693578 Refresh credentials at startup and network changes
+ 750392 Avoid NULL pointer dereference when EWS autodiscover fails
+ 750479 process_config_entries uses a non-existent variable
+ 750897 Fix parallel installation failure
+ 752270 configure script uses pkg-config without checking for it
+ 752939 Several leak fixes
+ 752941 Add generic GoaProvider::show_account() implementation
+ 752964 google: Stop identifying ourselves as Android
+
+* Updated translations:
+ Aragonese
+ Catalan
+ Traditional Chinese (Taiwan)
+ French
+ Friulian
+ Dutch
+ Galician
+ German
+ Greek
+ Hebrew
+ Hungarian
+ Indonesian
+ Italian
+ Kazakh
+ Korean
+ Lithuanian
+ Norwegian bokmål
+ Polish
+ Portuguese
+ Portuguese (Brazilian)
+ Romanian
+ Russian
+ Slovak
+ Slovenian
+ Spanish
+ Swedish
+ Turkish
+
+
+Overview of changes in 3.17.2
+=============================
+
+* Foursquare is enabled by default
+
+* Remove Yahoo! support (721061)
+
+* Bugs fixed:
+ 710764 live: "Microsoft Account" is the common parlance nowadays and new icons
+ 739593 Separate identity service off into its own process
+ 739594 kerberos: Support refreshing smartcard authenticated kerberos tickets
+ 742680 Port to WebKit2
+ 744165 telepathy: "use this account for external calls" checkbox is not
+        working
+ 745004 facebook: Restore a wrongly deleted string
+ 746540 Add some spacing between the service name and its switch
+
+* Updated translations:
+ Arabic
+ Bosnian
+ Bulgarian
+ Simplified Chinese
+ Czech
+ Danish
+ Finnish
+ German
+ Greek
+ Hebrew
+ Indonesian
+ Italian
+ Kazakh
+ Korean
+ Norwegian bokmål
+ Occitan
+ Polish
+ Portuguese (Brazilian)
+ Serbian
+ Slovak
+ Slovenian
+ Swedish
+ Tajik
+ Thai
+ Turkish
+ Ukrainian
+
+
+Overview of changes in 3.15.90
+==============================
 
 * Remove Facebook chat support (745004)
 
 * Bugs fixed:
- 744165 telepathy: "use this account for external calls" checkbox is not
-        working
- 746540 Add some spacing between the service name and its switch
+ 742651 ewsclient, httpclient: Stop using deprecated SoupSessionAsync
 
 * Updated translations:
- Bosnian
+ Aragonese
+ Simplified Chinese
+ Traditional Chinese (Taiwan)
+ French
+ Friulian
+ Galician
+ Greek
+ Hebrew
  Icelandic
- Occitan
+ Japanese
+ Kazakh
+ Slovak
+ Swedish
+ Turkish
 
 
-Overview of changes in 3.14.3
+Overview of changes in 3.15.4
 =============================
 
 * Bugs fixed:
  743044 ewsclient: httpclient: Don't crash or deadlock during clean up
 
 * Updated translations:
- Kazakh
+ Basque
+ Czech
+ Hungarian
+ Indonesian
+ Lithuanian
+ Norwegian bokmål
+ Portuguese (Brazilian)
+ Russian
+ Slovenian
  Swedish
 
 
-Overview of changes in 3.14.2
+Overview of changes in 3.15.3
+=============================
+
+* Support Foursquare (729837)
+
+* Updated translations:
+ Basque
+ German
+ Hungarian
+ Spanish
+ Turkish
+
+
+Overview of changes in 3.15.2
 =============================
 
 * Bugs fixed:
+ 739009 google: Add support for files
  739168 facebook: Add fallback to get presentation id
  739590 Memory leak fixes
  739593 kerberos: A pile of fixes
 
+* Updated translations:
+ Aragonese
+ Czech
+ Esperanto
+ Greek
+ Hebrew
+ Russian
+ Vietnamese
 
-Overview of changes in 3.14.1
+
+Overview of changes in 3.15.1
 =============================
 
+* Support locked accounts (737656)
+
 * Bugs fixed:
+ 736749 oauth2: Silence uninit_use_in_call from Coverity
  737549 Fix a life-cycle issue that affected gnome-initial-setup
+ 737721 daemon: Allow account ID to be provided for new accounts
 
 * Updated translations:
  Bulgarian
+ Kazakh
+ Norwegian bokmål
  Portuguese
+ Russian
+ Spanish
 
 
 Overview of changes in 3.14.0

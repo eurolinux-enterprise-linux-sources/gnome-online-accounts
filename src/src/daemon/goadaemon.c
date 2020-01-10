@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012 Red Hat, Inc.
+ * Copyright (C) 2011, 2012, 2015, 2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,6 +17,10 @@
  */
 
 #include "config.h"
+
+#include <errno.h>
+#include <string.h>
+
 #include <glib/gi18n.h>
 #include <gio/gdesktopappinfo.h>
 #include <rest/rest-proxy.h>
@@ -24,10 +28,8 @@
 
 #include "goadaemon.h"
 #include "goabackend/goabackend.h"
+#include "goabackend/goaprovider-priv.h"
 #include "goabackend/goautils.h"
-#ifdef GOA_KERBEROS_ENABLED
-#include "goaidentity/goaidentityservice.h"
-#endif
 
 struct _GoaDaemon
 {
@@ -35,19 +37,21 @@ struct _GoaDaemon
 
   GDBusConnection *connection;
 
-  GFileMonitor *system_conf_dir_monitor;
   GFileMonitor *home_conf_file_monitor;
-  GFileMonitor *home_conf_dir_monitor;
+  GFileMonitor *template_file_monitor;
+  gchar *home_conf_file_path;
+
+  GNetworkMonitor *network_monitor;
 
   GDBusObjectManagerServer *object_manager;
 
   GoaManager *manager;
 
-#ifdef GOA_KERBEROS_ENABLED
-  GoaIdentityService *identity_service;
-#endif
+  GQueue *ensure_credentials_queue;
+  gboolean ensure_credentials_running;
 
   guint config_timeout_id;
+  guint credentials_timeout_id;
 };
 
 typedef struct
@@ -78,43 +82,91 @@ static gboolean on_account_handle_ensure_credentials (GoaAccount            *acc
                                                       GDBusMethodInvocation *invocation,
                                                       gpointer               user_data);
 
-static void goa_daemon_reload_configuration (GoaDaemon *daemon);
+static void ensure_credentials_queue_check (GoaDaemon *self);
+
+static void goa_daemon_check_credentials (GoaDaemon *self);
+static void goa_daemon_reload_configuration (GoaDaemon *self);
 
 G_DEFINE_TYPE (GoaDaemon, goa_daemon, G_TYPE_OBJECT);
+
+/* ---------------------------------------------------------------------------------------------------- */
+
+typedef struct
+{
+  GError **error;
+  GList **out_providers;
+  GMainLoop *loop;
+  gboolean op_res;
+} GetAllSyncData;
+
+static void
+get_all_providers_sync_cb (GObject       *source_object,
+                           GAsyncResult  *res,
+                           gpointer       user_data)
+{
+  GetAllSyncData *data = (GetAllSyncData *) user_data;
+
+  data->op_res = goa_provider_get_all_finish (data->out_providers, res, data->error);
+  g_main_loop_quit (data->loop);
+}
+
+static gboolean
+get_all_providers_sync (GCancellable  *cancellable,
+                        GList        **out_providers,
+                        GError       **error)
+{
+  GetAllSyncData data;
+
+  data.error = error;
+  data.out_providers = out_providers;
+
+  /* HACK: Since telepathy-glib doesn't use the thread-default
+   * GMainContext for invoking the asynchronous callbacks, we can't
+   * push a new GMainContext here.
+   */
+  data.loop = g_main_loop_new (NULL, FALSE);
+
+  goa_provider_get_all (get_all_providers_sync_cb, &data);
+  g_main_loop_run (data.loop);
+  g_main_loop_unref (data.loop);
+
+  return data.op_res;
+}
+
+/* ---------------------------------------------------------------------------------------------------- */
 
 static void
 goa_daemon_finalize (GObject *object)
 {
-  GoaDaemon *daemon = GOA_DAEMON (object);
+  GoaDaemon *self = GOA_DAEMON (object);
 
-  if (daemon->config_timeout_id != 0)
+  if (self->config_timeout_id != 0)
     {
-      g_source_remove (daemon->config_timeout_id);
+      g_source_remove (self->config_timeout_id);
     }
 
-  if (daemon->system_conf_dir_monitor != NULL)
+  if (self->credentials_timeout_id != 0)
     {
-      g_signal_handlers_disconnect_by_func (daemon->system_conf_dir_monitor, on_file_monitor_changed, daemon);
-      g_object_unref (daemon->system_conf_dir_monitor);
-    }
-  if (daemon->home_conf_dir_monitor != NULL)
-    {
-      g_signal_handlers_disconnect_by_func (daemon->home_conf_dir_monitor, on_file_monitor_changed, daemon);
-      g_object_unref (daemon->home_conf_dir_monitor);
-    }
-  if (daemon->home_conf_file_monitor != NULL)
-    {
-      g_signal_handlers_disconnect_by_func (daemon->home_conf_file_monitor, on_file_monitor_changed, daemon);
-      g_object_unref (daemon->home_conf_file_monitor);
+      g_source_remove (self->credentials_timeout_id);
     }
 
-  g_object_unref (daemon->manager);
-  g_object_unref (daemon->object_manager);
-  g_object_unref (daemon->connection);
+  if (self->home_conf_file_monitor != NULL)
+    {
+      g_signal_handlers_disconnect_by_func (self->home_conf_file_monitor, on_file_monitor_changed, self);
+      g_object_unref (self->home_conf_file_monitor);
+    }
 
-#ifdef GOA_KERBEROS_ENABLED
-  g_clear_object (&daemon->identity_service);
-#endif
+  if (self->template_file_monitor != NULL)
+    {
+      g_signal_handlers_disconnect_by_func (self->template_file_monitor, on_file_monitor_changed, self);
+      g_object_unref (self->template_file_monitor);
+    }
+
+  g_free (self->home_conf_file_path);
+  g_object_unref (self->manager);
+  g_object_unref (self->object_manager);
+  g_object_unref (self->connection);
+  g_queue_free_full (self->ensure_credentials_queue, g_object_unref);
 
   G_OBJECT_CLASS (goa_daemon_parent_class)->finalize (object);
 }
@@ -149,13 +201,13 @@ create_monitor (const gchar *path, gboolean is_dir)
 static gboolean
 on_config_file_monitor_timeout (gpointer user_data)
 {
-  GoaDaemon *daemon = GOA_DAEMON (user_data);
+  GoaDaemon *self = GOA_DAEMON (user_data);
 
-  daemon->config_timeout_id = 0;
-  g_info ("Reloading configuration files\n");
-  goa_daemon_reload_configuration (daemon);
+  self->config_timeout_id = 0;
+  g_debug ("Reloading configuration files");
+  goa_daemon_reload_configuration (self);
 
-  return FALSE;
+  return G_SOURCE_REMOVE;
 }
 
 static void
@@ -165,23 +217,52 @@ on_file_monitor_changed (GFileMonitor      *monitor,
                          GFileMonitorEvent  event_type,
                          gpointer           user_data)
 {
-  GoaDaemon *daemon = GOA_DAEMON (user_data);
+  GoaDaemon *self = GOA_DAEMON (user_data);
 
-  if (daemon->config_timeout_id == 0)
+  if (self->config_timeout_id == 0)
     {
-      daemon->config_timeout_id = g_timeout_add (200, on_config_file_monitor_timeout, daemon);
+      self->config_timeout_id = g_timeout_add (200, on_config_file_monitor_timeout, self);
     }
 }
 
+static gboolean
+on_check_credentials_timeout (gpointer user_data)
+{
+  GoaDaemon *self = GOA_DAEMON (user_data);
+
+  self->credentials_timeout_id = 0;
+  g_debug ("Calling EnsureCredentials due to network changes");
+  goa_daemon_check_credentials (self);
+
+  return G_SOURCE_REMOVE;
+}
+
 static void
-goa_daemon_init (GoaDaemon *daemon)
+queue_check_credentials (GoaDaemon *self)
+{
+  if (self->credentials_timeout_id != 0)
+    {
+      g_source_remove (self->credentials_timeout_id);
+    }
+
+  self->credentials_timeout_id = g_timeout_add_seconds (1, on_check_credentials_timeout, self);
+}
+
+static void
+on_network_monitor_network_changed (GoaDaemon *self, gboolean available)
+{
+  queue_check_credentials (self);
+}
+
+static void
+goa_daemon_init (GoaDaemon *self)
 {
   static volatile GQuark goa_error_domain = 0;
+  GError *error;
+  GList *l;
+  GList *providers = NULL;
   GoaObjectSkeleton *object;
   gchar *path;
-#ifdef GOA_KERBEROS_ENABLED
-  GError *error = NULL;
-#endif
 
   /* this will force associating errors in the GOA_ERROR error domain
    * with org.freedesktop.Goa.Error.* errors via g_dbus_error_register_error_domain().
@@ -189,54 +270,79 @@ goa_daemon_init (GoaDaemon *daemon)
   goa_error_domain = GOA_ERROR;
   goa_error_domain; /* shut up -Wunused-but-set-variable */
 
+  error = NULL;
+  if (!get_all_providers_sync (NULL, &providers, &error))
+    {
+      g_warning ("Unable to get the list of providers: %s (%s, %d)",
+                 error->message,
+                 g_quark_to_string (error->domain),
+                 error->code);
+      g_error_free (error);
+    }
+
+  for (l = providers; l != NULL; l = l->next)
+    {
+      GoaProvider *provider = GOA_PROVIDER (l->data);
+      goa_provider_initialize (provider);
+    }
+
   /* TODO: maybe nicer to pass in a GDBusConnection* construct property */
-  daemon->connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
+  self->connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
 
   /* Create object manager */
-  daemon->object_manager = g_dbus_object_manager_server_new ("/org/gnome/OnlineAccounts");
+  self->object_manager = g_dbus_object_manager_server_new ("/org/gnome/OnlineAccounts");
 
   /* Create and export Manager */
-  daemon->manager = goa_manager_skeleton_new ();
-  g_signal_connect (daemon->manager,
+  self->manager = goa_manager_skeleton_new ();
+  g_signal_connect (self->manager,
                     "handle-add-account",
                     G_CALLBACK (on_manager_handle_add_account),
-                    daemon);
+                    self);
   object = goa_object_skeleton_new ("/org/gnome/OnlineAccounts/Manager");
-  goa_object_skeleton_set_manager (object, daemon->manager);
-  g_dbus_object_manager_server_export (daemon->object_manager, G_DBUS_OBJECT_SKELETON (object));
+  goa_object_skeleton_set_manager (object, self->manager);
+  g_dbus_object_manager_server_export (self->object_manager, G_DBUS_OBJECT_SKELETON (object));
   g_object_unref (object);
 
+  self->home_conf_file_path = g_strdup_printf ("%s/goa-1.0/accounts.conf", g_get_user_config_dir ());
+
   /* create ~/.config/goa-1.0 directory */
-  path = g_strdup_printf ("%s/goa-1.0", g_get_user_config_dir ());
+  path = g_path_get_dirname (self->home_conf_file_path);
   if (g_mkdir_with_parents (path, 0755) != 0)
     {
-      g_warning ("Error creating directory %s: %m", path);
+      g_warning ("Error creating directory %s: %s", path, strerror (errno));
     }
   g_free (path);
 
   /* set up file monitoring */
-  path = g_strdup_printf ("%s/goa-1.0/accounts.conf", g_get_user_config_dir ());
-  daemon->home_conf_file_monitor = create_monitor (path, FALSE);
-  if (daemon->home_conf_file_monitor != NULL)
-    g_signal_connect (daemon->home_conf_file_monitor, "changed", G_CALLBACK (on_file_monitor_changed), daemon);
-  g_free (path);
+  self->home_conf_file_monitor = create_monitor (self->home_conf_file_path, FALSE);
+  if (self->home_conf_file_monitor != NULL)
+    g_signal_connect (self->home_conf_file_monitor, "changed", G_CALLBACK (on_file_monitor_changed), self);
+
+  if (GOA_TEMPLATE_FILE != NULL && GOA_TEMPLATE_FILE[0] != '\0')
+    {
+      self->template_file_monitor = create_monitor (GOA_TEMPLATE_FILE, FALSE);
+      if (self->template_file_monitor != NULL)
+        g_signal_connect (self->template_file_monitor, "changed", G_CALLBACK (on_file_monitor_changed), self);
+    }
 
   /* prime the list of accounts */
-  goa_daemon_reload_configuration (daemon);
+  goa_daemon_reload_configuration (self);
+
+  self->network_monitor = g_network_monitor_get_default ();
+  g_signal_connect_object (self->network_monitor,
+                           "network-changed",
+                           G_CALLBACK (on_network_monitor_network_changed),
+                           self,
+                           G_CONNECT_SWAPPED);
+
+  self->ensure_credentials_queue = g_queue_new ();
 
   /* Export objects */
-  g_dbus_object_manager_server_set_connection (daemon->object_manager, daemon->connection);
+  g_dbus_object_manager_server_set_connection (self->object_manager, self->connection);
 
-#ifdef GOA_KERBEROS_ENABLED
-  daemon->identity_service = goa_identity_service_new ();
-  if (!goa_identity_service_activate (daemon->identity_service,
-                                      &error))
-    {
-      g_warning ("Error activating identity service: %s", error->message);
-      g_error_free (error);
-      g_clear_object (&daemon->identity_service);
-    }
-#endif
+  queue_check_credentials (self);
+
+  g_list_free_full (providers, g_object_unref);
 }
 
 static void
@@ -304,6 +410,29 @@ diff_sorted_lists (GList *list1,
 
 /* ---------------------------------------------------------------------------------------------------- */
 
+static const gchar *
+account_group_to_id (const gchar *group)
+{
+  g_return_val_if_fail (g_str_has_prefix (group, "Account "), NULL);
+  return group + sizeof "Account " - 1;
+}
+
+static gchar *
+account_object_path_to_group (const gchar *object_path)
+{
+  g_return_val_if_fail (g_str_has_prefix (object_path, "/org/gnome/OnlineAccounts/Accounts/"), NULL);
+  return g_strdup_printf ("Account %s", object_path + sizeof "/org/gnome/OnlineAccounts/Accounts/" - 1);
+}
+
+static const gchar *
+template_group_to_id (const gchar *group)
+{
+  g_return_val_if_fail (g_str_has_prefix (group, "Template "), NULL);
+  return group + sizeof "Template " - 1;
+}
+
+/* ---------------------------------------------------------------------------------------------------- */
+
 typedef struct
 {
   GKeyFile *key_file;
@@ -313,7 +442,7 @@ typedef struct
 static void
 key_file_data_free (KeyFileData *data)
 {
-  /* the key_file member is freed elsewhere */
+  g_key_file_unref (data->key_file);
   g_free (data->path);
   g_slice_free (KeyFileData, data);
 }
@@ -324,7 +453,7 @@ key_file_data_new (GKeyFile    *key_file,
 {
   KeyFileData *data;
   data = g_slice_new (KeyFileData);
-  data->key_file = key_file;
+  data->key_file = g_key_file_ref (key_file);
   data->path = g_strdup (path);
   return data;
 }
@@ -332,13 +461,17 @@ key_file_data_new (GKeyFile    *key_file,
 /* ---------------------------------------------------------------------------------------------------- */
 
 static void
-add_config_file (GoaDaemon     *daemon,
+add_config_file (GoaDaemon     *self,
                  const gchar   *path,
-                 GHashTable    *group_name_to_key_file_data,
-                 GList        **key_files_to_free)
+                 GHashTable    *group_name_to_key_file_data)
 {
   GKeyFile *key_file;
   GError *error;
+  gboolean needs_update = FALSE;
+  gchar **groups;
+  const char *guid;
+  gsize num_groups;
+  guint n;
 
   key_file = g_key_file_new ();
 
@@ -348,116 +481,158 @@ add_config_file (GoaDaemon     *daemon,
                                   G_KEY_FILE_NONE,
                                   &error))
     {
-      if (!(error->domain == G_FILE_ERROR && error->code == G_FILE_ERROR_NOENT))
+      if (!g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
         {
           g_warning ("Error loading %s: %s (%s, %d)",
                      path,
                      error->message, g_quark_to_string (error->domain), error->code);
         }
       g_error_free (error);
-      g_key_file_free (key_file);
+      goto out;
     }
-  else
+
+  guid = g_dbus_connection_get_guid (self->connection);
+  groups = g_key_file_get_groups (key_file, &num_groups);
+  for (n = 0; n < num_groups; n++)
     {
-      gchar **groups;
-      const char *guid;
-      gsize num_groups;
-      guint n;
-
-      guid = g_dbus_connection_get_guid (daemon->connection);
-      groups = g_key_file_get_groups (key_file, &num_groups);
-      for (n = 0; n < num_groups; n++)
+      if (g_str_has_prefix (groups[n], "Account "))
         {
-          if (g_str_has_prefix (groups[n], "Account "))
+          gboolean is_temporary;
+          char *session_id;
+
+          is_temporary = g_key_file_get_boolean (key_file,
+                                                 groups[n],
+                                                 "IsTemporary",
+                                                 NULL);
+
+          if (is_temporary)
             {
-              gboolean is_temporary;
-              char *session_id;
+              session_id = g_key_file_get_string (key_file,
+                                                  groups[n],
+                                                  "SessionId",
+                                                  NULL);
 
-              is_temporary = g_key_file_get_boolean (key_file,
-                                                     groups[n],
-                                                     "IsTemporary",
-                                                     NULL);
-
-              if (is_temporary)
+              /* discard temporary accounts from older sessions */
+              if (session_id != NULL &&
+                  g_strcmp0 (session_id, guid) != 0)
                 {
-                  session_id = g_key_file_get_string (key_file,
-                                                      groups[n],
-                                                      "SessionId",
-                                                      NULL);
+                  GoaProvider *provider = NULL;
+                  const gchar *id;
+                  gchar *provider_type = NULL;
 
-                  /* discard temporary accounts from older sessions */
-                  if (session_id != NULL &&
-                      g_strcmp0 (session_id, guid) != 0)
+                  g_debug ("ignoring account \"%s\" in file %s because it's stale",
+                           groups[n], path);
+
+                  id = account_group_to_id (groups[n]);
+                  if (id == NULL)
                     {
-                      g_debug ("ignoring account \"%s\" in file %s because it's stale",
-                               groups[n], path);
-                      g_free (groups[n]);
-                      g_free (session_id);
-                      continue;
+                      g_warning ("Unable to get account ID from group: %s", groups[n]);
+                      goto cleanup_and_continue;
                     }
-                  g_free (session_id);
-                }
-              else
-                {
-                  g_key_file_remove_key (key_file, groups[n], "SessionId", NULL);
-                }
 
-              g_hash_table_insert (group_name_to_key_file_data,
-                                   groups[n], /* steals string */
-                                   key_file_data_new (key_file, path));
+                  provider_type = g_key_file_get_string (key_file, groups[n], "Provider", NULL);
+                  if (provider_type != NULL)
+                    provider = goa_provider_get_for_provider_type (provider_type);
+
+                  if (provider == NULL)
+                    {
+                      g_warning ("Unsupported account type %s for ID %s (no provider)", provider_type, id);
+                      goto cleanup_and_continue;
+                    }
+
+                  needs_update = g_key_file_remove_group (key_file, groups[n], NULL);
+
+                  error = NULL;
+                  if (!goa_utils_delete_credentials_for_id_sync (provider, id, NULL, &error))
+                    {
+                      g_warning ("Unable to clean-up stale keyring entries: %s", error->message);
+                      g_error_free (error);
+                      goto cleanup_and_continue;
+                    }
+
+                cleanup_and_continue:
+                  g_clear_object (&provider);
+                  g_free (groups[n]);
+                  g_free (provider_type);
+                  g_free (session_id);
+                  continue;
+                }
+              g_free (session_id);
             }
           else
             {
-              g_warning ("Unexpected group \"%s\" in file %s", groups[n], path);
-              g_free (groups[n]);
+              needs_update = g_key_file_remove_key (key_file, groups[n], "SessionId", NULL);
             }
-        }
-      g_free (groups);
 
-      *key_files_to_free = g_list_prepend (*key_files_to_free, key_file);
+          g_hash_table_insert (group_name_to_key_file_data,
+                               groups[n], /* steals string */
+                               key_file_data_new (key_file, path));
+        }
+      else if (g_str_has_prefix (groups[n], "Template "))
+        {
+          g_hash_table_insert (group_name_to_key_file_data,
+                               groups[n], /* steals string */
+                               key_file_data_new (key_file, path));
+        }
+      else
+        {
+          g_warning ("Unexpected group \"%s\" in file %s", groups[n], path);
+          g_free (groups[n]);
+        }
     }
+  g_free (groups);
+
+  if (needs_update)
+    {
+      error = NULL;
+      if (!g_key_file_save_to_file (key_file, path, &error))
+        {
+          g_prefix_error (&error, "Error writing key-value-file %s: ", path);
+          g_warning ("%s (%s, %d)", error->message, g_quark_to_string (error->domain), error->code);
+          g_error_free (error);
+        }
+    }
+
+ out:
+  g_key_file_unref (key_file);
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
 
 /* returns FALSE if object is not (or no longer) valid */
 static gboolean
-update_account_object (GoaDaemon           *daemon,
+update_account_object (GoaDaemon           *self,
                        GoaObjectSkeleton   *object,
                        const gchar         *path,
                        const gchar         *group,
                        GKeyFile            *key_file,
                        gboolean             just_added)
 {
-  GoaAccount *account;
-  GoaProvider *provider;
-  gboolean ret;
-  gchar *identity;
+  GoaAccount *account = NULL;
+  GoaProvider *provider = NULL;
+  gboolean is_locked;
+  gboolean is_temporary;
+  gboolean ret = FALSE;
+  gchar *identity = NULL;
   gchar *presentation_identity;
-  gchar *type;
-  gchar *name;
-  GIcon *icon;
-  gchar *serialized_icon;
+  gchar *type = NULL;
+  gchar *name = NULL;
+  GIcon *icon = NULL;
+  gchar *serialized_icon = NULL;
   GError *error;
 
-  g_return_val_if_fail (GOA_IS_DAEMON (daemon), FALSE);
+  g_return_val_if_fail (GOA_IS_DAEMON (self), FALSE);
   g_return_val_if_fail (G_IS_DBUS_OBJECT_SKELETON (object), FALSE);
   g_return_val_if_fail (group != NULL, FALSE);
   g_return_val_if_fail (key_file != NULL, FALSE);
-
-  ret = FALSE;
-  identity = NULL;
-  type = NULL;
-  account = NULL;
-  name = NULL;
-  icon = NULL;
-  serialized_icon = NULL;
 
   g_debug ("updating %s %d", g_dbus_object_get_object_path (G_DBUS_OBJECT (object)), just_added);
 
   type = g_key_file_get_string (key_file, group, "Provider", NULL);
   identity = g_key_file_get_string (key_file, group, "Identity", NULL);
   presentation_identity = g_key_file_get_string (key_file, group, "PresentationIdentity", NULL);
+  is_locked = g_key_file_get_boolean (key_file, group, "IsLocked", NULL);
+  is_temporary = g_key_file_get_boolean (key_file, group, "IsTemporary", NULL);
   if (just_added)
     {
       account = goa_account_skeleton_new ();
@@ -479,9 +654,11 @@ update_account_object (GoaDaemon           *daemon,
   goa_account_set_provider_type (account, type);
   goa_account_set_identity (account, identity);
   goa_account_set_presentation_identity (account, presentation_identity);
+  goa_account_set_is_locked (account, is_locked);
+  goa_account_set_is_temporary (account, is_temporary);
 
   error = NULL;
-  if (!goa_provider_build_object (provider, object, key_file, group, daemon->connection, just_added, &error))
+  if (!goa_provider_build_object (provider, object, key_file, group, self->connection, just_added, &error))
     {
       g_warning ("Error parsing account: %s (%s, %d)",
                  error->message, g_quark_to_string (error->domain), error->code);
@@ -500,43 +677,33 @@ update_account_object (GoaDaemon           *daemon,
 
  out:
   g_free (serialized_icon);
-  if (icon != NULL)
-    g_object_unref (icon);
+  g_clear_object (&icon);
   g_free (name);
-  if (provider != NULL)
-    g_object_unref (provider);
-  g_object_unref (account);
+  g_clear_object (&provider);
+  g_clear_object (&account);
   g_free (type);
   g_free (identity);
   g_free (presentation_identity);
   return ret;
 }
 
-static gchar *
-object_path_to_group (const gchar *object_path)
-{
-  g_return_val_if_fail (g_str_has_prefix (object_path, "/org/gnome/OnlineAccounts/Accounts/"), NULL);
-  return g_strdup_printf ("Account %s", object_path + sizeof "/org/gnome/OnlineAccounts/Accounts/" - 1);
-}
-
 static void
-process_config_entries (GoaDaemon  *daemon,
+process_config_entries (GoaDaemon  *self,
                         GHashTable *group_name_to_key_file_data)
 {
   GHashTableIter iter;
-  const gchar *id;
+  const gchar *group;
   KeyFileData *key_file_data;
-  GList *existing_object_paths;
-  GList *config_object_paths;
+  GList *existing_object_paths = NULL;
+  GList *config_object_paths = NULL;
   GList *added;
   GList *removed;
   GList *unchanged;
   GList *l;
 
-  existing_object_paths = NULL;
   {
     GList *existing_objects;
-    existing_objects = g_dbus_object_manager_get_objects (G_DBUS_OBJECT_MANAGER (daemon->object_manager));
+    existing_objects = g_dbus_object_manager_get_objects (G_DBUS_OBJECT_MANAGER (self->object_manager));
     for (l = existing_objects; l != NULL; l = l->next)
       {
         GoaObject *object = GOA_OBJECT (l->data);
@@ -545,21 +712,25 @@ process_config_entries (GoaDaemon  *daemon,
         if (g_str_has_prefix (object_path, "/org/gnome/OnlineAccounts/Accounts/"))
           existing_object_paths = g_list_prepend (existing_object_paths, g_strdup (object_path));
       }
-    g_list_foreach (existing_objects, (GFunc) g_object_unref, NULL);
-    g_list_free (existing_objects);
+    g_list_free_full (existing_objects, g_object_unref);
   }
 
-  config_object_paths = NULL;
   g_hash_table_iter_init (&iter, group_name_to_key_file_data);
-  while (g_hash_table_iter_next (&iter, (gpointer*) &id, (gpointer*) &key_file_data))
+  while (g_hash_table_iter_next (&iter, (gpointer*) &group, (gpointer*) &key_file_data))
     {
+      const gchar *id;
       gchar *object_path;
 
+      if (!g_str_has_prefix (group, "Account "))
+        continue;
+
+      id = account_group_to_id (group);
+
       /* create and validate object path */
-      object_path = g_strdup_printf ("/org/gnome/OnlineAccounts/Accounts/%s", id + sizeof "Account " - 1);
-      if (strstr (id + sizeof "Account " - 1, "/") != NULL || !g_variant_is_object_path (object_path))
+      object_path = g_strdup_printf ("/org/gnome/OnlineAccounts/Accounts/%s", id);
+      if (strstr (id, "/") != NULL || !g_variant_is_object_path (object_path))
         {
-          g_warning ("`%s' is not a valid account identifier", id);
+          g_warning ("`%s' is not a valid account identifier", group);
           g_free (object_path);
           continue;
         }
@@ -580,14 +751,14 @@ process_config_entries (GoaDaemon  *daemon,
     {
       const gchar *object_path = l->data;
       GoaObject *object;
-      object = GOA_OBJECT (g_dbus_object_manager_get_object (G_DBUS_OBJECT_MANAGER (daemon->object_manager), object_path));
+      object = GOA_OBJECT (g_dbus_object_manager_get_object (G_DBUS_OBJECT_MANAGER (self->object_manager), object_path));
       g_warn_if_fail (object != NULL);
       g_signal_handlers_disconnect_by_func (goa_object_peek_account (object),
                                             G_CALLBACK (on_account_handle_remove),
-                                            daemon);
+                                            self);
       g_object_unref (object);
       g_debug ("removing %s", object_path);
-      g_warn_if_fail (g_dbus_object_manager_server_unexport (daemon->object_manager, object_path));
+      g_warn_if_fail (g_dbus_object_manager_server_unexport (self->object_manager, object_path));
     }
   for (l = added; l != NULL; l = l->next)
     {
@@ -597,27 +768,27 @@ process_config_entries (GoaDaemon  *daemon,
 
       g_debug ("adding %s", object_path);
 
-      group = object_path_to_group (object_path);
+      group = account_object_path_to_group (object_path);
       key_file_data = g_hash_table_lookup (group_name_to_key_file_data, group);
       g_warn_if_fail (key_file_data != NULL);
 
       object = goa_object_skeleton_new (object_path);
-      if (update_account_object (daemon,
+      if (update_account_object (self,
                                  object,
                                  key_file_data->path,
                                  group,
                                  key_file_data->key_file,
                                  TRUE))
         {
-          g_dbus_object_manager_server_export (daemon->object_manager, G_DBUS_OBJECT_SKELETON (object));
+          g_dbus_object_manager_server_export (self->object_manager, G_DBUS_OBJECT_SKELETON (object));
           g_signal_connect (goa_object_peek_account (GOA_OBJECT (object)),
                             "handle-remove",
                             G_CALLBACK (on_account_handle_remove),
-                            daemon);
+                            self);
           g_signal_connect (goa_object_peek_account (GOA_OBJECT (object)),
                             "handle-ensure-credentials",
                             G_CALLBACK (on_account_handle_ensure_credentials),
-                            daemon);
+                            self);
         }
       g_object_unref (object);
       g_free (group);
@@ -630,13 +801,13 @@ process_config_entries (GoaDaemon  *daemon,
 
       g_debug ("unchanged %s", object_path);
 
-      group = object_path_to_group (object_path);
+      group = account_object_path_to_group (object_path);
       key_file_data = g_hash_table_lookup (group_name_to_key_file_data, group);
       g_warn_if_fail (key_file_data != NULL);
 
-      object = GOA_OBJECT (g_dbus_object_manager_get_object (G_DBUS_OBJECT_MANAGER (daemon->object_manager), object_path));
+      object = GOA_OBJECT (g_dbus_object_manager_get_object (G_DBUS_OBJECT_MANAGER (self->object_manager), object_path));
       g_warn_if_fail (object != NULL);
-      if (!update_account_object (daemon,
+      if (!update_account_object (self,
                                   GOA_OBJECT_SKELETON (object),
                                   key_file_data->path,
                                   group,
@@ -645,11 +816,11 @@ process_config_entries (GoaDaemon  *daemon,
         {
           g_signal_handlers_disconnect_by_func (goa_object_peek_account (object),
                                                 G_CALLBACK (on_account_handle_remove),
-                                                daemon);
+                                                self);
           g_signal_handlers_disconnect_by_func (goa_object_peek_account (object),
                                                 G_CALLBACK (on_account_handle_ensure_credentials),
-                                                daemon);
-          g_warn_if_fail (g_dbus_object_manager_server_unexport (daemon->object_manager, object_path));
+                                                self);
+          g_warn_if_fail (g_dbus_object_manager_server_unexport (self->object_manager, object_path));
         }
       g_object_unref (object);
       g_free (group);
@@ -658,48 +829,237 @@ process_config_entries (GoaDaemon  *daemon,
   g_list_free (removed);
   g_list_free (added);
   g_list_free (unchanged);
-  g_list_foreach (existing_object_paths, (GFunc) g_free, NULL);
-  g_list_free (existing_object_paths);
-  g_list_foreach (config_object_paths, (GFunc) g_free, NULL);
-  g_list_free (config_object_paths);
+  g_list_free_full (existing_object_paths, g_free);
+  g_list_free_full (config_object_paths, g_free);
 }
+
+/* ---------------------------------------------------------------------------------------------------- */
+
+static gint
+compare_account_and_template_groups (const gchar *account_group, const gchar *template_group)
+{
+  const gchar *account_id;
+  const gchar *template_id;
+
+  g_return_val_if_fail (g_str_has_prefix (account_group, "Account "), 0);
+  g_return_val_if_fail (g_str_has_prefix (template_group, "Template "), 0);
+
+  account_id = account_group + sizeof "Account " - 1;
+  template_id = template_group + sizeof "Template " - 1;
+
+  return g_strcmp0 (account_id, template_id);
+}
+
+static void
+process_template_entries (GoaDaemon  *self,
+                          GHashTable *group_name_to_key_file_data)
+{
+  GError *error;
+  GHashTable *key_files_to_update = NULL;
+  GHashTableIter iter;
+  GKeyFile *home_conf_key_file = NULL;
+  GKeyFile *key_file;
+  KeyFileData *key_file_data;
+  const gchar *group;
+  const gchar *key_file_path;
+  GList *config_object_groups = NULL;
+  GList *config_template_groups = NULL;
+  GList *added;
+  GList *removed;
+  GList *unchanged;
+  GList *l;
+
+  key_files_to_update = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, (GDestroyNotify) g_key_file_unref);
+
+  g_hash_table_iter_init (&iter, group_name_to_key_file_data);
+  while (g_hash_table_iter_next (&iter, (gpointer *) &group, (gpointer *) &key_file_data))
+    {
+      if (home_conf_key_file == NULL && g_strcmp0 (key_file_data->path, self->home_conf_file_path) == 0)
+        home_conf_key_file = g_key_file_ref (key_file_data->key_file);
+
+      if (g_str_has_prefix (group, "Account "))
+        config_object_groups = g_list_prepend (config_object_groups, g_strdup (group));
+      else if (g_str_has_prefix (group, "Template "))
+        config_template_groups = g_list_prepend (config_template_groups, g_strdup (group));
+    }
+
+  if (home_conf_key_file == NULL)
+    home_conf_key_file = g_key_file_new ();
+
+  config_object_groups = g_list_sort (config_object_groups, (GCompareFunc) g_strcmp0);
+  config_template_groups = g_list_sort (config_template_groups, (GCompareFunc) g_strcmp0);
+  diff_sorted_lists (config_object_groups,
+                     config_template_groups,
+                     (GCompareFunc) compare_account_and_template_groups,
+                     &added,
+                     &removed,
+                     &unchanged);
+
+  for (l = added; l != NULL; l = l->next)
+    {
+      gboolean needs_update;
+      const gchar *id;
+      const gchar *template_group = l->data;
+      gchar *object_group = NULL;
+
+      key_file_data = g_hash_table_lookup (group_name_to_key_file_data, template_group);
+      g_assert_nonnull (key_file_data);
+
+      if (goa_utils_keyfile_get_boolean (key_file_data->key_file, template_group, "ForceRemove"))
+        continue;
+
+      g_debug ("Adding from template %s", template_group);
+
+      id = template_group_to_id (template_group);
+      object_group = g_strdup_printf ("Account %s", id);
+      g_warn_if_fail (!g_key_file_has_group (home_conf_key_file, object_group));
+
+      needs_update = goa_utils_keyfile_copy_group (key_file_data->key_file,
+                                                   template_group,
+                                                   home_conf_key_file,
+                                                   object_group);
+
+      if (needs_update)
+        {
+          g_key_file_set_boolean (home_conf_key_file, object_group, "IsLocked", TRUE);
+          g_hash_table_insert (key_files_to_update,
+                               g_strdup (self->home_conf_file_path),
+                               g_key_file_ref (home_conf_key_file));
+        }
+
+      g_free (object_group);
+    }
+
+  for (l = unchanged; l != NULL; l = l->next)
+    {
+      KeyFileData *object_key_file_data;
+      KeyFileData *template_key_file_data;
+      gboolean needs_update;
+      const gchar *id;
+      const gchar *object_group = l->data;
+      gchar *template_group = NULL;
+
+      object_key_file_data = g_hash_table_lookup (group_name_to_key_file_data, object_group);
+      g_assert_nonnull (object_key_file_data);
+
+      g_warn_if_fail (g_key_file_has_group (object_key_file_data->key_file, object_group));
+
+      id = account_group_to_id (object_group);
+      template_group = g_strdup_printf ("Template %s", id);
+
+      template_key_file_data = g_hash_table_lookup (group_name_to_key_file_data, template_group);
+      g_assert_nonnull (template_key_file_data);
+      g_assert_true (g_key_file_has_group (template_key_file_data->key_file, template_group));
+
+      if (goa_utils_keyfile_get_boolean (template_key_file_data->key_file, template_group, "ForceRemove"))
+        {
+          gboolean removed;
+
+          g_debug ("Template %s specifies ForceRemove, removing %s", template_group, object_group);
+
+          error = NULL;
+          needs_update = g_key_file_remove_group (object_key_file_data->key_file, object_group, &error);
+          if (error != NULL)
+            {
+              g_warning ("Error removing group %s from %s: %s (%s, %d)",
+                         object_group,
+                         key_file_data->path,
+                         error->message,
+                         g_quark_to_string (error->domain),
+                         error->code);
+              g_error_free (error);
+            }
+
+          if (needs_update)
+            {
+              g_hash_table_insert (key_files_to_update,
+                                   g_strdup (object_key_file_data->path),
+                                   g_key_file_ref (object_key_file_data->key_file));
+            }
+
+          removed = g_hash_table_remove (group_name_to_key_file_data, object_group);
+          g_warn_if_fail (removed);
+        }
+      else
+        {
+          g_debug ("Updating %s from template %s", object_group, template_group);
+
+          needs_update = goa_utils_keyfile_copy_group (template_key_file_data->key_file,
+                                                       template_group,
+                                                       object_key_file_data->key_file,
+                                                       object_group);
+
+          if (needs_update)
+            {
+              g_key_file_set_boolean (home_conf_key_file, object_group, "IsLocked", TRUE);
+              g_hash_table_insert (key_files_to_update,
+                                   g_strdup (object_key_file_data->path),
+                                   g_key_file_ref (object_key_file_data->key_file));
+            }
+        }
+
+      g_free (template_group);
+    }
+
+  g_hash_table_iter_init (&iter, key_files_to_update);
+  while (g_hash_table_iter_next (&iter, (gpointer *) &key_file_path, (gpointer *) &key_file))
+    {
+      error = NULL;
+      if (!g_key_file_save_to_file (key_file, key_file_path, &error))
+        {
+          g_prefix_error (&error, "Error writing key-value-file %s: ", key_file_path);
+          g_warning ("%s (%s, %d)", error->message, g_quark_to_string (error->domain), error->code);
+          g_error_free (error);
+        }
+    }
+
+  g_hash_table_unref (key_files_to_update);
+  g_key_file_unref (home_conf_key_file);
+  g_list_free (removed);
+  g_list_free (added);
+  g_list_free (unchanged);
+  g_list_free_full (config_object_groups, g_free);
+  g_list_free_full (config_template_groups, g_free);
+}
+
+/* ---------------------------------------------------------------------------------------------------- */
 
 /* <internal>
  * goa_daemon_reload_configuration:
- * @daemon: A #GoaDaemon
+ * @self: A #GoaDaemon
  *
  * Updates the accounts_objects member from stored configuration -
  * typically called at startup or when a change on the configuration
  * files has been detected.
  */
 static void
-goa_daemon_reload_configuration (GoaDaemon *daemon)
+goa_daemon_reload_configuration (GoaDaemon *self)
 {
-  GList *key_files_to_free;
   GHashTable *group_name_to_key_file_data;
-  gchar *path;
 
-  key_files_to_free = NULL;
   group_name_to_key_file_data = g_hash_table_new_full (g_str_hash,
                                                        g_str_equal,
                                                        g_free,
                                                        (GDestroyNotify) key_file_data_free);
 
   /* Read the main user config file at $HOME/.config/goa-1.0/accounts.conf */
-  path = g_strdup_printf ("%s/goa-1.0/accounts.conf", g_get_user_config_dir ());
-  add_config_file (daemon, path, group_name_to_key_file_data, &key_files_to_free);
-  g_free (path);
+  add_config_file (self, self->home_conf_file_path, group_name_to_key_file_data);
+
+  if (GOA_TEMPLATE_FILE != NULL && GOA_TEMPLATE_FILE[0] != '\0')
+    add_config_file (self, GOA_TEMPLATE_FILE, group_name_to_key_file_data);
+
+  process_template_entries (self, group_name_to_key_file_data);
 
   /* now process the group_name_to_key_file_data hash table */
-  process_config_entries (daemon, group_name_to_key_file_data);
+  process_config_entries (self, group_name_to_key_file_data);
 
   g_hash_table_unref (group_name_to_key_file_data);
-  g_list_foreach (key_files_to_free, (GFunc) g_key_file_free, NULL);
-  g_list_free (key_files_to_free);
 }
 
+/* ---------------------------------------------------------------------------------------------------- */
+
 static gchar *
-generate_new_id (GoaDaemon *daemon)
+generate_new_id (GoaDaemon *self)
 {
   static guint counter = 0;
   GDateTime *dt;
@@ -733,31 +1093,22 @@ get_all_providers_cb (GObject      *source,
                       gpointer      user_data)
 {
   AddAccountData *data = user_data;
-  GoaProvider *provider;
-  GKeyFile *key_file;
+  GoaProvider *provider = NULL;
+  GKeyFile *key_file = NULL;
   GError *error;
-  GList *providers;
+  GList *providers = NULL;
   GList *l;
-  gchar *path;
-  gchar *id;
-  gchar *group;
-  gchar *key_file_data;
+  gchar *id = NULL;
+  gchar *group = NULL;
+  gchar *key_file_data = NULL;
   gsize length;
-  gchar *object_path;
+  gsize n_credentials;
+  gchar *object_path = NULL;
   GVariantIter iter;
   const gchar *key;
   const gchar *value;
 
   /* TODO: could check for @type */
-
-  provider = NULL;
-  key_file = NULL;
-  providers = NULL;
-  path = NULL;
-  id = NULL;
-  group = NULL;
-  key_file_data = NULL;
-  object_path = NULL;
 
   if (!goa_provider_get_all_finish (&providers, res, NULL))
     goto out;
@@ -789,9 +1140,9 @@ get_all_providers_cb (GObject      *source,
     }
 
   key_file = g_key_file_new ();
-  path = g_strdup_printf ("%s/goa-1.0/accounts.conf", g_get_user_config_dir ());
+
   error = NULL;
-  if (!g_file_get_contents (path,
+  if (!g_file_get_contents (data->daemon->home_conf_file_path,
                             &key_file_data,
                             &length,
                             &error))
@@ -802,7 +1153,7 @@ get_all_providers_cb (GObject      *source,
         }
       else
         {
-          g_prefix_error (&error, "Error loading file %s: ", path);
+          g_prefix_error (&error, "Error loading file %s: ", data->daemon->home_conf_file_path);
           g_dbus_method_invocation_take_error (data->invocation, error);
           goto out;
         }
@@ -814,14 +1165,16 @@ get_all_providers_cb (GObject      *source,
           error = NULL;
           if (!g_key_file_load_from_data (key_file, key_file_data, length, G_KEY_FILE_KEEP_COMMENTS, &error))
             {
-              g_prefix_error (&error, "Error parsing key-value-file %s: ", path);
+              g_prefix_error (&error, "Error parsing key-value-file %s: ", data->daemon->home_conf_file_path);
               g_dbus_method_invocation_take_error (data->invocation, error);
               goto out;
             }
         }
     }
 
-  id = generate_new_id (data->daemon);
+  if (!g_variant_lookup (data->details, "Id", "s", &id))
+    id = generate_new_id (data->daemon);
+
   group = g_strdup_printf ("Account %s", id);
   g_key_file_set_string (key_file, group, "Provider", data->provider_type);
   g_key_file_set_string (key_file, group, "Identity", data->identity);
@@ -845,40 +1198,33 @@ get_all_providers_cb (GObject      *source,
             }
         }
 
+      /* Skip Id since we already handled it above. */
+      if (g_strcmp0 (key, "Id") == 0)
+        continue;
+
       g_key_file_set_string (key_file, group, key, value);
     }
 
-  g_free (key_file_data);
   error = NULL;
-  key_file_data = g_key_file_to_data (key_file,
-                                      &length,
-                                      &error);
-  if (key_file_data == NULL)
+  if (!g_key_file_save_to_file (key_file, data->daemon->home_conf_file_path, &error))
     {
-      g_prefix_error (&error, "Error generating key-value-file: ");
+      g_prefix_error (&error, "Error writing key-value-file %s: ", data->daemon->home_conf_file_path);
       g_dbus_method_invocation_take_error (data->invocation, error);
       goto out;
     }
 
-  error = NULL;
-  if (!g_file_set_contents (path,
-                            key_file_data,
-                            length,
-                            &error))
+  n_credentials = g_variant_n_children (data->credentials);
+  if (n_credentials > 0)
     {
-      g_prefix_error (&error, "Error writing key-value-file %s: ", path);
-      g_dbus_method_invocation_take_error (data->invocation, error);
-      goto out;
+      /* We don't want to fail AddAccount if we could not store the
+       * credentials in the keyring.
+       */
+      goa_utils_store_credentials_for_id_sync (provider,
+                                               id,
+                                               data->credentials,
+                                               NULL, /* GCancellable */
+                                               NULL);
     }
-
-  /* We don't want to fail AddAccount if we could not store the
-   * credentials in the keyring.
-   */
-  goa_utils_store_credentials_for_id_sync (provider,
-                                           id,
-                                           data->credentials,
-                                           NULL, /* GCancellable */
-                                           NULL);
 
   goa_daemon_reload_configuration (data->daemon);
 
@@ -887,15 +1233,11 @@ get_all_providers_cb (GObject      *source,
 
  out:
   g_free (object_path);
-  if (providers != NULL)
-    g_list_free_full (providers, g_object_unref);
+  g_list_free_full (providers, g_object_unref);
   g_free (key_file_data);
   g_free (group);
   g_free (id);
-  g_free (path);
-  if (key_file != NULL)
-    g_key_file_free (key_file);
-
+  g_clear_pointer (&key_file, (GDestroyNotify) g_key_file_unref);
   g_object_unref (data->daemon);
   g_object_unref (data->manager);
   g_object_unref (data->invocation);
@@ -917,11 +1259,11 @@ on_manager_handle_add_account (GoaManager             *manager,
                                GVariant               *details,
                                gpointer                user_data)
 {
-  GoaDaemon *daemon = GOA_DAEMON (user_data);
+  GoaDaemon *self = GOA_DAEMON (user_data);
   AddAccountData *data;
 
   data = g_slice_new0 (AddAccountData);
-  data->daemon = g_object_ref (daemon);
+  data->daemon = g_object_ref (self);
   data->manager = g_object_ref (manager);
   data->invocation = g_object_ref (invocation);
   data->provider_type = g_strdup (provider_type);
@@ -937,38 +1279,101 @@ on_manager_handle_add_account (GoaManager             *manager,
 
 /* ---------------------------------------------------------------------------------------------------- */
 
+typedef struct
+{
+  GoaObject *object;
+  GList *invocations;
+} ObjectInvocationData;
+
+static ObjectInvocationData *
+object_invocation_data_new (GoaObject             *object,
+                 GDBusMethodInvocation *invocation)
+{
+  ObjectInvocationData *data;
+  data = g_slice_new0 (ObjectInvocationData);
+  data->object = g_object_ref (object);
+  data->invocations = g_list_prepend (data->invocations, invocation);
+  return data;
+}
+
+static void
+object_invocation_data_unref (ObjectInvocationData *data)
+{
+  g_list_free (data->invocations);
+  g_object_unref (data->object);
+  g_slice_free (ObjectInvocationData, data);
+}
+
+/* ---------------------------------------------------------------------------------------------------- */
+
+static void
+remove_account_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
+{
+  GTask *task = G_TASK (user_data);
+  GoaDaemon *self;
+  GDBusMethodInvocation *invocation;
+  GError *error;
+  GoaAccount *account;
+  GoaProvider *provider = GOA_PROVIDER (source_object);
+  ObjectInvocationData *data;
+
+  self = GOA_DAEMON (g_task_get_source_object (task));
+  data = g_task_get_task_data (task);
+
+  error= NULL;
+  if (!goa_provider_remove_account_finish (provider, res, &error))
+    {
+      g_warning ("goa_provider_remove_account() failed: %s (%s, %d)",
+                 error->message,
+                 g_quark_to_string (error->domain),
+                 error->code);
+      g_error_free (error);
+    }
+
+  goa_daemon_reload_configuration (self);
+
+  account = goa_object_peek_account (data->object);
+  invocation = G_DBUS_METHOD_INVOCATION (data->invocations->data);
+  goa_account_complete_remove (account, invocation);
+
+  g_object_unref (task);
+}
+
 static gboolean
 on_account_handle_remove (GoaAccount            *account,
                           GDBusMethodInvocation *invocation,
                           gpointer               user_data)
 {
-  GoaDaemon *daemon = GOA_DAEMON (user_data);
-  GoaProvider *provider;
-  GKeyFile *key_file;
-  const gchar *provider_type;
-  gchar *path;
-  gchar *group;
-  gchar *data;
-  gsize length;
+  GoaDaemon *self = GOA_DAEMON (user_data);
+  GoaObject *object;
+  GoaProvider *provider = NULL;
+  GKeyFile *key_file = NULL;
+  GTask *task = NULL;
+  ObjectInvocationData *data;
+  const gchar *provider_type = NULL;
+  gchar *group = NULL;
   GError *error;
 
-  provider = NULL;
-  provider_type = NULL;
-  path = NULL;
-  group = NULL;
-  key_file = NULL;
-  data = NULL;
+  if (goa_account_get_is_locked (account))
+    {
+      error = NULL;
+      g_set_error_literal (&error,
+                           GOA_ERROR,
+                           GOA_ERROR_NOT_SUPPORTED,
+                           _("IsLocked property is set for account"));
+      g_dbus_method_invocation_take_error (invocation, error);
+      goto out;
+    }
 
   /* update key-file - right now we only support removing the account
    * if the entry is in ~/.config/goa-1.0/accounts.conf
    */
 
   key_file = g_key_file_new ();
-  path = g_strdup_printf ("%s/goa-1.0/accounts.conf", g_get_user_config_dir ());
 
   error = NULL;
   if (!g_key_file_load_from_file (key_file,
-                                  path,
+                                  self->home_conf_file_path,
                                   G_KEY_FILE_KEEP_COMMENTS,
                                   &error))
     {
@@ -986,23 +1391,9 @@ on_account_handle_remove (GoaAccount            *account,
     }
 
   error = NULL;
-  data = g_key_file_to_data (key_file,
-                             &length,
-                             &error);
-  if (data == NULL)
+  if (!g_key_file_save_to_file (key_file, self->home_conf_file_path, &error))
     {
-      g_prefix_error (&error, "Error generating key-value-file: ");
-      g_dbus_method_invocation_take_error (invocation, error);
-      goto out;
-    }
-
-  error = NULL;
-  if (!g_file_set_contents (path,
-                            data,
-                            length,
-                            &error))
-    {
-      g_prefix_error (&error, "Error writing key-value-file %s: ", path);
+      g_prefix_error (&error, "Error writing key-value-file %s: ", self->home_conf_file_path);
       g_dbus_method_invocation_take_error (invocation, error);
       goto out;
     }
@@ -1033,56 +1424,29 @@ on_account_handle_remove (GoaAccount            *account,
     }
 
   error = NULL;
-  if (!goa_utils_delete_credentials_sync (provider, account, NULL, &error))
+  if (!goa_utils_delete_credentials_for_account_sync (provider, account, NULL, &error))
     {
       g_dbus_method_invocation_take_error (invocation, error);
       goto out;
     }
 
-  goa_daemon_reload_configuration (daemon);
+  object = GOA_OBJECT (g_dbus_interface_get_object (G_DBUS_INTERFACE (account)));
+  data = object_invocation_data_new (object, invocation);
 
-  goa_account_complete_remove (account, invocation);
+  task = g_task_new (self, NULL, NULL, NULL);
+  g_task_set_task_data (task, data, (GDestroyNotify) object_invocation_data_unref);
+
+  goa_provider_remove_account (provider, object, NULL, remove_account_cb, g_object_ref (task));
 
  out:
-  if (provider != NULL)
-    g_object_unref (provider);
-  g_free (data);
-  if (key_file != NULL)
-    g_key_file_free (key_file);
+  g_clear_object (&provider);
+  g_clear_object (&task);
+  g_clear_pointer (&key_file, (GDestroyNotify) g_key_file_unref);
   g_free (group);
-  g_free (path);
   return TRUE; /* invocation was handled */
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
-
-typedef struct
-{
-  GoaDaemon *daemon;
-  GoaObject *object;
-  GDBusMethodInvocation *invocation;
-} EnsureData;
-
-static EnsureData *
-ensure_data_new (GoaDaemon             *daemon,
-                             GoaObject             *object,
-                             GDBusMethodInvocation *invocation)
-{
-  EnsureData *data;
-  data = g_slice_new0 (EnsureData);
-  data->daemon = g_object_ref (daemon);
-  data->object = g_object_ref (object);
-  data->invocation = invocation;
-  return data;
-}
-
-static void
-ensure_data_unref (EnsureData *data)
-{
-  g_object_unref (data->daemon);
-  g_object_unref (data->object);
-  g_slice_free (EnsureData, data);
-}
 
 static gboolean
 is_authorization_error (GError *error)
@@ -1106,13 +1470,51 @@ is_authorization_error (GError *error)
 }
 
 static void
-ensure_credentials_cb (GoaProvider   *provider,
-                       GAsyncResult  *res,
-                       gpointer       user_data)
+ensure_credentials_queue_complete (GList *invocations, GoaAccount *account, gint expires_in, GError *error)
 {
-  EnsureData *data = user_data;
-  gint expires_in;
+  GList *l;
+  const gchar *id;
+  const gchar *provider_type;
+  gint64 timestamp;
+
+  for (l = invocations; l != NULL; l = l->next)
+    {
+      GDBusMethodInvocation *invocation = G_DBUS_METHOD_INVOCATION (l->data);
+
+      if (invocation == NULL)
+        continue;
+
+      if (error == NULL)
+        goa_account_complete_ensure_credentials (account, invocation, expires_in);
+      else
+        g_dbus_method_invocation_return_gerror (invocation, error);
+    }
+
+  id = goa_account_get_id (account);
+  provider_type = goa_account_get_provider_type (account);
+  timestamp = g_get_monotonic_time ();
+  g_debug ("%" G_GINT64_FORMAT ": Handled EnsureCredentials (%s, %s)", timestamp, provider_type, id);
+}
+
+static void
+ensure_credentials_queue_collector (GObject *source_object, GAsyncResult *res, gpointer user_data)
+{
+  GTask *task = G_TASK (user_data);
+  GTask *task_queued;
+  GoaDaemon *self;
+  GoaAccount *account;
+  GoaProvider *provider = GOA_PROVIDER (source_object);
   GError *error;
+  ObjectInvocationData *data;
+  gint expires_in;
+
+  self = GOA_DAEMON (g_task_get_source_object (task));
+
+  task_queued = G_TASK (g_queue_pop_head (self->ensure_credentials_queue));
+  g_assert (task == task_queued);
+
+  data = g_task_get_task_data (task);
+  account = goa_object_peek_account (data->object);
 
   error= NULL;
   if (!goa_provider_ensure_credentials_finish (provider, &expires_in, res, &error))
@@ -1120,8 +1522,6 @@ ensure_credentials_cb (GoaProvider   *provider,
       /* Set AttentionNeeded only if the error is an authorization error */
       if (is_authorization_error (error))
         {
-          GoaAccount *account;
-          account = goa_object_peek_account (data->object);
           if (!goa_account_get_attention_needed (account))
             {
               goa_account_set_attention_needed (account, TRUE);
@@ -1131,13 +1531,12 @@ ensure_credentials_cb (GoaProvider   *provider,
                          error->message, g_quark_to_string (error->domain), error->code);
             }
         }
-      g_dbus_method_invocation_take_error (data->invocation, error);
+
+      ensure_credentials_queue_complete (data->invocations, account, 0, error);
+      g_error_free (error);
     }
   else
     {
-      GoaAccount *account;
-      account = goa_object_peek_account (data->object);
-
       /* Clear AttentionNeeded flag if set */
       if (goa_account_get_attention_needed (account))
         {
@@ -1146,11 +1545,112 @@ ensure_credentials_cb (GoaProvider   *provider,
           g_message ("%s: Setting AttentionNeeded to FALSE because EnsureCredentials() succeded\n",
                      g_dbus_object_get_object_path (G_DBUS_OBJECT (data->object)));
         }
-      goa_account_complete_ensure_credentials (goa_object_peek_account (data->object),
-                                               data->invocation,
-                                               expires_in);
+
+      ensure_credentials_queue_complete (data->invocations, account, expires_in, NULL);
     }
-  ensure_data_unref (data);
+
+  self->ensure_credentials_running = FALSE;
+  ensure_credentials_queue_check (self);
+  g_object_unref (task);
+}
+
+static gint
+ensure_credentials_queue_sort (gconstpointer a, gconstpointer b, gpointer user_data)
+{
+  GTask *task_a = G_TASK (a);
+  GTask *task_b = G_TASK (b);
+  gint priority_a;
+  gint priority_b;
+
+  priority_a = g_task_get_priority (task_a);
+  priority_b = g_task_get_priority (task_b);
+
+  return priority_a - priority_b;
+}
+
+static void
+ensure_credentials_queue_check (GoaDaemon *self)
+{
+  GoaAccount *account;
+  GoaProvider *provider = NULL;
+  GTask *task;
+  ObjectInvocationData *data;
+  const gchar *id;
+  const gchar *provider_type;
+  gint64 timestamp;
+
+  if (self->ensure_credentials_running)
+    goto out;
+
+  if (self->ensure_credentials_queue->length == 0)
+    goto out;
+
+  g_queue_sort (self->ensure_credentials_queue, ensure_credentials_queue_sort, NULL);
+
+  task = G_TASK (g_queue_peek_head (self->ensure_credentials_queue));
+  self->ensure_credentials_running = TRUE;
+
+  data = (ObjectInvocationData *) g_task_get_task_data (task);
+  account = goa_object_peek_account (data->object);
+
+  id = goa_account_get_id (account);
+  provider_type = goa_account_get_provider_type (account);
+  timestamp = g_get_monotonic_time ();
+  g_debug ("%" G_GINT64_FORMAT ": Handling EnsureCredentials (%s, %s)", timestamp, provider_type, id);
+
+  provider = goa_provider_get_for_provider_type (provider_type);
+  g_assert_nonnull (provider);
+
+  goa_provider_ensure_credentials (provider,
+                                   data->object,
+                                   NULL, /* GCancellable */
+                                   ensure_credentials_queue_collector,
+                                   task);
+
+ out:
+  g_clear_object (&provider);
+}
+
+static gboolean
+ensure_credentials_queue_coalesce (GoaDaemon *self, GoaObject *object, GDBusMethodInvocation *invocation)
+{
+  GList *l;
+  GoaAccount *account;
+  const gchar *id;
+  gboolean ret = FALSE;
+  gint priority;
+
+  account = goa_object_peek_account (object);
+  id = goa_account_get_id (account);
+
+  priority = (invocation == NULL) ? G_PRIORITY_LOW : G_PRIORITY_HIGH;
+
+  for (l = self->ensure_credentials_queue->head; l != NULL; l = l->next)
+    {
+      GoaAccount *account_queued;
+      GTask *task = G_TASK (l->data);
+      ObjectInvocationData *data;
+      const gchar *id_queued;
+
+      data = g_task_get_task_data (task);
+      account_queued = goa_object_peek_account (data->object);
+      id_queued = goa_account_get_id (account_queued);
+      if (g_strcmp0 (id, id_queued) == 0)
+        {
+          gint priority_queued;
+
+          priority_queued = g_task_get_priority (task);
+          if (priority < priority_queued)
+            g_task_set_priority (task, priority);
+
+          data->invocations = g_list_prepend (data->invocations, invocation);
+
+          ret = TRUE;
+          break;
+        }
+    }
+
+  return ret;
 }
 
 static gboolean
@@ -1158,30 +1658,126 @@ on_account_handle_ensure_credentials (GoaAccount            *account,
                                       GDBusMethodInvocation *invocation,
                                       gpointer               user_data)
 {
-  GoaDaemon *daemon = GOA_DAEMON (user_data);
-  GoaProvider *provider = NULL;
+  GoaDaemon *self = GOA_DAEMON (user_data);
   GoaObject *object;
+  GoaProvider *provider = NULL;
+  GTask *task = NULL;
+  ObjectInvocationData *data;
+  const gchar *id;
+  const gchar *method_name;
+  const gchar *provider_type;
+  gint64 timestamp;
 
-  object = GOA_OBJECT (g_dbus_interface_get_object (G_DBUS_INTERFACE (account)));
-  provider = goa_provider_get_for_provider_type (goa_account_get_provider_type (account));
+  id = goa_account_get_id (account);
+  provider_type = goa_account_get_provider_type (account);
+  method_name = g_dbus_method_invocation_get_method_name (invocation);
+  timestamp = g_get_monotonic_time ();
+  g_debug ("%" G_GINT64_FORMAT ": Received %s (%s, %s)", timestamp, method_name, provider_type, id);
+
+  provider = goa_provider_get_for_provider_type (provider_type);
   if (provider == NULL)
     {
       g_dbus_method_invocation_return_error (invocation,
                                              GOA_ERROR,
                                              GOA_ERROR_FAILED,
                                              "Unsupported account type %s for id %s (no provider)",
-                                             goa_account_get_provider_type (account),
-                                             goa_account_get_id (account));
+                                             provider_type,
+                                             id);
       goto out;
     }
 
-  goa_provider_ensure_credentials (provider,
-                                   object,
-                                   NULL, /* GCancellable */
-                                   (GAsyncReadyCallback) ensure_credentials_cb,
-                                   ensure_data_new (daemon, object, invocation));
+  object = GOA_OBJECT (g_dbus_interface_get_object (G_DBUS_INTERFACE (account)));
+  if (ensure_credentials_queue_coalesce (self, object, invocation))
+    {
+      timestamp = g_get_monotonic_time ();
+      g_debug ("%" G_GINT64_FORMAT ": Coalesced %s (%s, %s)",
+               timestamp,
+               method_name,
+               provider_type,
+               id);
+      goto out;
+    }
+
+  data = object_invocation_data_new (object, invocation);
+
+  task = g_task_new (self, NULL, NULL, NULL);
+  g_task_set_priority (task, G_PRIORITY_HIGH);
+  g_task_set_task_data (task, data, (GDestroyNotify) object_invocation_data_unref);
+  g_queue_push_tail (self->ensure_credentials_queue, g_object_ref (task));
+
+  ensure_credentials_queue_check (self);
 
  out:
   g_clear_object (&provider);
+  g_clear_object (&task);
   return TRUE; /* invocation was handled */
+}
+
+/* <internal>
+ * goa_daemon_check_credentials:
+ * @self: A #GoaDaemon
+ *
+ * Checks whether credentials are valid and tries to refresh them if
+ * not. It also reports whether accounts are usable with the current
+ * network.
+ */
+static void
+goa_daemon_check_credentials (GoaDaemon *self)
+{
+  GList *l;
+  GList *objects;
+
+  objects = g_dbus_object_manager_get_objects (G_DBUS_OBJECT_MANAGER (self->object_manager));
+  for (l = objects; l != NULL; l = l->next)
+    {
+      GoaAccount *account;
+      GoaObject *object = GOA_OBJECT (l->data);
+      GoaProvider *provider = NULL;
+      GTask *task = NULL;
+      ObjectInvocationData *data;
+      const gchar *id;
+      const gchar *provider_type;
+      gint64 timestamp;
+
+      account = goa_object_peek_account (object);
+      if (account == NULL)
+        goto cleanup_and_continue;
+
+      provider_type = goa_account_get_provider_type (account);
+      provider = goa_provider_get_for_provider_type (provider_type);
+      if (provider == NULL)
+        goto cleanup_and_continue;
+
+      id = goa_account_get_id (account);
+      provider_type = goa_account_get_provider_type (account);
+      timestamp = g_get_monotonic_time ();
+      g_debug ("%" G_GINT64_FORMAT ": Calling EnsureCredentials (%s, %s)",
+               timestamp,
+               provider_type,
+               id);
+
+      if (ensure_credentials_queue_coalesce (self, object, NULL))
+        {
+          timestamp = g_get_monotonic_time ();
+          g_debug ("%" G_GINT64_FORMAT ": Coalesced EnsureCredentials (%s, %s)",
+                   timestamp,
+                   provider_type,
+                   id);
+          goto cleanup_and_continue;
+        }
+
+      data = object_invocation_data_new (object, NULL);
+
+      task = g_task_new (self, NULL, NULL, NULL);
+      g_task_set_priority (task, G_PRIORITY_LOW);
+      g_task_set_task_data (task, data, (GDestroyNotify) object_invocation_data_unref);
+      g_queue_push_tail (self->ensure_credentials_queue, g_object_ref (task));
+
+    cleanup_and_continue:
+      g_clear_object (&provider);
+      g_clear_object (&task);
+    }
+
+  ensure_credentials_queue_check (self);
+  g_list_free_full (objects, g_object_unref);
 }

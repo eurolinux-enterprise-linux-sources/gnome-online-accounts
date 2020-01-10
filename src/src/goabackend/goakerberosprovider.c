@@ -31,18 +31,9 @@
 
 #include "org.freedesktop.realmd.h"
 
-/**
- * GoaKerberosProvider:
- *
- * The #GoaKerberosProvider structure contains only private request and should
- * only be accessed using the provided API.
- */
 struct _GoaKerberosProvider
 {
-  /*< private >*/
   GoaProvider parent_instance;
-  GoaIdentityServiceManager *identity_manager;
-  GDBusObjectManager *object_manager;
 };
 
 typedef struct _GoaKerberosProviderClass GoaKerberosProviderClass;
@@ -52,20 +43,51 @@ struct _GoaKerberosProviderClass
   GoaProviderClass parent_class;
 };
 
-/**
- * SECTION:goakerberosprovider
- * @title: GoaKerberosProvider
- * @short_description: A provider for enterprise identity servers
- *
- * #GoaKerberosProvider is used to access enterprise identity servers.
- */
+static GoaIdentityServiceManager *identity_manager;
+static GMutex identity_manager_mutex;
+static GCond identity_manager_condition;
+
+static GDBusObjectManager *object_manager;
+static GMutex object_manager_mutex;
+static GCond object_manager_condition;
+
+static void ensure_identity_manager (void);
+static void ensure_object_manager (void);
+
+static char *sign_in_identity_sync (GoaKerberosProvider  *self,
+                                    const char           *identifier,
+                                    const char           *password,
+                                    const char           *preauth_source,
+                                    GCancellable         *cancellable,
+                                    GError              **error);
+static void sign_in_thread (GTask               *result,
+                            GoaKerberosProvider *self,
+                            gpointer             task_data,
+                            GCancellable        *cancellable);
+static GoaIdentityServiceIdentity *get_identity_from_object_manager (GoaKerberosProvider *self,
+                                                                     const char          *identifier);
+static gboolean dbus_proxy_reload_properties_sync (GDBusProxy    *proxy,
+                                                   GCancellable  *cancellable);
+
+static void goa_kerberos_provider_module_init (void);
+static void create_object_manager (void);
+static void create_identity_manager (void);
 
 G_DEFINE_TYPE_WITH_CODE (GoaKerberosProvider, goa_kerberos_provider, GOA_TYPE_PROVIDER,
+                         goa_kerberos_provider_module_init ();
                          goa_provider_ensure_extension_points_registered ();
                          g_io_extension_point_implement (GOA_PROVIDER_EXTENSION_POINT_NAME,
                                                          g_define_type_id,
                                                          GOA_KERBEROS_NAME,
                                                          0));
+
+static void
+goa_kerberos_provider_module_init (void)
+{
+  create_object_manager ();
+  create_identity_manager ();
+  g_debug ("activated kerberos provider");
+}
 
 static const gchar *
 get_provider_type (GoaProvider *provider)
@@ -189,481 +211,47 @@ clear_entry_validation_error (GtkEntry *entry)
 }
 
 static void
-on_identity_signed_in (GoaIdentityServiceManager *manager,
-                       GAsyncResult              *result,
-                       GSimpleAsyncResult        *operation_result)
-{
-  gboolean  signed_in;
-  GError   *error;
-  char     *identity_object_path;
-
-  error = NULL;
-  signed_in = goa_identity_service_manager_call_sign_in_finish (manager,
-                                                                &identity_object_path,
-                                                                result,
-                                                                &error);
-
-  if (!signed_in)
-    {
-      translate_error (&error);
-
-      if (g_error_matches (error,
-                           G_IO_ERROR,
-                           G_IO_ERROR_CANCELLED))
-        {
-          g_clear_error (&error);
-          g_set_error_literal (&error,
-                               GOA_ERROR,
-                               GOA_ERROR_DIALOG_DISMISSED,
-                               "");
-        }
-
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-
-  g_simple_async_result_set_op_res_gpointer (operation_result,
-                                             g_strdup (identity_object_path),
-                                             (GDestroyNotify)
-                                             g_free);
-  g_simple_async_result_complete_in_idle (operation_result);
-  g_object_unref (operation_result);
-}
-
-static void
-on_identity_manager_ensured (GoaKerberosProvider *self,
-                             GAsyncResult        *result,
-                             GSimpleAsyncResult  *operation_result)
-{
-  GoaIdentityServiceManager *manager;
-  GError             *error;
-
-  error = NULL;
-  manager = goa_identity_service_manager_proxy_new_for_bus_finish (result, &error);
-  if (manager == NULL)
-    {
-      translate_error (&error);
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-
-  g_simple_async_result_set_op_res_gpointer (operation_result,
-                                             g_object_ref (manager),
-                                             (GDestroyNotify)
-                                             g_object_unref);
-  g_simple_async_result_complete_in_idle (operation_result);
-  g_object_unref (operation_result);
-}
-
-static void
-ensure_identity_manager (GoaKerberosProvider *self,
-                         GCancellable        *cancellable,
-                         GAsyncReadyCallback  callback,
-                         gpointer             user_data)
-{
-  GSimpleAsyncResult *operation_result;
-
-  operation_result = g_simple_async_result_new (G_OBJECT (self),
-                                                callback,
-                                                user_data,
-                                                ensure_identity_manager);
-  g_simple_async_result_set_check_cancellable (operation_result, cancellable);
-
-  g_object_set_data (G_OBJECT (operation_result),
-                     "cancellable",
-                     cancellable);
-
-  if (self->identity_manager != NULL)
-    {
-      g_simple_async_result_set_op_res_gpointer (operation_result,
-                                                 g_object_ref (self->identity_manager),
-                                                 (GDestroyNotify)
-                                                 g_object_unref);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-
-  goa_identity_service_manager_proxy_new_for_bus (G_BUS_TYPE_SESSION,
-                                                  G_DBUS_PROXY_FLAGS_NONE,
-                                                  "org.gnome.Identity",
-                                                  "/org/gnome/Identity/Manager",
-                                                  cancellable,
-                                                  (GAsyncReadyCallback)
-                                                  on_identity_manager_ensured,
-                                                  operation_result);
-}
-
-static void
-on_object_manager_ensured (GoaKerberosProvider *self,
-                           GAsyncResult        *result,
-                           GSimpleAsyncResult  *operation_result)
-{
-  GDBusObjectManager *manager;
-  GError *error;
-
-  error = NULL;
-  manager = goa_identity_service_object_manager_client_new_for_bus_finish (result, &error);
-  if (manager == NULL)
-    {
-      translate_error (&error);
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-
-  g_simple_async_result_set_op_res_gpointer (operation_result,
-                                             g_object_ref (manager),
-                                             (GDestroyNotify)
-                                             g_object_unref);
-  g_simple_async_result_complete_in_idle (operation_result);
-  g_object_unref (operation_result);
-}
-
-static void
-ensure_object_manager (GoaKerberosProvider *self,
-                       GCancellable        *cancellable,
-                       GAsyncReadyCallback  callback,
-                       gpointer             user_data)
-{
-  GSimpleAsyncResult *operation_result;
-
-  operation_result = g_simple_async_result_new (G_OBJECT (self),
-                                                callback,
-                                                user_data,
-                                                ensure_object_manager);
-  g_simple_async_result_set_check_cancellable (operation_result, cancellable);
-
-  g_object_set_data (G_OBJECT (operation_result),
-                     "cancellable",
-                     cancellable);
-
-  if (self->object_manager != NULL)
-    {
-      g_simple_async_result_set_op_res_gpointer (operation_result,
-                                                 g_object_ref (self->object_manager),
-                                                 (GDestroyNotify)
-                                                 g_object_unref);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-  goa_identity_service_object_manager_client_new_for_bus (G_BUS_TYPE_SESSION,
-                                                          G_DBUS_OBJECT_MANAGER_CLIENT_FLAGS_NONE,
-                                                          "org.gnome.Identity",
-                                                          "/org/gnome/Identity",
-                                                          cancellable,
-                                                          (GAsyncReadyCallback)
-                                                          on_object_manager_ensured,
-                                                          operation_result);
-}
-
-static void
-on_secret_keys_exchanged_for_sign_in (GoaKerberosProvider *self,
-                                      GAsyncResult        *result,
-                                      GSimpleAsyncResult  *operation_result)
-{
-  const char       *identifier;
-  const char       *password;
-  GCancellable     *cancellable;
-  GError           *error;
-  GVariantBuilder   details;
-
-  error = NULL;
-
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-                                             &error))
-    {
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-
-  cancellable = g_object_get_data (G_OBJECT (operation_result), "cancellable");
-  password = g_object_get_data (G_OBJECT (operation_result), "password");
-  identifier = g_simple_async_result_get_source_tag (operation_result);
-
-  g_variant_builder_init (&details, G_VARIANT_TYPE ("a{ss}"));
-
-  if (password != NULL)
-    {
-      GcrSecretExchange *secret_exchange;
-      char *secret;
-
-      secret_exchange = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (result));
-
-      secret = gcr_secret_exchange_send (secret_exchange, password, -1);
-      g_variant_builder_add (&details, "{ss}", "initial-password", secret);
-      g_free (secret);
-    }
-
-  goa_identity_service_manager_call_sign_in (self->identity_manager,
-                                             identifier,
-                                             g_variant_builder_end (&details),
-                                             cancellable,
-                                             (GAsyncReadyCallback)
-                                             on_identity_signed_in,
-                                             operation_result);
-}
-
-static void
-on_secret_keys_exchanged (GoaIdentityServiceManager *manager,
-                          GAsyncResult              *result,
-                          GSimpleAsyncResult        *operation_result)
-{
-  GcrSecretExchange *secret_exchange;
-  char              *return_key;
-  GError            *error;
-
-  secret_exchange = g_simple_async_result_get_source_tag (operation_result);
-
-  error = NULL;
-  if (!goa_identity_service_manager_call_exchange_secret_keys_finish (manager,
-                                                                      &return_key,
-                                                                      result,
-                                                                      &error))
-    {
-      g_object_unref (secret_exchange);
-
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-
-  if (!gcr_secret_exchange_receive (secret_exchange, return_key))
-    {
-      g_object_unref (secret_exchange);
-
-      g_simple_async_result_set_error (operation_result,
-                                       GCR_ERROR,
-                                       GCR_ERROR_UNRECOGNIZED,
-                                       _("Identity service returned invalid key"));
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-
-  g_simple_async_result_set_op_res_gpointer (operation_result,
-                                             secret_exchange,
-                                             (GDestroyNotify)
-                                             g_object_unref);
-  g_simple_async_result_complete_in_idle (operation_result);
-  g_object_unref (operation_result);
-}
-
-static void
-exchange_secret_keys (GoaKerberosProvider  *self,
-                      const char           *password,
-                      GCancellable         *cancellable,
-                      GAsyncReadyCallback   callback,
-                      gpointer              user_data)
-{
-
-  GSimpleAsyncResult *operation_result;
-  GcrSecretExchange  *secret_exchange;
-  char               *secret_key;
-
-  secret_exchange = gcr_secret_exchange_new (NULL);
-
-  operation_result = g_simple_async_result_new (G_OBJECT (self),
-                                                callback,
-                                                user_data,
-                                                secret_exchange);
-
-  if (password == NULL)
-    {
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_simple_async_result_set_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (operation_result),
-                                                 NULL,
-                                                 NULL);
-      return;
-    }
-
-  secret_key = gcr_secret_exchange_begin (secret_exchange);
-
-  goa_identity_service_manager_call_exchange_secret_keys (self->identity_manager,
-                                                          secret_key,
-                                                          cancellable,
-                                                          (GAsyncReadyCallback)
-                                                          on_secret_keys_exchanged,
-                                                          operation_result);
-  g_free (secret_key);
-}
-
-static void
-on_identity_manager_ensured_for_sign_in (GoaKerberosProvider *self,
-                                         GAsyncResult        *result,
-                                         GSimpleAsyncResult  *operation_result)
-{
-  GoaIdentityServiceManager *manager;
-  const char                *password;
-  GCancellable              *cancellable;
-  GError                    *error;
-
-  error = NULL;
-
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-                                             &error))
-    {
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-
-  manager = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (result));
-
-  if (self->identity_manager == NULL)
-    self->identity_manager = g_object_ref (manager);
-
-  cancellable = g_object_get_data (G_OBJECT (operation_result), "cancellable");
-  password = g_object_get_data (G_OBJECT (operation_result), "password");
-
-  exchange_secret_keys (self,
-                        password,
-                        cancellable,
-                        (GAsyncReadyCallback)
-                        on_secret_keys_exchanged_for_sign_in,
-                        operation_result);
-}
-
-static void
 sign_in_identity (GoaKerberosProvider  *self,
                   const char           *identifier,
                   const char           *password,
+                  const char           *preauth_source,
                   GCancellable         *cancellable,
                   GAsyncReadyCallback   callback,
                   gpointer              user_data)
 {
-  GSimpleAsyncResult *operation_result;
+  GTask *operation_result;
 
-  operation_result = g_simple_async_result_new (G_OBJECT (self),
-                                                callback,
-                                                user_data,
-                                                (gpointer)
-                                                identifier);
+  operation_result = g_task_new (self, cancellable, callback, user_data);
+  g_task_set_source_tag (operation_result, (gpointer) identifier);
 
-  g_simple_async_result_set_check_cancellable (operation_result, cancellable);
-
-  g_object_set_data (G_OBJECT (operation_result),
-                     "cancellable",
-                     cancellable);
   g_object_set_data (G_OBJECT (operation_result),
                      "password",
                      (gpointer)
                      password);
+  g_object_set_data_full (G_OBJECT (operation_result),
+                          "preauthentication-source",
+                          g_strdup (preauth_source),
+                          g_free);
+  g_task_run_in_thread (operation_result, (GTaskThreadFunc) sign_in_thread);
 
-  ensure_identity_manager (self,
-                           cancellable,
-                           (GAsyncReadyCallback)
-                           on_identity_manager_ensured_for_sign_in,
-                           operation_result);
-}
-
-static void
-on_object_manager_ensured_for_look_up (GoaKerberosProvider *self,
-                                       GAsyncResult        *result,
-                                       GSimpleAsyncResult  *operation_result)
-{
-  GDBusObjectManager *manager;
-  const char         *identifier;
-  GList              *objects, *node;
-  GError             *error;
-  gboolean            found;
-
-  error = NULL;
-  found = FALSE;
-
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-                                             &error))
-    {
-
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-
-  manager = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (result));
-
-  if (self->object_manager == NULL)
-    self->object_manager = g_object_ref (manager);
-
-  identifier = g_simple_async_result_get_source_tag (operation_result);
-
-  g_simple_async_result_set_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (operation_result),
-                                             NULL,
-                                             NULL);
-  objects = g_dbus_object_manager_get_objects (G_DBUS_OBJECT_MANAGER (self->object_manager));
-
-  for (node = objects; node != NULL; node = node->next)
-    {
-      GoaIdentityServiceIdentity *candidate_identity;
-      const char                 *candidate_identifier;
-      GDBusObject                *object;
-
-      object = node->data;
-
-      candidate_identity = GOA_IDENTITY_SERVICE_IDENTITY (g_dbus_object_get_interface (object, "org.gnome.Identity"));
-
-      if (candidate_identity == NULL)
-        continue;
-
-      candidate_identifier = goa_identity_service_identity_get_identifier (candidate_identity);
-
-      if (g_strcmp0 (candidate_identifier, identifier) == 0)
-        {
-          g_simple_async_result_set_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (operation_result),
-                                                     candidate_identity,
-                                                     (GDestroyNotify)
-                                                     g_object_unref);
-          found = TRUE;
-          break;
-        }
-
-      g_object_unref (candidate_identity);
-    }
-
-  if (!found)
-    g_simple_async_result_set_error (operation_result, GOA_ERROR, GOA_ERROR_FAILED, "Failed to find an identity");
-
-  g_list_free_full (objects, (GDestroyNotify) g_object_unref);
-  g_simple_async_result_complete_in_idle (G_SIMPLE_ASYNC_RESULT (operation_result));
   g_object_unref (operation_result);
 }
 
-static void
-look_up_identity (GoaKerberosProvider  *self,
-                  const char           *identifier,
-                  GCancellable         *cancellable,
-                  GAsyncReadyCallback   callback,
-                  gpointer              user_data)
+static gchar *
+sign_in_identity_finish (GoaKerberosProvider  *self,
+                         GAsyncResult         *result,
+                         GError              **error)
 {
-  GSimpleAsyncResult *operation_result;
+  GTask *task;
 
-  operation_result = g_simple_async_result_new (G_OBJECT (self),
-                                                callback,
-                                                user_data,
-                                                (gpointer)
-                                                identifier);
+  g_return_val_if_fail (GOA_IS_KERBEROS_PROVIDER (self), NULL);
 
-  g_simple_async_result_set_check_cancellable (operation_result, cancellable);
+  g_return_val_if_fail (g_task_is_valid (result, self), NULL);
+  task = G_TASK (result);
 
-  g_object_set_data (G_OBJECT (operation_result),
-                     "cancellable",
-                     cancellable);
-  ensure_object_manager (self,
-                         cancellable,
-                         (GAsyncReadyCallback)
-                         on_object_manager_ensured_for_look_up,
-                         operation_result);
+  g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+
+  return g_task_propagate_pointer (task, error);
 }
 
 static void
@@ -671,13 +259,7 @@ on_account_signed_in (GoaProvider   *provider,
                       GAsyncResult  *result,
                       SignInRequest *request)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-                                             &request->error))
-    {
-      g_main_loop_quit (request->loop);
-      return;
-    }
-
+  g_task_propagate_boolean (G_TASK (result), &request->error);
   g_main_loop_quit (request->loop);
 }
 
@@ -688,18 +270,38 @@ get_ticket_sync (GoaKerberosProvider *self,
                  GCancellable        *cancellable,
                  GError             **error)
 {
-  GVariant            *credentials;
+  GVariant            *credentials = NULL;
   GError              *lookup_error;
+  GError              *sign_in_error;
   GoaAccount          *account;
+  GoaTicketing        *ticketing;
+  GVariant            *details;
   const char          *identifier;
   const char          *password;
-  SignInRequest        request;
+  const char          *preauth_source;
+  char                *object_path = NULL;
   gboolean             ret;
 
   ret = FALSE;
 
-  account = goa_object_peek_account (object);
+  account = goa_object_get_account (object);
   identifier = goa_account_get_identity (account);
+
+  ticketing = goa_object_get_ticketing (object);
+  if (ticketing == NULL)
+    {
+      g_set_error (error,
+                   GOA_ERROR,
+                   GOA_ERROR_NOT_SUPPORTED,
+                   _("Ticketing is disabled for account"));
+      goto out;
+    }
+
+  details = goa_ticketing_get_details (ticketing);
+
+  preauth_source = NULL;
+  g_variant_lookup (details, "preauthentication-source", "&s", &preauth_source);
+
   password = NULL;
 
   lookup_error = NULL;
@@ -735,32 +337,27 @@ get_ticket_sync (GoaKerberosProvider *self,
         }
     }
 
-  memset (&request, 0, sizeof (SignInRequest));
-  request.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
-  request.error = NULL;
+  sign_in_error = NULL;
+  object_path = sign_in_identity_sync (self,
+                                       identifier,
+                                       password,
+                                       preauth_source,
+                                       cancellable,
+                                       &sign_in_error);
 
-  sign_in_identity (self,
-                    identifier,
-                    password,
-                    cancellable,
-                    (GAsyncReadyCallback)
-                    on_account_signed_in,
-                    &request);
-
-  g_main_loop_run (request.loop);
-  g_main_loop_unref (request.loop);
-
-  if (request.error != NULL)
+  if (sign_in_error != NULL)
     {
-      g_propagate_error (error, request.error);
+      g_propagate_error (error, sign_in_error);
       goto out;
     }
 
   ret = TRUE;
-out:
-  if (credentials != NULL)
-    g_variant_unref (credentials);
 
+ out:
+  g_clear_object (&account);
+  g_clear_object (&ticketing);
+  g_free (object_path);
+  g_clear_pointer (&credentials, (GDestroyNotify) g_variant_unref);
   return ret;
 }
 
@@ -771,7 +368,7 @@ notify_is_temporary_cb (GObject *object, GParamSpec *pspec, gpointer user_data)
   gboolean is_temporary;
 
   account = GOA_ACCOUNT (object);
-  g_object_get (account, "is-temporary", &is_temporary, NULL);
+  is_temporary = goa_account_get_is_temporary (account);
 
   /* Toggle IsTemporary */
   goa_utils_keyfile_set_boolean (account, "IsTemporary", is_temporary);
@@ -799,11 +396,19 @@ on_handle_get_ticket (GoaTicketing          *interface,
   GoaProvider *provider;
   GError *error;
   gboolean got_ticket;
+  const gchar *id;
+  const gchar *method_name;
+  const gchar *provider_type;
 
   object = GOA_OBJECT (g_dbus_interface_get_object (G_DBUS_INTERFACE (interface)));
   account = goa_object_peek_account (object);
 
-  provider = goa_provider_get_for_provider_type (goa_account_get_provider_type (account));
+  id = goa_account_get_id (account);
+  provider_type = goa_account_get_provider_type (account);
+  method_name = g_dbus_method_invocation_get_method_name (invocation);
+  g_debug ("Handling %s for account (%s, %s)", method_name, provider_type, id);
+
+  provider = goa_provider_get_for_provider_type (provider_type);
   error = NULL;
   got_ticket = get_ticket_sync (GOA_KERBEROS_PROVIDER (provider),
                                 object,
@@ -855,6 +460,9 @@ build_object (GoaProvider         *provider,
     {
       if (ticketing == NULL)
         {
+          char            *preauthentication_source;
+          GVariantBuilder  details;
+
           ticketing = goa_ticketing_skeleton_new ();
 
           g_signal_connect (ticketing,
@@ -864,6 +472,13 @@ build_object (GoaProvider         *provider,
 
           goa_object_skeleton_set_ticketing (object, ticketing);
 
+          g_variant_builder_init (&details, G_VARIANT_TYPE ("a{ss}"));
+
+	  preauthentication_source = g_key_file_get_string (key_file, group, "PreauthenticationSource", NULL);
+          if (preauthentication_source)
+            g_variant_builder_add (&details, "{ss}", "preauthentication-source", preauthentication_source);
+
+	  g_object_set (G_OBJECT (ticketing), "details", g_variant_builder_end (&details), NULL);
         }
     }
   else if (ticketing != NULL)
@@ -1147,7 +762,7 @@ create_account_details_ui (GoaKerberosProvider *self,
   gtk_container_add (GTK_CONTAINER (request->progress_grid), label);
 
   gtk_window_get_size (GTK_WINDOW (request->dialog), &width, NULL);
-  gtk_widget_set_size_request (GTK_WIDGET (request->dialog), width, -1);
+  gtk_window_set_default_size (GTK_WINDOW (request->dialog), width, -1);
 }
 
 static void
@@ -1211,28 +826,29 @@ refresh_account (GoaProvider    *provider,
 static void
 on_initial_sign_in_done (GoaKerberosProvider *self,
                          GAsyncResult        *result,
-                         GSimpleAsyncResult  *operation_result)
+                         GTask               *operation_result)
 {
-  GError    *error;
-  gboolean   remember_password;
-  GoaObject *object;
+  GError     *error;
+  gboolean    remember_password;
+  GoaObject  *object;
+  char       *object_path;
 
-  object = g_simple_async_result_get_source_tag (operation_result);
+  object = g_task_get_source_tag (operation_result);
 
   remember_password = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (operation_result),
                                                           "remember-password"));
 
   error = NULL;
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result), &error))
+  object_path = sign_in_identity_finish (self, result, &error);
+  if (error != NULL)
     {
-      g_simple_async_result_take_error (operation_result, error);
+      g_task_return_error (operation_result, error);
+      goto out;
     }
-  else if (remember_password)
+
+  if (remember_password)
     {
       GVariantBuilder  builder;
-      const char      *object_path;
-
-      object_path = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (result));
 
       if (object_path != NULL && object != NULL)
         {
@@ -1260,25 +876,34 @@ on_initial_sign_in_done (GoaKerberosProvider *self,
         }
     }
 
-  g_simple_async_result_complete_in_idle (operation_result);
+  g_task_return_boolean (operation_result, TRUE);
+
+ out:
+  g_free (object_path);
   g_object_unref (operation_result);
 }
 
 static void
 on_system_prompt_answered_for_initial_sign_in (GcrPrompt          *prompt,
                                                GAsyncResult       *result,
-                                               GSimpleAsyncResult *operation_result)
+                                               GTask              *operation_result)
 {
   GoaKerberosProvider *self;
   GCancellable        *cancellable;
   GError              *error;
   const char          *principal;
   const char          *password;
+  const char          *preauth_source;
   GcrSecretExchange   *secret_exchange;
 
-  self = GOA_KERBEROS_PROVIDER (g_async_result_get_source_object (G_ASYNC_RESULT (operation_result)));
+  self = GOA_KERBEROS_PROVIDER (g_task_get_source_object (operation_result));
   principal = g_object_get_data (G_OBJECT (operation_result), "principal");
-  cancellable = g_object_get_data (G_OBJECT (operation_result), "cancellable");
+  cancellable = g_task_get_cancellable (operation_result);
+
+  /* We currently don't prompt the user to choose a preauthentication source during initial sign in
+   * so we assume there's no preauthentication source
+   */
+  preauth_source = NULL;
 
   error = NULL;
   password = gcr_prompt_password_finish (prompt, result, &error);
@@ -1288,11 +913,15 @@ on_system_prompt_answered_for_initial_sign_in (GcrPrompt          *prompt,
       gcr_system_prompt_close (GCR_SYSTEM_PROMPT (prompt), NULL, NULL);
 
       if (error != NULL)
-        g_simple_async_result_take_error (operation_result, error);
+        {
+          g_task_return_error (operation_result, error);
+        }
       else
-        g_cancellable_cancel (cancellable);
+        {
+          g_cancellable_cancel (cancellable);
+          g_task_return_error_if_cancelled (operation_result);
+        }
 
-      g_simple_async_result_complete_in_idle (operation_result);
       g_object_unref (operation_result);
       return;
     }
@@ -1313,6 +942,7 @@ on_system_prompt_answered_for_initial_sign_in (GcrPrompt          *prompt,
   sign_in_identity (self,
                     principal,
                     password,
+                    preauth_source,
                     cancellable,
                     (GAsyncReadyCallback)
                     on_initial_sign_in_done,
@@ -1322,21 +952,19 @@ on_system_prompt_answered_for_initial_sign_in (GcrPrompt          *prompt,
 static void
 on_system_prompt_open_for_initial_sign_in (GcrSystemPrompt     *system_prompt,
                                            GAsyncResult        *result,
-                                           GSimpleAsyncResult  *operation_result)
+                                           GTask               *operation_result)
 {
   GCancellable *cancellable;
   GcrPrompt    *prompt;
   GError       *error;
 
-  cancellable = g_object_get_data (G_OBJECT (operation_result), "cancellable");
+  cancellable = g_task_get_cancellable (operation_result);
   error = NULL;
   prompt = gcr_system_prompt_open_finish (result, &error);
 
   if (prompt == NULL)
     {
-      g_simple_async_result_take_error (operation_result, error);
-
-      g_simple_async_result_complete_in_idle (operation_result);
+      g_task_return_error (operation_result, error);
       g_object_unref (operation_result);
 
       return;
@@ -1360,21 +988,14 @@ perform_initial_sign_in (GoaKerberosProvider *self,
                          SignInRequest       *request)
 {
 
-  GSimpleAsyncResult *operation_result;
-  GCancellable       *cancellable;
+  GTask        *operation_result;
+  GCancellable *cancellable;
 
   cancellable = g_cancellable_new ();
 
-  operation_result = g_simple_async_result_new (G_OBJECT (self),
-                                                (GAsyncReadyCallback)
-                                                on_account_signed_in ,
-                                                request,
-                                                object);
-  g_simple_async_result_set_check_cancellable (operation_result, cancellable);
+  operation_result = g_task_new (self, cancellable, (GAsyncReadyCallback) on_account_signed_in, request);
+  g_task_set_source_tag (operation_result, object);
 
-  g_object_set_data (G_OBJECT (operation_result),
-                     "cancellable",
-                     cancellable);
   g_object_set_data (G_OBJECT (operation_result),
                      "principal",
                      (gpointer)
@@ -1385,6 +1006,8 @@ perform_initial_sign_in (GoaKerberosProvider *self,
                                 (GAsyncReadyCallback)
                                 on_system_prompt_open_for_initial_sign_in,
                                 operation_result);
+
+  g_object_unref (cancellable);
 }
 
 static char *
@@ -1508,13 +1131,11 @@ add_account (GoaProvider    *provider,
   const char  *username;
   const char *provider_type;
   gchar      *principal;
-  gchar      *principal_for_display;
   gint        response;
   GVariant   *options;
 
   object = NULL;
   principal = NULL;
-  principal_for_display = NULL;
 
   memset (&request, 0, sizeof (SignInRequest));
   request.cancellable = g_cancellable_new ();
@@ -1569,9 +1190,6 @@ start_over:
   g_free (principal);
   principal = g_strdup_printf ("%s@%s", username, realm);
 
-  g_free (principal_for_display);
-  principal_for_display = g_strdup_printf ("%s@%s", username, realm);
-
   /* See if there's already an account of this type with the
    * given identity
    */
@@ -1579,7 +1197,7 @@ start_over:
 
   if (!goa_utils_check_duplicate (client,
                                   principal,
-                                  principal_for_display,
+                                  principal,
                                   provider_type,
                                   (GoaPeekInterfaceFunc) goa_object_peek_account,
                                   &request.error))
@@ -1599,7 +1217,7 @@ start_over:
   goa_manager_call_add_account (goa_client_get_manager (client),
                                 goa_provider_get_provider_type (provider),
                                 principal,
-                                principal_for_display,
+                                principal,
                                 g_variant_builder_end (&credentials),
                                 g_variant_builder_end (&details),
                                 NULL, /* GCancellable* */
@@ -1693,134 +1311,52 @@ start_over:
 
   g_free (request.account_object_path);
   g_free (principal);
-  g_free (principal_for_display);
-  if (request.loop != NULL)
-    g_main_loop_unref (request.loop);
+  g_clear_pointer (&request.loop, (GDestroyNotify) g_main_loop_unref);
   return object;
 }
 
-static void
-show_account (GoaProvider *provider,
-              GoaClient   *client,
-              GoaObject   *object,
-              GtkBox      *vbox,
-              GtkGrid     *grid,
-              G_GNUC_UNUSED GtkGrid *dummy)
+static gboolean
+dbus_proxy_reload_properties_sync (GDBusProxy    *proxy,
+                                   GCancellable  *cancellable)
 {
-  gint row;
+  GVariant *result = NULL;
+  char *name;
+  char *name_owner = NULL;
+  GVariant *value;
+  GVariantIter *iter = NULL;
+  gboolean ret = FALSE;
 
-  row = 0;
+  name_owner = g_dbus_proxy_get_name_owner (proxy);
+  result = g_dbus_connection_call_sync (g_dbus_proxy_get_connection (proxy),
+                                        name_owner,
+                                        g_dbus_proxy_get_object_path (proxy),
+                                        "org.freedesktop.DBus.Properties",
+                                        "GetAll",
+                                        g_variant_new ("(s)", g_dbus_proxy_get_interface_name (proxy)),
+                                        G_VARIANT_TYPE ("(a{sv})"),
+                                        G_DBUS_CALL_FLAGS_NONE,
+                                        -1,
+                                        cancellable,
+                                        NULL);
+  if (result == NULL)
+    goto out;
 
-  goa_util_add_account_info (grid, row++, object);
-
-  goa_util_add_row_switch_from_keyfile_with_blurb (grid, row++, object,
-                                                   /* Translators: This is a label for a series of
-                                                    * options switches. For example: “Use for Mail”. */
-                                                   _("Use for"),
-                                                   "ticketing-disabled",
-                                                   _("Network _Resources"));
-}
-
-static void
-on_identity_looked_up (GoaKerberosProvider *provider,
-                       GAsyncResult        *result,
-                       GSimpleAsyncResult  *operation_result)
-{
-
-  GoaIdentityServiceIdentity *identity;
-  GError                     *error;
-
-  error = NULL;
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result), &error))
+  g_variant_get (result, "(a{sv})", &iter);
+  while (g_variant_iter_next (iter, "{sv}", &name, &value))
     {
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
+      g_dbus_proxy_set_cached_property (proxy, name, value);
+
+      g_free (name);
+      g_variant_unref (value);
     }
 
-  identity = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (result));
-  if (identity != NULL)
-    g_simple_async_result_set_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (operation_result),
-                                               g_object_ref (identity),
-                                               (GDestroyNotify)
-                                               g_object_unref);
-  else
-    g_simple_async_result_set_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (operation_result),
-                                               NULL,
-                                               NULL);
+  ret = TRUE;
 
-  g_simple_async_result_complete_in_idle (operation_result);
-  g_object_unref (operation_result);
-}
-
-static void
-on_identity_looked_up_to_ensure_credentials (GoaKerberosProvider *self,
-                                             GAsyncResult        *result,
-                                             GSimpleAsyncResult  *operation_result)
-{
-
-  GoaIdentityServiceIdentity *identity;
-  GError                     *error;
-  GoaObject                  *object;
-  GoaAccount                 *account;
-  const char                 *identifier;
-  GCancellable               *cancellable;
-
-  error = NULL;
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result), &error))
-    {
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-
-  identity = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (result));
-
-  if (identity != NULL && goa_identity_service_identity_get_is_signed_in (identity))
-    {
-      g_simple_async_result_set_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (operation_result),
-                                                 g_object_ref (identity),
-                                                 (GDestroyNotify)
-                                                 g_object_unref);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-
-  object = GOA_OBJECT (g_async_result_get_source_object (G_ASYNC_RESULT (operation_result)));
-  cancellable = g_object_get_data (G_OBJECT (operation_result), "cancellable");
-
-  if (!get_ticket_sync (self,
-                        object,
-                        FALSE /* Don't allow interaction */,
-                        cancellable,
-                        &error))
-    {
-      g_simple_async_result_take_error (operation_result, error);
-      g_simple_async_result_complete_in_idle (operation_result);
-      g_object_unref (operation_result);
-      return;
-    }
-
-  account = goa_object_peek_account (object);
-  identifier = goa_account_get_identity (account);
-
-  look_up_identity (self,
-                    identifier,
-                    cancellable,
-                    (GAsyncReadyCallback)
-                    on_identity_looked_up,
-                    operation_result);
-}
-
-static void
-on_credentials_ensured (GoaObject    *object,
-                        GAsyncResult *result,
-                        GMainLoop    *loop)
-{
-  g_main_loop_quit (loop);
+ out:
+  g_clear_pointer (&iter, (GDestroyNotify) g_variant_iter_free);
+  g_clear_pointer (&result, (GDestroyNotify) g_variant_unref);
+  g_free (name_owner);
+  return ret;
 }
 
 static gboolean
@@ -1830,65 +1366,68 @@ ensure_credentials_sync (GoaProvider    *provider,
                          GCancellable   *cancellable,
                          GError        **error)
 {
-  GoaIdentityServiceIdentity *identity;
-  GoaAccount                 *account;
+  GoaIdentityServiceIdentity *identity = NULL;
+  GoaAccount                 *account = NULL;
   const char                 *identifier;
-  GSimpleAsyncResult         *operation_result;
-  GMainLoop                  *loop;
-  GMainContext               *context;
   gint64                      timestamp;
   GDateTime                  *now, *expiration_time;
   GTimeSpan                   time_span;
-  GError                     *lookup_error;
+  gboolean                    credentials_ensured = FALSE;
 
-  account = goa_object_peek_account (object);
+  account = goa_object_get_account (object);
   identifier = goa_account_get_identity (account);
 
-  context = g_main_context_new ();
-  g_main_context_push_thread_default (context);
-  loop = g_main_loop_new (context, FALSE);
-  operation_result = g_simple_async_result_new (G_OBJECT (object),
-                                                (GAsyncReadyCallback)
-                                                on_credentials_ensured,
-                                                loop,
-                                                ensure_credentials_sync);
-  g_simple_async_result_set_check_cancellable (operation_result, cancellable);
+  ensure_identity_manager ();
 
-  g_object_set_data (G_OBJECT (operation_result),
-                     "cancellable",
-                     cancellable);
+  g_mutex_lock (&identity_manager_mutex);
+  identity = get_identity_from_object_manager (GOA_KERBEROS_PROVIDER (provider),
+                                               identifier);
 
-  g_object_ref (operation_result);
-  look_up_identity (GOA_KERBEROS_PROVIDER (provider),
-                    identifier,
-                    cancellable,
-                    (GAsyncReadyCallback)
-                    on_identity_looked_up_to_ensure_credentials,
-                    operation_result);
-
-  g_main_loop_run (loop);
-  g_main_loop_unref (loop);
-
-  g_main_context_pop_thread_default (context);
-  g_main_context_unref (context);
-
-  lookup_error = NULL;
-  if (g_simple_async_result_propagate_error (operation_result, &lookup_error))
+  if (identity != NULL)
     {
-      translate_error (&lookup_error);
-      g_set_error_literal (error,
-                           GOA_ERROR,
-                           GOA_ERROR_NOT_AUTHORIZED,
-                           lookup_error->message);
-      g_error_free (lookup_error);
-      g_object_unref (operation_result);
-      return FALSE;
+      if (!dbus_proxy_reload_properties_sync (G_DBUS_PROXY (identity), cancellable))
+        g_clear_object (&identity);
     }
 
-  identity = g_simple_async_result_get_op_res_gpointer (operation_result);
+  if (identity == NULL || !goa_identity_service_identity_get_is_signed_in (identity))
+    {
+      GError *lookup_error;
+      gboolean ticket_synced;
+
+      lookup_error = NULL;
+
+      g_mutex_unlock (&identity_manager_mutex);
+      ticket_synced = get_ticket_sync (GOA_KERBEROS_PROVIDER (provider),
+                                       object,
+                                       FALSE /* Don't allow interaction */,
+                                       cancellable,
+                                       &lookup_error);
+      g_mutex_lock (&identity_manager_mutex);
+
+      if (!ticket_synced)
+        {
+          translate_error (&lookup_error);
+          g_set_error_literal (error,
+                               GOA_ERROR,
+                               GOA_ERROR_NOT_AUTHORIZED,
+                               lookup_error->message);
+          g_error_free (lookup_error);
+          goto out;
+        }
+
+      if (identity == NULL)
+        identity = get_identity_from_object_manager (GOA_KERBEROS_PROVIDER (provider),
+                                                     identifier);
+    }
+
+  if (identity == NULL)
+    goto out;
+
+  dbus_proxy_reload_properties_sync (G_DBUS_PROXY (identity), cancellable);
 
   now = g_date_time_new_now_local ();
   timestamp = goa_identity_service_identity_get_expiration_timestamp (identity);
+
   expiration_time = g_date_time_new_from_unix_local (timestamp);
   time_span = g_date_time_difference (expiration_time, now);
 
@@ -1897,13 +1436,315 @@ ensure_credentials_sync (GoaProvider    *provider,
   if (time_span < 0 || time_span > G_MAXINT)
     time_span = 0;
 
-  *out_expires_in = (int) time_span;
+  if (out_expires_in != NULL)
+    *out_expires_in = (int) time_span;
+
+  credentials_ensured = TRUE;
 
   g_date_time_unref (now);
   g_date_time_unref (expiration_time);
-  g_object_unref (operation_result);
 
-  return TRUE;
+ out:
+  g_clear_object (&account);
+  g_clear_object (&identity);
+  g_mutex_unlock (&identity_manager_mutex);
+  return credentials_ensured;
+}
+
+/* ---------------------------------------------------------------------------------------------------- */
+
+static void
+remove_account_in_thread_func (GTask         *task,
+                               gpointer       source_object,
+                               gpointer       task_data,
+                               GCancellable  *cancellable)
+{
+  GError *error;
+  GoaAccount *account = NULL;
+  GoaObject *object = GOA_OBJECT (task_data);
+  const gchar *identifier;
+
+  ensure_identity_manager ();
+
+  account = goa_object_get_account (object);
+  identifier = goa_account_get_identity (account);
+
+  g_debug ("Kerberos account %s removed and should now be signed out", identifier);
+
+  error = NULL;
+  if (!goa_identity_service_manager_call_sign_out_sync (identity_manager, identifier, cancellable, &error))
+    {
+      g_task_return_error (task, error);
+      goto out;
+    }
+
+  g_task_return_boolean (task, TRUE);
+
+ out:
+  g_clear_object (&account);
+}
+
+static void
+remove_account (GoaProvider          *provider,
+                GoaObject            *object,
+                GCancellable         *cancellable,
+                GAsyncReadyCallback   callback,
+                gpointer              user_data)
+{
+  GoaKerberosProvider *self = GOA_KERBEROS_PROVIDER (provider);
+  GTask *task;
+
+  task = g_task_new (self, cancellable, callback, user_data);
+  g_task_set_source_tag (task, remove_account);
+
+  g_task_set_task_data (task, g_object_ref (object), g_object_unref);
+  g_task_run_in_thread (task, remove_account_in_thread_func);
+
+  g_object_unref (task);
+}
+
+static gboolean
+remove_account_finish (GoaProvider   *provider,
+                       GAsyncResult  *res,
+                       GError       **error)
+{
+  GoaKerberosProvider *self = GOA_KERBEROS_PROVIDER (provider);
+  GTask *task;
+
+  g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
+  task = G_TASK (res);
+
+  g_warn_if_fail (g_task_get_source_tag (task) == remove_account);
+
+  return g_task_propagate_boolean (task, error);
+}
+
+/* ---------------------------------------------------------------------------------------------------- */
+
+static GoaIdentityServiceIdentity *
+get_identity_from_object_manager (GoaKerberosProvider *self,
+                                  const char          *identifier)
+{
+  GoaIdentityServiceIdentity *identity = NULL;
+  GList                      *objects, *node;
+
+  ensure_object_manager ();
+
+  g_mutex_lock (&object_manager_mutex);
+  objects = g_dbus_object_manager_get_objects (G_DBUS_OBJECT_MANAGER (object_manager));
+
+  for (node = objects; node != NULL; node = node->next)
+    {
+      GoaIdentityServiceIdentity *candidate_identity;
+      const char                 *candidate_identifier;
+      GDBusObject                *object;
+
+      object = node->data;
+
+      candidate_identity = GOA_IDENTITY_SERVICE_IDENTITY (g_dbus_object_get_interface (object, "org.gnome.Identity"));
+
+      if (candidate_identity == NULL)
+        continue;
+
+      candidate_identifier = goa_identity_service_identity_get_identifier (candidate_identity);
+
+      if (g_strcmp0 (candidate_identifier, identifier) == 0)
+        {
+          identity = candidate_identity;
+          break;
+        }
+
+      g_object_unref (candidate_identity);
+    }
+
+  g_list_free_full (objects, (GDestroyNotify) g_object_unref);
+  g_mutex_unlock (&object_manager_mutex);
+
+  return identity;
+}
+
+static char *
+sign_in_identity_sync (GoaKerberosProvider  *self,
+                       const char           *identifier,
+                       const char           *password,
+                       const char           *preauth_source,
+                       GCancellable         *cancellable,
+                       GError              **error)
+{
+  GcrSecretExchange  *secret_exchange;
+  char               *secret_key;
+  char               *return_key = NULL;
+  char               *concealed_secret;
+  char               *identity_object_path = NULL;
+  gboolean            keys_exchanged;
+  GVariantBuilder     details;
+
+  secret_exchange = gcr_secret_exchange_new (NULL);
+
+  secret_key = gcr_secret_exchange_begin (secret_exchange);
+  ensure_identity_manager ();
+
+  g_mutex_lock (&identity_manager_mutex);
+  keys_exchanged = goa_identity_service_manager_call_exchange_secret_keys_sync (identity_manager,
+                                                                                identifier,
+                                                                                secret_key,
+                                                                                &return_key,
+                                                                                cancellable,
+                                                                                error);
+  g_mutex_unlock (&identity_manager_mutex);
+  g_free (secret_key);
+
+  if (!keys_exchanged)
+    goto out;
+
+  if (!gcr_secret_exchange_receive (secret_exchange, return_key))
+    {
+      g_set_error (error,
+                   GCR_ERROR,
+                   GCR_ERROR_UNRECOGNIZED,
+                   _("Identity service returned invalid key"));
+      goto out;
+    }
+
+  g_variant_builder_init (&details, G_VARIANT_TYPE ("a{ss}"));
+
+  concealed_secret = gcr_secret_exchange_send (secret_exchange, password, -1);
+  g_variant_builder_add (&details, "{ss}", "initial-password", concealed_secret);
+  g_free (concealed_secret);
+
+  if (preauth_source != NULL)
+    {
+      g_variant_builder_add (&details, "{ss}", "preauthentication-source", preauth_source);
+    }
+
+  g_mutex_lock (&identity_manager_mutex);
+  goa_identity_service_manager_call_sign_in_sync (identity_manager,
+                                                  identifier,
+                                                  g_variant_builder_end (&details),
+                                                  &identity_object_path,
+                                                  cancellable,
+                                                  error);
+  g_mutex_unlock (&identity_manager_mutex);
+
+ out:
+  g_free (return_key);
+  g_object_unref (secret_exchange);
+  return identity_object_path;
+}
+
+static void
+sign_in_thread (GTask               *task,
+                GoaKerberosProvider *self,
+                gpointer             task_data G_GNUC_UNUSED,
+                GCancellable        *cancellable)
+{
+  const char *identifier;
+  const char *password;
+  const char *preauth_source;
+  char *object_path;
+  GError *error;
+
+  identifier = g_task_get_source_tag (task);
+  password = g_object_get_data (G_OBJECT (task), "password");
+  preauth_source = g_object_get_data (G_OBJECT (task), "preauth-source");
+
+  error = NULL;
+  object_path = sign_in_identity_sync (self, identifier, password, preauth_source, cancellable, &error);
+  if (object_path == NULL)
+    g_task_return_error (task, error);
+  else
+    g_task_return_pointer (task, object_path, NULL);
+}
+
+
+static void
+on_object_manager_created (gpointer             object,
+                           GAsyncResult        *result,
+                           gpointer             unused G_GNUC_UNUSED)
+{
+  GDBusObjectManager *manager;
+  GError *error;
+
+  error = NULL;
+  manager = goa_identity_service_object_manager_client_new_for_bus_finish (result, &error);
+  if (manager == NULL)
+    {
+      g_warning ("GoaKerberosProvider: Could not connect to identity service: %s", error->message);
+      g_clear_error (&error);
+      return;
+    }
+
+  g_mutex_lock (&object_manager_mutex);
+  object_manager = manager;
+  g_cond_signal (&object_manager_condition);
+  g_mutex_unlock (&object_manager_mutex);
+}
+
+static void
+create_object_manager (void)
+{
+  goa_identity_service_object_manager_client_new_for_bus (G_BUS_TYPE_SESSION,
+                                                          G_DBUS_OBJECT_MANAGER_CLIENT_FLAGS_NONE,
+                                                          "org.gnome.Identity",
+                                                          "/org/gnome/Identity",
+                                                          NULL,
+                                                          (GAsyncReadyCallback)
+                                                          on_object_manager_created,
+                                                          NULL);
+}
+
+static void
+ensure_object_manager (void)
+{
+  g_mutex_lock (&object_manager_mutex);
+  while (object_manager == NULL)
+      g_cond_wait (&object_manager_condition, &object_manager_mutex);
+  g_mutex_unlock (&object_manager_mutex);
+}
+
+static void
+on_identity_manager_created (gpointer             identity,
+                             GAsyncResult        *result,
+                             gpointer             unused G_GNUC_UNUSED)
+{
+  GoaIdentityServiceManager *manager;
+  GError *error;
+
+  error = NULL;
+  manager = goa_identity_service_manager_proxy_new_for_bus_finish (result, &error);
+  if (manager == NULL)
+    {
+      g_warning ("GoaKerberosProvider: Could not connect to identity service manager: %s", error->message);
+      g_clear_error (&error);
+      return;
+    }
+
+  g_mutex_lock (&identity_manager_mutex);
+  identity_manager = manager;
+  g_cond_signal (&identity_manager_condition);
+  g_mutex_unlock (&identity_manager_mutex);
+}
+
+static void
+create_identity_manager (void)
+{
+  goa_identity_service_manager_proxy_new_for_bus (G_BUS_TYPE_SESSION,
+                                                  G_DBUS_OBJECT_MANAGER_CLIENT_FLAGS_NONE,
+                                                  "org.gnome.Identity",
+                                                  "/org/gnome/Identity/Manager",
+                                                  NULL,
+                                                  (GAsyncReadyCallback)
+                                                  on_identity_manager_created,
+                                                  NULL);
+}
+
+static void
+ensure_identity_manager (void)
+{
+  g_mutex_lock (&identity_manager_mutex);
+  while (identity_manager == NULL)
+      g_cond_wait (&identity_manager_condition, &identity_manager_mutex);
+  g_mutex_unlock (&identity_manager_mutex);
 }
 
 static void
@@ -1924,6 +1765,7 @@ goa_kerberos_provider_class_init (GoaKerberosProviderClass *kerberos_class)
   provider_class->build_object               = build_object;
   provider_class->add_account                = add_account;
   provider_class->refresh_account            = refresh_account;
-  provider_class->show_account               = show_account;
   provider_class->ensure_credentials_sync    = ensure_credentials_sync;
+  provider_class->remove_account             = remove_account;
+  provider_class->remove_account_finish      = remove_account_finish;
 }

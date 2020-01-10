@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011, 2012, 2013, 2014 Red Hat, Inc.
+ * Copyright (C) 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,11 +23,15 @@
 #include <rest/oauth2-proxy.h>
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
+#include <webkit2/webkit2.h>
 
 #include "goaprovider.h"
 #include "goautils.h"
 #include "goawebview.h"
 #include "goaoauth2provider.h"
+#include "goaoauth2provider-priv.h"
+#include "goaoauth2provider-web-extension.h"
+#include "goaoauth2provider-web-view.h"
 
 /**
  * SECTION:goaoauth2provider
@@ -65,7 +69,6 @@ struct _GoaOAuth2ProviderPrivate
   GError *error;
   GMainLoop *loop;
 
-  WebKitDOMHTMLInputElement *password_node;
   const gchar *existing_identity;
 
   gchar *account_object_path;
@@ -128,6 +131,38 @@ goa_oauth2_provider_get_use_mobile_browser (GoaOAuth2Provider *provider)
 {
   g_return_val_if_fail (GOA_IS_OAUTH2_PROVIDER (provider), FALSE);
   return GOA_OAUTH2_PROVIDER_GET_CLASS (provider)->get_use_mobile_browser (provider);
+}
+
+/* ---------------------------------------------------------------------------------------------------- */
+
+static gboolean
+goa_oauth2_provider_is_deny_node_default (GoaOAuth2Provider *provider, WebKitDOMNode *node)
+{
+  return FALSE;
+}
+
+/**
+ * goa_oauth2_provider_is_deny_node:
+ * @provider: A #GoaOAuth2Provider.
+ * @node: A WebKitDOMNode.
+ *
+ * Checks whether @node is the HTML UI element that the user can use
+ * to deny permission to access his account. Usually they are either a
+ * WebKitDOMHTMLButtonElement or a WebKitDOMHTMLInputElement.
+ *
+ * Please note that providers may have multiple such elements in their
+ * UI and this method should catch all of them.
+ *
+ * This is a virtual method where the default implementation returns
+ * %FALSE.
+ *
+ * Returns: %TRUE if the @node can be used to deny permission.
+ */
+gboolean
+goa_oauth2_provider_is_deny_node (GoaOAuth2Provider *provider, WebKitDOMNode *node)
+{
+  g_return_val_if_fail (GOA_IS_OAUTH2_PROVIDER (provider), FALSE);
+  return GOA_OAUTH2_PROVIDER_GET_CLASS (provider)->is_deny_node (provider, node);
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -250,6 +285,47 @@ goa_oauth2_provider_build_authorization_uri (GoaOAuth2Provider  *provider,
                                                                                     escaped_client_id,
                                                                                     escaped_scope);
 }
+
+/* ---------------------------------------------------------------------------------------------------- */
+
+static gboolean
+goa_oauth2_provider_decide_navigation_policy_default (GoaOAuth2Provider               *provider,
+                                                      WebKitWebView                   *web_view,
+                                                      WebKitNavigationPolicyDecision  *decision)
+{
+  return FALSE;
+}
+
+/*
+ * goa_oauth2_provider_decide_navigation_policy_default:
+ * @provider: A #GoaOAuth2Provider.
+ * @decision: A #WebKitNavigationPolicyDecision
+ *
+ * Certain OAuth2-like, but not exactly <ulink
+ * url="http://tools.ietf.org/html/draft-ietf-oauth-v2-15">OAuth2</ulink>,
+ * providers may not send us to the redirect URI, as expected. They
+ * might need some special handling for that. This is a provider
+ * specific hook to accommodate them.
+ *
+ * This is a virtual method where the default implementation returns
+ * %FALSE.
+ *
+ * Returns: %TRUE if @provider decided what to do with @decision,
+ * %FALSE otherwise.
+ */
+gboolean
+goa_oauth2_provider_decide_navigation_policy (GoaOAuth2Provider               *provider,
+                                              WebKitWebView                   *web_view,
+                                              WebKitNavigationPolicyDecision  *decision)
+{
+  g_return_val_if_fail (GOA_IS_OAUTH2_PROVIDER (provider), FALSE);
+  g_return_val_if_fail (WEBKIT_IS_WEB_VIEW (web_view), FALSE);
+  g_return_val_if_fail (WEBKIT_IS_NAVIGATION_POLICY_DECISION (decision), FALSE);
+
+  return GOA_OAUTH2_PROVIDER_GET_CLASS (provider)->decide_navigation_policy (provider, web_view, decision);
+}
+
+/* ---------------------------------------------------------------------------------------------------- */
 
 /**
  * goa_oauth2_provider_process_redirect_url:
@@ -496,30 +572,6 @@ goa_oauth2_provider_get_identity_sync (GoaOAuth2Provider    *provider,
 }
 
 /**
- * goa_oauth2_provider_is_deny_node:
- * @provider: A #GoaOAuth2Provider.
- * @node: A WebKitDOMNode.
- *
- * Checks whether @node is the HTML UI element that the user can use
- * to deny permission to access his account. Usually they are either a
- * WebKitDOMHTMLButtonElement or a WebKitDOMHTMLInputElement.
- *
- * Please note that providers may have multiple such elements in their
- * UI and this method should catch all of them.
- *
- * This is a pure virtual method - a subclass must provide an
- * implementation.
- *
- * Returns: %TRUE if the @node can be used to deny permission.
- */
-gboolean
-goa_oauth2_provider_is_deny_node (GoaOAuth2Provider *provider, WebKitDOMNode *node)
-{
-  g_return_val_if_fail (GOA_IS_OAUTH2_PROVIDER (provider), FALSE);
-  return GOA_OAUTH2_PROVIDER_GET_CLASS (provider)->is_deny_node (provider, node);
-}
-
-/**
  * goa_oauth2_provider_is_identity_node:
  * @provider: A #GoaOAuth2Provider.
  * @element: A WebKitDOMHTMLInputElement.
@@ -756,17 +808,15 @@ get_tokens_sync (GoaOAuth2Provider  *provider,
   g_clear_error (&tokens_error);
   g_free (ret_access_token);
   g_free (ret_refresh_token);
-  if (call != NULL)
-    g_object_unref (call);
-  if (proxy != NULL)
-    g_object_unref (proxy);
+  g_clear_object (&call);
+  g_clear_object (&proxy);
   return ret;
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
 
 static void
-on_dom_node_click (WebKitDOMNode *element, WebKitDOMEvent *event, gpointer user_data)
+on_web_view_deny_click (GoaWebView *web_view, gpointer user_data)
 {
   GoaOAuth2Provider *provider = GOA_OAUTH2_PROVIDER (user_data);
   GoaOAuth2ProviderPrivate *priv = provider->priv;
@@ -774,101 +824,55 @@ on_dom_node_click (WebKitDOMNode *element, WebKitDOMEvent *event, gpointer user_
 }
 
 static void
-on_form_submit (WebKitDOMNode *element, WebKitDOMEvent *event, gpointer user_data)
+on_web_view_password_submit (GoaWebView *web_view, const gchar *password, gpointer user_data)
 {
   GoaOAuth2Provider *provider = GOA_OAUTH2_PROVIDER (user_data);
   GoaOAuth2ProviderPrivate *priv = provider->priv;
 
-  if (priv->password_node == NULL)
-    return;
-
-  priv->password = webkit_dom_html_input_element_get_value (priv->password_node);
-  priv->password_node = NULL;
-}
-
-static void
-on_web_view_document_load_finished (WebKitWebView *web_view, WebKitWebFrame *frame, gpointer user_data)
-{
-  GoaOAuth2Provider *provider = GOA_OAUTH2_PROVIDER (user_data);
-  GoaOAuth2ProviderPrivate *priv = provider->priv;
-  WebKitDOMDocument *document;
-  WebKitDOMNodeList *elements;
-  gulong element_count;
-  gulong i;
-
-  document = webkit_web_view_get_dom_document (WEBKIT_WEB_VIEW (web_view));
-  elements = webkit_dom_document_get_elements_by_tag_name (document, "*");
-  element_count = webkit_dom_node_list_get_length (elements);
-
-  for (i = 0; i < element_count; i++)
-    {
-      WebKitDOMNode *element = webkit_dom_node_list_item (elements, i);
-
-      if (goa_oauth2_provider_is_deny_node (provider, element))
-        {
-          webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (element),
-                                                      "click",
-                                                      G_CALLBACK (on_dom_node_click),
-                                                      FALSE,
-                                                      provider);
-        }
-      else if (priv->existing_identity != NULL
-               && WEBKIT_DOM_IS_HTML_INPUT_ELEMENT (element)
-               && goa_oauth2_provider_is_identity_node (provider, WEBKIT_DOM_HTML_INPUT_ELEMENT (element)))
-        {
-          webkit_dom_html_input_element_set_value (WEBKIT_DOM_HTML_INPUT_ELEMENT (element),
-                                                   priv->existing_identity);
-          webkit_dom_html_input_element_set_read_only (WEBKIT_DOM_HTML_INPUT_ELEMENT (element), TRUE);
-        }
-      else if (WEBKIT_DOM_IS_HTML_INPUT_ELEMENT (element)
-               && goa_oauth2_provider_is_password_node (provider, WEBKIT_DOM_HTML_INPUT_ELEMENT (element)))
-        {
-          WebKitDOMHTMLFormElement *form;
-
-          form = webkit_dom_html_input_element_get_form (WEBKIT_DOM_HTML_INPUT_ELEMENT (element));
-          if (form != NULL)
-            {
-              priv->password_node = WEBKIT_DOM_HTML_INPUT_ELEMENT (element);
-              g_clear_pointer (&priv->password, g_free);
-              webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (form),
-                                                          "submit",
-                                                          G_CALLBACK (on_form_submit),
-                                                          FALSE,
-                                                          provider);
-            }
-        }
-    }
+  g_free (priv->password);
+  priv->password = g_strdup (password);
 }
 
 static gboolean
-on_web_view_navigation_policy_decision_requested (WebKitWebView             *webView,
-                                                  WebKitWebFrame            *frame,
-                                                  WebKitNetworkRequest      *request,
-                                                  WebKitWebNavigationAction *navigation_action,
-                                                  WebKitWebPolicyDecision   *policy_decision,
-                                                  gpointer                   user_data)
+on_web_view_decide_policy (WebKitWebView            *web_view,
+                           WebKitPolicyDecision     *decision,
+                           WebKitPolicyDecisionType  decision_type,
+                           gpointer                  user_data)
 {
   GoaOAuth2Provider *provider = GOA_OAUTH2_PROVIDER (user_data);
   GoaOAuth2ProviderPrivate *priv = provider->priv;
   GHashTable *key_value_pairs;
-  SoupMessage *message;
+  WebKitNavigationAction *action;
+  WebKitURIRequest *request;
   SoupURI *uri;
   const gchar *fragment;
   const gchar *oauth2_error;
   const gchar *query;
   const gchar *redirect_uri;
   const gchar *requested_uri;
-  gint response_id;
+  gint response_id = GTK_RESPONSE_NONE;
+
+  if (decision_type != WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION)
+    goto default_behaviour;
+
+  if (goa_oauth2_provider_decide_navigation_policy (provider,
+                                                    web_view,
+                                                    WEBKIT_NAVIGATION_POLICY_DECISION (decision)))
+    {
+      response_id = 0;
+      goto ignore_request;
+    }
 
   /* TODO: use oauth2_proxy_extract_access_token() */
 
-  requested_uri = webkit_network_request_get_uri (request);
+  action = webkit_navigation_policy_decision_get_navigation_action (WEBKIT_NAVIGATION_POLICY_DECISION (decision));
+  request = webkit_navigation_action_get_request (action);
+  requested_uri = webkit_uri_request_get_uri (request);
   redirect_uri = goa_oauth2_provider_get_redirect_uri (provider);
   if (!g_str_has_prefix (requested_uri, redirect_uri))
     goto default_behaviour;
 
-  message = webkit_network_request_get_message (request);
-  uri = soup_message_get_uri (message);
+  uri = soup_uri_new (requested_uri);
   fragment = soup_uri_get_fragment (uri);
   query = soup_uri_get_query (uri);
 
@@ -964,8 +968,10 @@ on_web_view_navigation_policy_decision_requested (WebKitWebView             *web
   goto ignore_request;
 
  ignore_request:
-  gtk_dialog_response (priv->dialog, response_id);
-  webkit_web_policy_decision_ignore (policy_decision);
+  g_assert (response_id != GTK_RESPONSE_NONE);
+  if (response_id < 0)
+    gtk_dialog_response (priv->dialog, response_id);
+  webkit_policy_decision_ignore (decision);
   return TRUE;
 
  default_behaviour:
@@ -1039,7 +1045,7 @@ get_tokens_and_identity (GoaOAuth2Provider  *provider,
   gtk_grid_set_row_spacing (GTK_GRID (grid), 12);
   gtk_container_add (GTK_CONTAINER (vbox), grid);
 
-  web_view = goa_web_view_new ();
+  web_view = goa_web_view_new (GOA_PROVIDER (provider), existing_identity);
   gtk_widget_set_hexpand (web_view, TRUE);
   gtk_widget_set_vexpand (web_view, TRUE);
   embed = goa_web_view_get_view (GOA_WEB_VIEW (web_view));
@@ -1053,13 +1059,15 @@ get_tokens_and_identity (GoaOAuth2Provider  *provider,
     goa_web_view_fake_mobile (GOA_WEB_VIEW (web_view));
 
   webkit_web_view_load_uri (WEBKIT_WEB_VIEW (embed), url);
-  g_signal_connect (embed, "document-load-finished", G_CALLBACK (on_web_view_document_load_finished), provider);
   g_signal_connect (embed,
-                    "navigation-policy-decision-requested",
-                    G_CALLBACK (on_web_view_navigation_policy_decision_requested),
+                    "decide-policy",
+                    G_CALLBACK (on_web_view_decide_policy),
                     provider);
+  g_signal_connect (web_view, "deny-click", G_CALLBACK (on_web_view_deny_click), provider);
+  g_signal_connect (web_view, "password-submit", G_CALLBACK (on_web_view_password_submit), provider);
 
   gtk_container_add (GTK_CONTAINER (grid), web_view);
+  gtk_window_set_default_size (GTK_WINDOW (dialog), -1, -1);
 
   gtk_widget_show_all (GTK_WIDGET (vbox));
   gtk_dialog_run (GTK_DIALOG (dialog));
@@ -1592,8 +1600,7 @@ goa_oauth2_provider_get_access_token_sync (GoaOAuth2Provider  *provider,
   g_free (refresh_token);
   g_free (old_refresh_token);
   g_free (password);
-  if (credentials != NULL)
-    g_variant_unref (credentials);
+  g_clear_pointer (&credentials, (GDestroyNotify) g_variant_unref);
 
   g_mutex_unlock (lock);
 
@@ -1747,9 +1754,11 @@ goa_oauth2_provider_class_init (GoaOAuth2ProviderClass *klass)
   provider_class->ensure_credentials_sync    = goa_oauth2_provider_ensure_credentials_sync;
 
   klass->build_authorization_uri  = goa_oauth2_provider_build_authorization_uri_default;
+  klass->decide_navigation_policy = goa_oauth2_provider_decide_navigation_policy_default;
   klass->get_token_uri            = goa_oauth2_provider_get_token_uri_default;
   klass->get_scope                = goa_oauth2_provider_get_scope_default;
   klass->get_use_mobile_browser   = goa_oauth2_provider_get_use_mobile_browser_default;
+  klass->is_deny_node             = goa_oauth2_provider_is_deny_node_default;
   klass->is_password_node         = goa_oauth2_provider_is_password_node_default;
   klass->add_account_key_values   = goa_oauth2_provider_add_account_key_values_default;
 
@@ -1768,6 +1777,9 @@ on_handle_get_access_token (GoaOAuth2Based        *interface,
   GoaAccount *account;
   GoaProvider *provider;
   GError *error;
+  const gchar *id;
+  const gchar *method_name;
+  const gchar *provider_type;
   gchar *access_token;
   gint access_token_expires_in;
 
@@ -1777,7 +1789,13 @@ on_handle_get_access_token (GoaOAuth2Based        *interface,
 
   object = GOA_OBJECT (g_dbus_interface_get_object (G_DBUS_INTERFACE (interface)));
   account = goa_object_peek_account (object);
-  provider = goa_provider_get_for_provider_type (goa_account_get_provider_type (account));
+
+  id = goa_account_get_id (account);
+  provider_type = goa_account_get_provider_type (account);
+  method_name = g_dbus_method_invocation_get_method_name (invocation);
+  g_debug ("Handling %s for account (%s, %s)", method_name, provider_type, id);
+
+  provider = goa_provider_get_for_provider_type (provider_type);
 
   error = NULL;
   access_token = goa_oauth2_provider_get_access_token_sync (GOA_OAUTH2_PROVIDER (provider),

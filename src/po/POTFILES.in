@@ -7,10 +7,12 @@ src/goabackend/goaewsclient.c
 src/goabackend/goaexchangeprovider.c
 src/goabackend/goafacebookprovider.c
 src/goabackend/goaflickrprovider.c
+src/goabackend/goafoursquareprovider.c
 src/goabackend/goagoogleprovider.c
 src/goabackend/goaimapauthlogin.c
 src/goabackend/goaimapsmtpprovider.c
 src/goabackend/goakerberosprovider.c
+src/goabackend/goalastfmprovider.c
 src/goabackend/goamediaserverprovider.c
 src/goabackend/goaoauth2provider.c
 src/goabackend/goaoauthprovider.c
@@ -22,8 +24,6 @@ src/goabackend/goatelepathyprovider.c
 src/goabackend/goautils.c
 src/goabackend/goawebview.c
 src/goabackend/goawindowsliveprovider.c
-src/goabackend/goayahooprovider.c
-src/goaidentity/goaalarm.c
 src/goaidentity/goaidentityservice.c
 src/goaidentity/goakerberosidentity.c
 src/goaidentity/goakerberosidentitymanager.c

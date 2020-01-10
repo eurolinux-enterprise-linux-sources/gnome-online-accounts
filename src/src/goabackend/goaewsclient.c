@@ -49,12 +49,12 @@ G_DEFINE_TYPE (GoaEwsClient, goa_ews_client, G_TYPE_OBJECT);
 /* ---------------------------------------------------------------------------------------------------- */
 
 static void
-goa_ews_client_init (GoaEwsClient *client)
+goa_ews_client_init (GoaEwsClient *self)
 {
 }
 
 static void
-goa_ews_client_class_init (GoaEwsClientClass *klass)
+goa_ews_client_class_init (GoaEwsClientClass *self)
 {
 }
 
@@ -221,7 +221,14 @@ ews_client_autodiscover_response_cb (SoupSession *session, SoupMessage *msg, gpo
    * successful.
    */
   if (status == SOUP_STATUS_CANCELLED)
-    goto out;
+    {
+      /* If a previous autodiscover attempt for the same GAsyncResult
+       * was successful then no additional attempts are required and
+       * we should use the result from the earlier attempt.
+       */
+      op_res = g_simple_async_result_get_op_res_gboolean (data->res);
+      goto out;
+    }
   else if (status != SOUP_STATUS_OK)
     {
       g_warning ("goa_ews_client_autodiscover() failed: %u — %s", msg->status_code, msg->reason_phrase);
@@ -306,13 +313,18 @@ ews_client_autodiscover_response_cb (SoupSession *session, SoupMessage *msg, gpo
       goto out;
     }
 
+  /* This autodiscover attempt was successful. Save the result now so
+   * that it won't get lost when we hear from another autodiscover
+   * attempt for the same GAsyncResult.
+   */
+  g_simple_async_result_set_op_res_gboolean (data->res, op_res);
+
   for (idx = 0; idx < size; idx++)
     {
       if (data->msgs[idx] != NULL)
         {
-          /* Since we are cancelling from the same thread that we queued the
-           * message, the callback (ie. this function) will be invoked before
-           * soup_session_cancel_message returns.
+          /* The callback (ie. this function) will be invoked after we
+           * have returned to the main loop.
            */
           soup_session_cancel_message (data->session, data->msgs[idx], SOUP_STATUS_CANCELLED);
         }
@@ -340,7 +352,12 @@ ews_client_autodiscover_response_cb (SoupSession *session, SoupMessage *msg, gpo
       GMainContext *context;
       GSource *source;
 
-      g_simple_async_result_set_op_res_gboolean (data->res, op_res);
+      /* The result of the GAsyncResult should already be set when we
+       * get here. If it wasn't explicitly set to TRUE then
+       * autodiscovery has failed and the default value of the
+       * GAsyncResult (which is FALSE) should be returned to the
+       * original caller.
+       */
 
       source = g_idle_source_new ();
       g_source_set_priority (source, G_PRIORITY_DEFAULT_IDLE);
@@ -433,7 +450,7 @@ ews_client_create_msg_for_url (const gchar *url, xmlOutputBuffer *buf)
 }
 
 void
-goa_ews_client_autodiscover (GoaEwsClient        *client,
+goa_ews_client_autodiscover (GoaEwsClient        *self,
                              const gchar         *email,
                              const gchar         *password,
                              const gchar         *username,
@@ -450,7 +467,7 @@ goa_ews_client_autodiscover (GoaEwsClient        *client,
   xmlDoc *doc;
   xmlOutputBuffer *buf;
 
-  g_return_if_fail (GOA_IS_EWS_CLIENT (client));
+  g_return_if_fail (GOA_IS_EWS_CLIENT (self));
   g_return_if_fail (email != NULL && email[0] != '\0');
   g_return_if_fail (password != NULL && password[0] != '\0');
   g_return_if_fail (username != NULL && username[0] != '\0');
@@ -474,16 +491,13 @@ goa_ews_client_autodiscover (GoaEwsClient        *client,
    */
   data = g_slice_new0 (AutodiscoverData);
   data->buf = buf;
-  data->res = g_simple_async_result_new (G_OBJECT (client), callback, user_data, goa_ews_client_autodiscover);
+  data->res = g_simple_async_result_new (G_OBJECT (self), callback, user_data, goa_ews_client_autodiscover);
   data->msgs[0] = ews_client_create_msg_for_url (url1, buf);
   data->msgs[1] = ews_client_create_msg_for_url (url2, buf);
   data->pending = sizeof (data->msgs) / sizeof (data->msgs[0]);
-  data->session = soup_session_async_new_with_options (SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE, TRUE,
-                                                       SOUP_SESSION_SSL_STRICT, FALSE,
-                                                       SOUP_SESSION_USE_NTLM, TRUE,
-                                                       SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-                                                       NULL);
-  soup_session_add_feature_by_type (data->session, SOUP_TYPE_PROXY_RESOLVER_DEFAULT);
+  data->session = soup_session_new_with_options (SOUP_SESSION_SSL_STRICT, FALSE,
+                                                 NULL);
+  soup_session_add_feature_by_type (data->session, SOUP_TYPE_AUTH_NTLM);
   data->accept_ssl_errors = accept_ssl_errors;
 
   if (cancellable != NULL)
@@ -517,11 +531,11 @@ goa_ews_client_autodiscover (GoaEwsClient        *client,
 }
 
 gboolean
-goa_ews_client_autodiscover_finish (GoaEwsClient *client, GAsyncResult *res, GError **error)
+goa_ews_client_autodiscover_finish (GoaEwsClient *self, GAsyncResult *res, GError **error)
 {
   GSimpleAsyncResult *simple;
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (client), goa_ews_client_autodiscover),
+  g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self), goa_ews_client_autodiscover),
                         FALSE);
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
@@ -552,7 +566,7 @@ ews_client_autodiscover_sync_cb (GObject *source_object, GAsyncResult *res, gpoi
 }
 
 gboolean
-goa_ews_client_autodiscover_sync (GoaEwsClient        *client,
+goa_ews_client_autodiscover_sync (GoaEwsClient        *self,
                                   const gchar         *email,
                                   const gchar         *password,
                                   const gchar         *username,
@@ -570,7 +584,7 @@ goa_ews_client_autodiscover_sync (GoaEwsClient        *client,
   g_main_context_push_thread_default (context);
   data.loop = g_main_loop_new (context, FALSE);
 
-  goa_ews_client_autodiscover (client,
+  goa_ews_client_autodiscover (self,
                                email,
                                password,
                                username,

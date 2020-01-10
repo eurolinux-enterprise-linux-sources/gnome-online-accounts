@@ -39,7 +39,7 @@ G_BEGIN_DECLS
 typedef struct _GoaProviderFactory GoaProviderFactory;
 typedef struct _GoaProviderFactoryClass GoaProviderFactoryClass;
 
-/**
+/*
  * GoaProviderFactory:
  *
  * The #GoaProviderFactory structure contains only private data and should
@@ -51,7 +51,7 @@ struct _GoaProviderFactory
   GObject parent_instance;
 };
 
-/**
+/*
  * GoaProviderFactoryClass:
  * @parent_class: The parent class.
  * @get_provider: Virtual function for goa_provider_factory_get_provider().
@@ -69,7 +69,7 @@ struct _GoaProviderFactoryClass
                                              const gchar           *provider_name);
 
   /* The async method is mandatory to implement, but _finish has a default
-   * implementation suitable for a GSimpleAsyncResult. */
+   * implementation suitable for a GTask. */
   void         (*get_providers)             (GoaProviderFactory    *factory,
                                              GAsyncReadyCallback    callback,
                                              gpointer               user_data);

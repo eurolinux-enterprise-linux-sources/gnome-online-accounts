@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2012, 2013, 2015 Red Hat, Inc.
+ * Copyright (C) 2012, 2013, 2015, 2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,10 @@
 
 #include <glib/gi18n-lib.h>
 #include <libsecret/secret.h>
+
+#ifdef GOA_TELEPATHY_ENABLED
 #include <telepathy-glib/telepathy-glib.h>
+#endif
 
 #include "goaprovider.h"
 #include "goautils.h"
@@ -34,6 +37,164 @@ static const SecretSchema secret_password_schema =
   }
 };
 
+typedef struct
+{
+  GoaClient *client;
+  GoaObject *object;
+  GoaProvider *provider;
+} AttentionNeededData;
+
+static AttentionNeededData *
+attention_needed_data_new (GoaClient *client, GoaObject *object, GoaProvider *provider)
+{
+  AttentionNeededData *data;
+
+  data = g_slice_new0 (AttentionNeededData);
+  data->client = g_object_ref (client);
+  data->object = g_object_ref (object);
+  data->provider = g_object_ref (provider);
+
+  return data;
+}
+
+static void
+attention_needed_data_free (AttentionNeededData *data)
+{
+  g_object_unref (data->client);
+  g_object_unref (data->object);
+  g_object_unref (data->provider);
+  g_slice_free (AttentionNeededData, data);
+}
+
+static void
+goa_utils_account_add_attention_needed_button_clicked (GtkButton *button, gpointer user_data)
+{
+  AttentionNeededData *data = (AttentionNeededData *) user_data;
+  GtkWidget *parent;
+  GError *error;
+
+  parent = gtk_widget_get_toplevel (GTK_WIDGET (button));
+  if (!gtk_widget_is_toplevel (parent))
+    {
+      g_warning ("Unable to find a toplevel GtkWindow");
+      return;
+    }
+
+  error = NULL;
+  if (!goa_provider_refresh_account (data->provider, data->client, data->object, GTK_WINDOW (parent), &error))
+    {
+      if (!(error->domain == GOA_ERROR && error->code == GOA_ERROR_DIALOG_DISMISSED))
+        {
+          GtkWidget *dialog;
+          dialog = gtk_message_dialog_new (GTK_WINDOW (parent),
+                                           GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                           GTK_MESSAGE_ERROR,
+                                           GTK_BUTTONS_CLOSE,
+                                           _("Error logging into the account"));
+          gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog),
+                                                    "%s",
+                                                    error->message);
+          gtk_widget_show_all (dialog);
+          gtk_dialog_run (GTK_DIALOG (dialog));
+          gtk_widget_destroy (dialog);
+        }
+      g_error_free (error);
+    }
+}
+
+void
+goa_utils_account_add_attention_needed (GoaClient *client, GoaObject *object, GoaProvider *provider, GtkBox *vbox)
+{
+  AttentionNeededData *data;
+  GoaAccount *account;
+  GtkWidget *button;
+  GtkWidget *grid;
+  GtkWidget *image;
+  GtkWidget *label;
+  GtkWidget *labels_grid;
+
+  account = goa_object_peek_account (object);
+  if (!goa_account_get_attention_needed (account))
+    return;
+
+  grid = gtk_grid_new ();
+  gtk_orientable_set_orientation (GTK_ORIENTABLE (grid), GTK_ORIENTATION_HORIZONTAL);
+  gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
+  gtk_box_pack_end (vbox, grid, FALSE, TRUE, 0);
+
+  image = gtk_image_new_from_icon_name ("dialog-warning", GTK_ICON_SIZE_SMALL_TOOLBAR);
+  gtk_widget_set_valign (image, GTK_ALIGN_CENTER);
+  gtk_container_add (GTK_CONTAINER (grid), image);
+
+  labels_grid = gtk_grid_new ();
+  gtk_widget_set_halign (labels_grid, GTK_ALIGN_FILL);
+  gtk_widget_set_hexpand (labels_grid, TRUE);
+  gtk_widget_set_valign (labels_grid, GTK_ALIGN_CENTER);
+  gtk_orientable_set_orientation (GTK_ORIENTABLE (labels_grid), GTK_ORIENTATION_VERTICAL);
+  gtk_grid_set_column_spacing (GTK_GRID (labels_grid), 0);
+  gtk_container_add (GTK_CONTAINER (grid), labels_grid);
+
+  label = gtk_label_new (_("Credentials have expired."));
+  gtk_widget_set_halign (label, GTK_ALIGN_START);
+  gtk_container_add (GTK_CONTAINER (labels_grid), label);
+
+  label = gtk_label_new (_("Sign in to enable this account."));
+  gtk_widget_set_halign (label, GTK_ALIGN_START);
+  gtk_style_context_add_class (gtk_widget_get_style_context (label), "dim-label");
+  gtk_container_add (GTK_CONTAINER (labels_grid), label);
+
+  button = gtk_button_new_with_mnemonic (_("_Sign In"));
+  gtk_widget_set_valign (button, GTK_ALIGN_CENTER);
+  gtk_container_add (GTK_CONTAINER (grid), button);
+
+  data = attention_needed_data_new (client, object, provider);
+  g_signal_connect_data (button,
+                         "clicked",
+                         G_CALLBACK (goa_utils_account_add_attention_needed_button_clicked),
+                         data,
+                         (GClosureNotify) attention_needed_data_free,
+                         0);
+}
+
+void
+goa_utils_account_add_header (GoaObject *object, GtkGrid *grid, gint row)
+{
+  GIcon *icon;
+  GoaAccount *account;
+  GtkWidget *image;
+  GtkWidget *label;
+  const gchar *icon_str;
+  const gchar *identity;
+  const gchar *name;
+  gchar *markup;
+
+  account = goa_object_peek_account (object);
+
+  icon_str = goa_account_get_provider_icon (account);
+  icon = g_icon_new_for_string (icon_str, NULL);
+  image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_DIALOG);
+  g_object_unref (icon);
+  gtk_widget_set_halign (image, GTK_ALIGN_END);
+  gtk_widget_set_hexpand (image, TRUE);
+  gtk_widget_set_margin_bottom (image, 12);
+  gtk_grid_attach (grid, image, 0, row, 1, 1);
+
+  name = goa_account_get_provider_name (account);
+  identity = goa_account_get_presentation_identity (account);
+  markup = g_strdup_printf ("<b>%s</b>\n%s",
+                            name,
+                            (identity == NULL || identity[0] == '\0') ? "\xe2\x80\x94" : identity);
+  label = gtk_label_new (NULL);
+  gtk_label_set_markup (GTK_LABEL (label), markup);
+  gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
+  gtk_label_set_max_width_chars (GTK_LABEL (label), 24);
+  gtk_label_set_width_chars (GTK_LABEL (label), 24);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0);
+  gtk_widget_set_margin_bottom (label, 12);
+  g_free (markup);
+  gtk_grid_attach (grid, label, 1, row, 3, 1);
+}
+
 void
 goa_utils_initialize_client_factory (void)
 {
@@ -41,6 +202,7 @@ goa_utils_initialize_client_factory (void)
 
   if (g_once_init_enter (&once_init_value))
     {
+#ifdef GOA_TELEPATHY_ENABLED
       TpSimpleClientFactory *factory;
       TpAccountManager *account_manager;
       GQuark account_features[] = {TP_ACCOUNT_FEATURE_ADDRESSING,
@@ -63,6 +225,7 @@ goa_utils_initialize_client_factory (void)
 
       g_object_unref (account_manager);
       g_object_unref (factory);
+#endif
 
       g_once_init_leave (&once_init_value, 1);
     }
@@ -169,26 +332,40 @@ goa_utils_set_dialog_title (GoaProvider *provider, GtkDialog *dialog, gboolean a
 }
 
 gboolean
-goa_utils_delete_credentials_sync (GoaProvider   *provider,
-                                   GoaAccount    *object,
-                                   GCancellable  *cancellable,
-                                   GError       **error)
+goa_utils_delete_credentials_for_account_sync (GoaProvider   *provider,
+                                               GoaAccount    *object,
+                                               GCancellable  *cancellable,
+                                               GError       **error)
 {
-  gboolean ret;
-  gchar *password_key;
   const gchar *id;
-  GError *sec_error = NULL;
 
   g_return_val_if_fail (GOA_IS_PROVIDER (provider), FALSE);
   g_return_val_if_fail (GOA_IS_ACCOUNT (object), FALSE);
   g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
+  id = goa_account_get_id (object);
+  return goa_utils_delete_credentials_for_id_sync (provider, id, cancellable, error);
+}
+
+gboolean
+goa_utils_delete_credentials_for_id_sync (GoaProvider   *provider,
+                                          const gchar   *id,
+                                          GCancellable  *cancellable,
+                                          GError       **error)
+{
+  gboolean ret;
+  gchar *password_key;
+  GError *sec_error = NULL;
+
+  g_return_val_if_fail (GOA_IS_PROVIDER (provider), FALSE);
+  g_return_val_if_fail (id != NULL && id[0] != '\0', FALSE);
+  g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
   ret = FALSE;
 
   password_key = NULL;
-
-  id = goa_account_get_id (object);
 
   password_key = g_strdup_printf ("%s:gen%d:%s",
                                   goa_provider_get_provider_type (GOA_PROVIDER (provider)),
@@ -375,17 +552,115 @@ goa_utils_store_credentials_for_object_sync (GoaProvider   *provider,
   return goa_utils_store_credentials_for_id_sync (provider, id, credentials, cancellable, error);
 }
 
+gboolean
+goa_utils_keyfile_copy_group (GKeyFile     *src_key_file,
+                              const gchar  *src_group_name,
+                              GKeyFile     *dest_key_file,
+                              const gchar  *dest_group_name)
+{
+  GError *error;
+  gboolean ret_val = FALSE;
+  gchar **keys = NULL;
+  gsize i;
+
+  error = NULL;
+  keys = g_key_file_get_keys (src_key_file, src_group_name, NULL, &error);
+  if (error != NULL)
+    {
+      g_warning ("Error getting keys from group %s: %s (%s, %d)",
+                 src_group_name,
+                 error->message,
+                 g_quark_to_string (error->domain),
+                 error->code);
+      g_error_free (error);
+      goto out;
+    }
+
+  for (i = 0; keys[i] != NULL; i++)
+    {
+      gchar *dest_value;
+      gchar *src_value;
+
+      error = NULL;
+      src_value = g_key_file_get_value (src_key_file, src_group_name, keys[i], &error);
+      if (error != NULL)
+        {
+          g_warning ("Error reading key %s from group %s: %s (%s, %d)",
+                     keys[i],
+                     src_group_name,
+                     error->message,
+                     g_quark_to_string (error->domain),
+                     error->code);
+          g_error_free (error);
+          continue;
+        }
+
+      error = NULL;
+      dest_value = g_key_file_get_value (dest_key_file, dest_group_name, keys[i], &error);
+      if (error != NULL)
+        {
+          if (!g_error_matches (error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)
+              && !g_error_matches (error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND))
+            {
+              g_warning ("Error reading key %s from group %s: %s (%s, %d)",
+                         keys[i],
+                         src_group_name,
+                         error->message,
+                         g_quark_to_string (error->domain),
+                         error->code);
+            }
+
+          g_error_free (error);
+        }
+
+      if (g_strcmp0 (dest_value, src_value) != 0)
+        {
+          g_key_file_set_value (dest_key_file, dest_group_name, keys[i], src_value);
+          ret_val = TRUE;
+        }
+
+      g_free (dest_value);
+      g_free (src_value);
+    }
+
+ out:
+  g_strfreev (keys);
+  return ret_val;
+}
+
+gboolean
+goa_utils_keyfile_get_boolean (GKeyFile *key_file, const gchar *group_name, const gchar *key)
+{
+  GError *error;
+  gboolean ret;
+
+  error = NULL;
+  ret = g_key_file_get_boolean (key_file, group_name, key, &error);
+  if (error != NULL)
+    {
+      if (!g_error_matches (error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND))
+        {
+          g_warning ("Error reading key %s from group %s in keyfile: %s (%s, %d)",
+                     key,
+                     group_name,
+                     error->message,
+                     g_quark_to_string (error->domain),
+                     error->code);
+        }
+
+      g_error_free (error);
+    }
+
+  return ret;
+}
+
 void
 goa_utils_keyfile_remove_key (GoaAccount *account, const gchar *key)
 {
   GError *error;
   GKeyFile *key_file;
-  gchar *contents;
   gchar *group;
   gchar *path;
-  gsize length;
-
-  contents = NULL;
 
   path = g_strdup_printf ("%s/goa-1.0/accounts.conf", g_get_user_config_dir ());
   group = g_strdup_printf ("Account %s", goa_account_get_id (account));
@@ -406,11 +681,11 @@ goa_utils_keyfile_remove_key (GoaAccount *account, const gchar *key)
       goto out;
     }
 
-  g_key_file_remove_key (key_file, group, key, NULL);
-  contents = g_key_file_to_data (key_file, &length, NULL);
+  if (!g_key_file_remove_key (key_file, group, key, NULL))
+    goto out;
 
   error = NULL;
-  if (!g_file_set_contents (path, contents, length, &error))
+  if (!g_key_file_save_to_file (key_file, path, &error))
     {
       g_prefix_error (&error, "Error writing key-value-file %s: ", path);
       g_warning ("%s (%s, %d)", error->message, g_quark_to_string (error->domain), error->code);
@@ -419,8 +694,7 @@ goa_utils_keyfile_remove_key (GoaAccount *account, const gchar *key)
     }
 
  out:
-  g_free (contents);
-  g_key_file_free (key_file);
+  g_key_file_unref (key_file);
   g_free (group);
   g_free (path);
 }
@@ -430,12 +704,10 @@ goa_utils_keyfile_set_boolean (GoaAccount *account, const gchar *key, gboolean v
 {
   GError *error;
   GKeyFile *key_file;
-  gchar *contents;
+  gboolean needs_update = FALSE;
+  gboolean old_value;
   gchar *group;
   gchar *path;
-  gsize length;
-
-  contents = NULL;
 
   path = g_strdup_printf ("%s/goa-1.0/accounts.conf", g_get_user_config_dir ());
   group = g_strdup_printf ("Account %s", goa_account_get_id (account));
@@ -456,11 +728,31 @@ goa_utils_keyfile_set_boolean (GoaAccount *account, const gchar *key, gboolean v
       goto out;
     }
 
+  error = NULL;
+  old_value = g_key_file_get_boolean (key_file, group, key, &error);
+  if (error != NULL)
+    {
+      g_warning ("Error reading key %s from keyfile %s: %s (%s, %d)",
+                 key,
+                 path,
+                 error->message,
+                 g_quark_to_string (error->domain),
+                 error->code);
+      needs_update = TRUE;
+      g_error_free (error);
+    }
+  else if (old_value != value)
+    {
+      needs_update = TRUE;
+    }
+
+  if (!needs_update)
+    goto out;
+
   g_key_file_set_boolean (key_file, group, key, value);
-  contents = g_key_file_to_data (key_file, &length, NULL);
 
   error = NULL;
-  if (!g_file_set_contents (path, contents, length, &error))
+  if (!g_key_file_save_to_file (key_file, path, &error))
     {
       g_prefix_error (&error, "Error writing key-value-file %s: ", path);
       g_warning ("%s (%s, %d)", error->message, g_quark_to_string (error->domain), error->code);
@@ -469,8 +761,7 @@ goa_utils_keyfile_set_boolean (GoaAccount *account, const gchar *key, gboolean v
     }
 
  out:
-  g_free (contents);
-  g_key_file_free (key_file);
+  g_key_file_unref (key_file);
   g_free (group);
   g_free (path);
 }
@@ -480,12 +771,10 @@ goa_utils_keyfile_set_string (GoaAccount *account, const gchar *key, const gchar
 {
   GError *error;
   GKeyFile *key_file;
-  gchar *contents;
+  gboolean needs_update = FALSE;
   gchar *group;
+  gchar *old_value = NULL;
   gchar *path;
-  gsize length;
-
-  contents = NULL;
 
   path = g_strdup_printf ("%s/goa-1.0/accounts.conf", g_get_user_config_dir ());
   group = g_strdup_printf ("Account %s", goa_account_get_id (account));
@@ -506,11 +795,31 @@ goa_utils_keyfile_set_string (GoaAccount *account, const gchar *key, const gchar
       goto out;
     }
 
+  error = NULL;
+  old_value = g_key_file_get_string (key_file, group, key, &error);
+  if (error != NULL)
+    {
+      g_warning ("Error reading key %s from keyfile %s: %s (%s, %d)",
+                 key,
+                 path,
+                 error->message,
+                 g_quark_to_string (error->domain),
+                 error->code);
+      needs_update = TRUE;
+      g_error_free (error);
+    }
+  else if (g_strcmp0 (old_value, value) != 0)
+    {
+      needs_update = TRUE;
+    }
+
+  if (!needs_update)
+    goto out;
+
   g_key_file_set_string (key_file, group, key, value);
-  contents = g_key_file_to_data (key_file, &length, NULL);
 
   error = NULL;
-  if (!g_file_set_contents (path, contents, length, &error))
+  if (!g_key_file_save_to_file (key_file, path, &error))
     {
       g_prefix_error (&error, "Error writing key-value-file %s: ", path);
       g_warning ("%s (%s, %d)", error->message, g_quark_to_string (error->domain), error->code);
@@ -519,9 +828,9 @@ goa_utils_keyfile_set_string (GoaAccount *account, const gchar *key, const gchar
     }
 
  out:
-  g_free (contents);
-  g_key_file_free (key_file);
+  g_key_file_unref (key_file);
   g_free (group);
+  g_free (old_value);
   g_free (path);
 }
 
@@ -562,6 +871,19 @@ goa_utils_set_error_soup (GError **err, SoupMessage *msg)
 
   switch (msg->status_code)
     {
+    case SOUP_STATUS_CANT_RESOLVE:
+      error_msg = g_strdup (_("Cannot resolve hostname"));
+      break;
+
+    case SOUP_STATUS_CANT_RESOLVE_PROXY:
+      error_msg = g_strdup (_("Cannot resolve proxy hostname"));
+      break;
+
+    case SOUP_STATUS_INTERNAL_SERVER_ERROR:
+    case SOUP_STATUS_NOT_FOUND:
+      error_msg = g_strdup (_("Cannot find WebDAV endpoint"));
+      break;
+
     case SOUP_STATUS_UNAUTHORIZED:
       error_msg = g_strdup (_("Authentication failed"));
       error_code = GOA_ERROR_NOT_AUTHORIZED;
@@ -614,4 +936,59 @@ goa_utils_set_error_ssl (GError **err, GTlsCertificateFlags flags)
     }
 
   g_set_error_literal (err, GOA_ERROR, GOA_ERROR_SSL, error_msg);
+}
+
+gboolean
+goa_utils_get_credentials (GoaProvider    *provider,
+                           GoaObject      *object,
+                           const gchar    *id,
+                           gchar         **out_username,
+                           gchar         **out_password,
+                           GCancellable   *cancellable,
+                           GError        **error)
+{
+  GVariant *credentials = NULL;
+  GoaAccount *account = NULL;
+  gboolean ret = FALSE;
+  gchar *username = NULL;
+  gchar *password = NULL;
+
+  credentials = goa_utils_lookup_credentials_sync (provider,
+                                                   object,
+                                                   cancellable,
+                                                   error);
+  if (credentials == NULL)
+    goto out;
+
+  account = goa_object_get_account (object);
+  username = goa_account_dup_identity (account);
+
+  if (!g_variant_lookup (credentials, id, "s", &password))
+    {
+      g_set_error (error, GOA_ERROR, GOA_ERROR_FAILED, /* TODO: more specific */
+                   _("Did not find %s with identity ‘%s’ in credentials"),
+                   id, username);
+      goto out;
+    }
+
+  if (out_username)
+    {
+      *out_username = username;
+      username = NULL;
+    }
+
+  if (out_password)
+    {
+      *out_password = password;
+      password = NULL;
+    }
+
+  ret = TRUE;
+
+out:
+  g_clear_object (&account);
+  g_clear_pointer (&credentials, (GDestroyNotify) g_variant_unref);
+  g_free (username);
+  g_free (password);
+  return ret;
 }

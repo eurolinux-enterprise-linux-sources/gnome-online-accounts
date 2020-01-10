@@ -1,6 +1,6 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 /*
- * Copyright (C) 2011 Red Hat, Inc.
+ * Copyright (C) 2011, 2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,15 +18,14 @@
 
 #include "config.h"
 
-#include <glib/gi18n.h>
 #include <glib-unix.h>
 
+#include <locale.h>
 #include <signal.h>
 #include <gio/gio.h>
+#include <libintl.h>
 
 #include "goadaemon.h"
-#include "goatpaccountlinker.h"
-
 
 /* ---------------------------------------------------------------------------------------------------- */
 
@@ -40,7 +39,6 @@ static GOptionEntry opt_entries[] =
   {NULL }
 };
 static GoaDaemon *the_daemon = NULL;
-static GoaTpAccountLinker *tp_linker = NULL;
 
 static void
 on_bus_acquired (GDBusConnection *connection,
@@ -67,8 +65,6 @@ on_name_acquired (GDBusConnection *connection,
                   gpointer         user_data)
 {
   g_debug ("Acquired the name %s on the session message bus", name);
-
-  tp_linker = goa_tp_account_linker_new ();
 }
 
 static gboolean
@@ -92,6 +88,11 @@ main (int    argc,
   loop = NULL;
   opt_context = NULL;
   name_owner_id = 0;
+
+  setlocale (LC_ALL, "");
+  bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+  bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+  textdomain (GETTEXT_PACKAGE);
 
   opt_context = g_option_context_new ("GNOME Online Accounts daemon");
   g_option_context_add_main_entries (opt_context, opt_entries, NULL);
@@ -129,16 +130,11 @@ main (int    argc,
   ret = 0;
 
  out:
-  if (the_daemon != NULL)
-    g_object_unref (the_daemon);
-  if (tp_linker != NULL)
-    g_object_unref (tp_linker);
+  g_clear_object (&the_daemon);
   if (name_owner_id != 0)
     g_bus_unown_name (name_owner_id);
-  if (loop != NULL)
-    g_main_loop_unref (loop);
-  if (opt_context != NULL)
-    g_option_context_free (opt_context);
+  g_clear_pointer (&loop, (GDestroyNotify) g_main_loop_unref);
+  g_clear_pointer (&opt_context, (GDestroyNotify) g_option_context_free);
 
   g_message ("goa-daemon version %s exiting", PACKAGE_VERSION);
 
